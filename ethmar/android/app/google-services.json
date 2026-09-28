@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "175049490367",
+    "project_id": "ethmar-95aaf",
+    "storage_bucket": "ethmar-95aaf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:175049490367:android:2e48bade2bc03261f4ab0a",
+        "android_client_info": {
+          "package_name": "com.example.ethmar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMQqyCXb0xR_NiHyk-Rmfp9QINiwCB1Dc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
