@@ -370,6 +370,42 @@ def _has_climate(row: pd.Series) -> bool:
     )
     return bool(temp_ok and rain_ok)
 
+ENVELOPE_PAIRS = [
+    ("ecocrop_temp_opt_min_c", "ecocrop_temp_opt_max_c"),
+    ("ecocrop_temp_abs_min_c", "ecocrop_temp_abs_max_c"),
+    ("ecocrop_rain_opt_min_mm", "ecocrop_rain_opt_max_mm"),
+    ("ecocrop_rain_abs_min_mm", "ecocrop_rain_abs_max_mm"),
+    ("ecocrop_ph_opt_min", "ecocrop_ph_opt_max"),
+    ("ecocrop_ph_abs_min", "ecocrop_ph_abs_max"),
+    ("hardiness_zone_min", "hardiness_zone_max"),
+    ("ecocrop_gmin", "ecocrop_gmax"),
+]
+
+
+def repair_envelopes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Swap any inverted envelope pair and record what was changed.
+
+    A source record with rain_opt_min=7000 and rain_opt_max=2000 would silently
+    match every location, because the matcher compares against the bounds. One
+    known case: Acorus calamus. Repairs are logged in repairs_applied rather
+    than edited by hand, so the fix is visible and repeatable.
+    """
+    df = df.copy()
+    df["repairs_applied"] = ""
+
+    for low, high in ENVELOPE_PAIRS:
+        if low not in df.columns or high not in df.columns:
+            continue
+        inverted = df[low].notna() & df[high].notna() & (df[low] > df[high])
+        if inverted.any():
+            df.loc[inverted, [low, high]] = df.loc[inverted, [high, low]].values
+            for index in df.index[inverted]:
+                note = df.at[index, "repairs_applied"]
+                entry = f"swapped {low}/{high}"
+                df.at[index, "repairs_applied"] = f"{note}; {entry}" if note else entry
+
+    return df
 
 def split_tables(df: pd.DataFrame):
     recommendable_rows, reference_rows = [], []
@@ -452,6 +488,8 @@ def main() -> int:
 
     df = df.apply(classify, axis=1)
     merged = merge_species(df)
+    merged = repair_envelopes(merged)
+
 
     recommendable, reference, reasons, ph_imputed = split_tables(merged)
 
