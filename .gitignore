@@ -1,0 +1,18 @@
+﻿# Data — regenerate from the pipeline, too large for Git
+data/raw/
+data/processed/
+data/external/
+
+# Trained models go to Firebase, not Git
+ml/artifacts/*.pkl
+ml/artifacts/*.joblib
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Environment
+.env
