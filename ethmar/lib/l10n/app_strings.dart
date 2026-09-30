@@ -48,10 +48,18 @@ class AppStrings {
     'back': 'Back',
     'accountCreated': 'Account created. Welcome to Ethmar!',
     'resetSoon': "Password reset is coming soon",
+    'resetTitle': 'Forgot your\npassword?',
+    'resetAccent': "we'll get you back in",
+    'sendResetLink': 'Send reset link',
+    'backToLogin': 'Back to Login',
+    'resetLinkSent': 'Reset link sent! Check your inbox',
+    'errEmailNotRegistered': "We couldn't find an account with that email",
     'verifyEmail': 'Verify email',
     'verifySoon': 'Email verification is coming soon',
     'errVerifyEmailFirst':
         'Verify your email first. Check your inbox for the link',
+    'errInvalidCredentials':
+        "That email or password doesn't match. Try again",
     'homeHello': 'Hello',
     'homeFriend': 'friend',
     'homeTitle': 'Your garden is\nalmost ready',
@@ -96,9 +104,16 @@ class AppStrings {
     'back': 'رجوع',
     'accountCreated': 'تم إنشاء حسابك. أهلًا بك في إثمار!',
     'resetSoon': 'استعادة كلمة المرور قريبًا',
+    'resetTitle': 'نسيت\nكلمة المرور؟',
+    'resetAccent': 'نرجّعك لمزرعتك',
+    'sendResetLink': 'أرسل رابط الاستعادة',
+    'backToLogin': 'رجوع لتسجيل الدخول',
+    'resetLinkSent': 'أرسلنا رابط الاستعادة! شيّك على بريدك',
+    'errEmailNotRegistered': 'ما لقينا حساب بهذا البريد الإلكتروني',
     'verifyEmail': 'تأكيد البريد الإلكتروني',
     'verifySoon': 'تأكيد البريد الإلكتروني قريبًا',
     'errVerifyEmailFirst': 'أكّد بريدك الإلكتروني أولًا. الرابط وصلك على الإيميل',
+    'errInvalidCredentials': 'البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة ثانية',
     'homeHello': 'أهلًا',
     'homeFriend': 'يا صديقي',
     'homeTitle': 'حديقتك\nتقريبًا جاهزة',
@@ -152,9 +167,16 @@ class S {
   String get back => t('back');
   String get accountCreated => t('accountCreated');
   String get resetSoon => t('resetSoon');
+  String get resetTitle => t('resetTitle');
+  String get resetAccent => t('resetAccent');
+  String get sendResetLink => t('sendResetLink');
+  String get backToLogin => t('backToLogin');
+  String get resetLinkSent => t('resetLinkSent');
+  String get errEmailNotRegistered => t('errEmailNotRegistered');
   String get verifyEmail => t('verifyEmail');
   String get verifySoon => t('verifySoon');
   String get errVerifyEmailFirst => t('errVerifyEmailFirst');
+  String get errInvalidCredentials => t('errInvalidCredentials');
   String get homeHello => t('homeHello');
   String get homeFriend => t('homeFriend');
   String get homeTitle => t('homeTitle');

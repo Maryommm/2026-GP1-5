@@ -13,6 +13,12 @@ void main() {
       expect(Validators.email('   ', s), s.errEmailRequired);
       expect(Validators.password('', s), s.errPasswordRequired);
     });
+
+    test('login only asks that a password was entered', () {
+      expect(Validators.passwordRequired('', s), s.errPasswordRequired);
+      expect(Validators.passwordRequired(null, s), s.errPasswordRequired);
+      expect(Validators.passwordRequired('x', s), isNull);
+    });
   });
 
   group('Validators.email', () {

@@ -8,6 +8,7 @@ import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
 import 'home_placeholder_screen.dart';
+import 'reset_password_screen.dart';
 import 'sign_up_screen.dart';
 import 'validators.dart';
 
@@ -35,7 +36,18 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     if (!(_form.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
-    // TODO: connect to your backend (e.g. Firebase Auth) here.
+    // TODO(firebase): Authenticate here:
+    // 1) FirebaseAuth.instance.signInWithEmailAndPassword(
+    //   email: _email.text.trim(), password: _password.text).
+    // 2) Read `users/{uid}` from Firestore and pass its `username` to
+    //   HomePlaceholderScreen below (right now Home says "Hello, friend").
+    // 3) Only go Home on success. On FirebaseAuthException with code
+    //   'invalid-credential', 'user-not-found' or 'wrong-password', set
+    //   _loading = false and show
+    //   showEthmarToast(context, s.errInvalidCredentials,
+    //   icon: Icons.error_outline_rounded).
+    //   Use this one message for all three so the app never reveals whether
+    //   an email is registered. Keep what the user typed in both fields.
     await Future<void>.delayed(const Duration(milliseconds: 1000));
     if (!mounted) return;
     setState(() => _loading = false);
@@ -94,8 +106,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           alignment: AlignmentDirectional.centerEnd,
                           child: EthmarLink(
                             label: s.forgotPassword,
-                            onTap: () => showEthmarToast(context, s.resetSoon,
-                                icon: Icons.info_outline_rounded),
+                            onTap: () => Navigator.of(context).push(riseRoute(
+                                ResetPasswordScreen(email: _email.text.trim()))),
                           ),
                         ),
                         const SizedBox(height: 24),
