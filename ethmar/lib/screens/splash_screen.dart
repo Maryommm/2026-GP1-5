@@ -5,18 +5,16 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
+import 'welcome_screen.dart';
 
 /// 3-second animated splash, matching the approved video preview:
 ///  0.30–1.30s  word forms right → left
 ///  0.75–1.38s  plant-shaped Alif stem grows up from its base
 ///  1.22–1.82s  its two leaves unfold
 ///  1.60–2.26s  the three dots of ث fall like little leaves
-///  2.70–3.00s  gentle fade, then [next]
+///  2.70–3.00s  gentle fade, then the Welcome screen
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key, required this.next});
-
-  /// The screen shown after the splash finishes.
-  final Widget next;
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -38,9 +36,11 @@ class _SplashScreenState extends State<SplashScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future<void>.delayed(const Duration(milliseconds: 250));
       if (!mounted) return;
+      precacheImage(
+          const AssetImage('assets/images/character_welcome.png'), context);
       _c.forward().whenComplete(() {
         if (!mounted) return;
-        Navigator.of(context).pushReplacement(fadeRoute(widget.next));
+        Navigator.of(context).pushReplacement(fadeRoute(const WelcomeScreen()));
       });
     });
   }

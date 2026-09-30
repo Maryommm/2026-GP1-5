@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches AppColors.background so the launch screen blends into the splash. -->
+    <color name="ethmar_background">#FFF7EC</color>
+</resources>
