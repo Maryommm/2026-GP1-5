@@ -16,13 +16,13 @@ import 'welcome_screen.dart';
 /// Greeting and title on top, the character on its sea-coloured disc
 /// (the one accent) in the middle, a quiet log-out at the bottom.
 class HomePlaceholderScreen extends StatelessWidget {
-  const HomePlaceholderScreen({super.key, this.name = ''});
-  final String name;
+  const HomePlaceholderScreen({super.key, this.username = ''});
+  final String username;
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final who = name.isEmpty ? s.homeFriend : name.split(' ').first;
+    final who = username.isEmpty ? s.homeFriend : username;
     final isAr = Localizations.localeOf(context).languageCode == 'ar';
     final greeting = '${s.homeHello}${isAr ? '، ' : ', '}$who';
     return Scaffold(

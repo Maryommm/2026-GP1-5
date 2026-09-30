@@ -18,8 +18,8 @@ class AppStrings {
     'haveAccount': 'Log in',
     'signUpTitle': 'Create your\naccount',
     'signUpAccent': 'your farm is waiting',
-    'fullName': 'Full name',
-    'fullNameHint': 'Noora',
+    'username': 'Username',
+    'usernameHint': 'noora_22',
     'email': 'Email',
     'emailHint': 'name@example.com',
     'password': 'Password',
@@ -33,7 +33,10 @@ class AppStrings {
     'loginButton': 'Log in',
     'newHere': 'New to Ethmar?',
     'createAccountLink': 'Create an account',
-    'errNameRequired': 'Tell us your name so we can say hi',
+    'errUsernameRequired': 'Pick a username so we can say hi',
+    'errUsernameInvalid':
+        'Use 3–20 letters, numbers, dots or underscores (no spaces)',
+    'errUsernameTaken': 'That username is already taken',
     'errEmailRequired': 'Enter your email',
     'errEmailInvalid': "That email doesn't look right",
     'errPasswordRequired': 'Enter your password',
@@ -58,8 +61,8 @@ class AppStrings {
     'haveAccount': 'تسجيل الدخول',
     'signUpTitle': 'أنشئ\nحسابك',
     'signUpAccent': 'مزرعتك بانتظارك',
-    'fullName': 'الاسم الكامل',
-    'fullNameHint': 'نورة',
+    'username': 'اسم المستخدم',
+    'usernameHint': 'noora_22',
     'email': 'البريد الإلكتروني',
     'emailHint': 'name@example.com',
     'password': 'كلمة المرور',
@@ -73,7 +76,10 @@ class AppStrings {
     'loginButton': 'تسجيل الدخول',
     'newHere': 'جديد في إثمار؟',
     'createAccountLink': 'أنشئ حساب',
-    'errNameRequired': 'اكتب اسمك عشان نسلّم عليك',
+    'errUsernameRequired': 'اختر اسم مستخدم عشان نسلّم عليك',
+    'errUsernameInvalid':
+        'استخدم من ٣ إلى ٢٠ حرف إنجليزي أو رقم أو نقطة أو _ (بدون مسافات)',
+    'errUsernameTaken': 'اسم المستخدم مستخدم من قبل',
     'errEmailRequired': 'اكتب بريدك الإلكتروني',
     'errEmailInvalid': 'البريد الإلكتروني غير صحيح',
     'errPasswordRequired': 'اكتب كلمة المرور',
@@ -109,8 +115,8 @@ class S {
   String get haveAccount => t('haveAccount');
   String get signUpTitle => t('signUpTitle');
   String get signUpAccent => t('signUpAccent');
-  String get fullName => t('fullName');
-  String get fullNameHint => t('fullNameHint');
+  String get username => t('username');
+  String get usernameHint => t('usernameHint');
   String get email => t('email');
   String get emailHint => t('emailHint');
   String get password => t('password');
@@ -124,7 +130,9 @@ class S {
   String get loginButton => t('loginButton');
   String get newHere => t('newHere');
   String get createAccountLink => t('createAccountLink');
-  String get errNameRequired => t('errNameRequired');
+  String get errUsernameRequired => t('errUsernameRequired');
+  String get errUsernameInvalid => t('errUsernameInvalid');
+  String get errUsernameTaken => t('errUsernameTaken');
   String get errEmailRequired => t('errEmailRequired');
   String get errEmailInvalid => t('errEmailInvalid');
   String get errPasswordRequired => t('errPasswordRequired');

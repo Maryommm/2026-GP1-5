@@ -20,14 +20,14 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _form = GlobalKey<FormState>();
-  final _name = TextEditingController();
+  final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _loading = false;
 
   @override
   void dispose() {
-    _name.dispose();
+    _username.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -37,13 +37,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
     FocusScope.of(context).unfocus();
     if (!(_form.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
-    // TODO: connect to your backend (e.g. Firebase Auth) here.
+    // TODO(firebase): 1) Check the username is free in Firestore
+    //   (`usernames/{username.toLowerCase()}`); if taken, show errUsernameTaken.
+    // 2) FirebaseAuth.createUserWithEmailAndPassword(email, password).
+    // 3) In one transaction, write `usernames/{lowercased}` -> {uid} and
+    //   `users/{uid}` -> {username, email, createdAt} so two people can't
+    //   claim the same username at the same time.
     await Future<void>.delayed(const Duration(milliseconds: 1100));
     if (!mounted) return;
     setState(() => _loading = false);
     showEthmarToast(context, S.of(context).accountCreated);
     Navigator.of(context).pushAndRemoveUntil(
-      riseRoute(HomePlaceholderScreen(name: _name.text.trim())),
+      riseRoute(HomePlaceholderScreen(username: _username.text.trim())),
       (_) => false,
     );
   }
@@ -72,12 +77,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: Column(
                       children: [
                         EthmarTextField(
-                          label: s.fullName,
-                          hint: s.fullNameHint,
-                          controller: _name,
-                          keyboardType: TextInputType.name,
-                          autofillHints: const [AutofillHints.name],
-                          validator: (v) => Validators.name(v, s),
+                          label: s.username,
+                          hint: s.usernameHint,
+                          controller: _username,
+                          forceLtr: true,
+                          keyboardType: TextInputType.text,
+                          autofillHints: const [AutofillHints.newUsername],
+                          validator: (v) => Validators.username(v, s),
                         ),
                         const SizedBox(height: 20),
                         EthmarTextField(
