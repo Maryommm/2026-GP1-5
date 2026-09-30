@@ -19,6 +19,7 @@ class EthmarTextField extends StatefulWidget {
     this.autofillHints,
     this.forceLtr = false,
     this.onSubmitted,
+    this.fieldKey,
   });
 
   final String label;
@@ -33,6 +34,9 @@ class EthmarTextField extends StatefulWidget {
   /// Emails and passwords are always typed left-to-right, even in Arabic.
   final bool forceLtr;
   final ValueChanged<String>? onSubmitted;
+
+  /// Lets a screen validate just this field (e.g. the "Verify email" link).
+  final GlobalKey<FormFieldState<String>>? fieldKey;
 
   @override
   State<EthmarTextField> createState() => _EthmarTextFieldState();
@@ -57,6 +61,7 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
           child: Text(widget.label, style: AppText.label(context)),
         ),
         TextFormField(
+          key: widget.fieldKey,
           controller: widget.controller,
           validator: widget.validator,
           keyboardType: widget.keyboardType,
@@ -88,7 +93,7 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
                   )
                 : null,
             errorStyle: AppText.small(context, color: AppColors.error),
-            errorMaxLines: 2,
+            errorMaxLines: 3,
             enabledBorder: _border(AppColors.border),
             focusedBorder: _border(AppColors.forest, 1.6),
             errorBorder: _border(AppColors.error),

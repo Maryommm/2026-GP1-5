@@ -38,14 +38,20 @@ class AppStrings {
         'Use 3–20 letters, numbers, dots or underscores (no spaces)',
     'errUsernameTaken': 'That username is already taken',
     'errEmailRequired': 'Enter your email',
-    'errEmailInvalid': "That email doesn't look right",
+    'errEmailInvalid':
+        "That email doesn't look right. Try something like name@example.com",
     'errPasswordRequired': 'Enter your password',
-    'errPasswordShort': 'Use at least 8 characters',
+    'errPasswordWeak':
+        'Use at least 8 characters, with a capital letter, a number and a special character (like ! or @)',
     'showPassword': 'Show password',
     'hidePassword': 'Hide password',
     'back': 'Back',
     'accountCreated': 'Account created. Welcome to Ethmar!',
     'resetSoon': "Password reset is coming soon",
+    'verifyEmail': 'Verify email',
+    'verifySoon': 'Email verification is coming soon',
+    'errVerifyEmailFirst':
+        'Verify your email first. Check your inbox for the link',
     'homeHello': 'Hello',
     'homeFriend': 'friend',
     'homeTitle': 'Your garden is\nalmost ready',
@@ -81,14 +87,18 @@ class AppStrings {
         'استخدم من ٣ إلى ٢٠ حرف إنجليزي أو رقم أو نقطة أو _ (بدون مسافات)',
     'errUsernameTaken': 'اسم المستخدم مستخدم من قبل',
     'errEmailRequired': 'اكتب بريدك الإلكتروني',
-    'errEmailInvalid': 'البريد الإلكتروني غير صحيح',
+    'errEmailInvalid': 'البريد الإلكتروني غير صحيح. جرّب مثلًا name@example.com',
     'errPasswordRequired': 'اكتب كلمة المرور',
-    'errPasswordShort': 'استخدم ٨ أحرف على الأقل',
+    'errPasswordWeak':
+        'استخدم ٨ أحرف على الأقل، فيها حرف إنجليزي كبير ورقم ورمز خاص (مثل ! أو @)',
     'showPassword': 'إظهار كلمة المرور',
     'hidePassword': 'إخفاء كلمة المرور',
     'back': 'رجوع',
     'accountCreated': 'تم إنشاء حسابك. أهلًا بك في إثمار!',
     'resetSoon': 'استعادة كلمة المرور قريبًا',
+    'verifyEmail': 'تأكيد البريد الإلكتروني',
+    'verifySoon': 'تأكيد البريد الإلكتروني قريبًا',
+    'errVerifyEmailFirst': 'أكّد بريدك الإلكتروني أولًا. الرابط وصلك على الإيميل',
     'homeHello': 'أهلًا',
     'homeFriend': 'يا صديقي',
     'homeTitle': 'حديقتك\nتقريبًا جاهزة',
@@ -136,12 +146,15 @@ class S {
   String get errEmailRequired => t('errEmailRequired');
   String get errEmailInvalid => t('errEmailInvalid');
   String get errPasswordRequired => t('errPasswordRequired');
-  String get errPasswordShort => t('errPasswordShort');
+  String get errPasswordWeak => t('errPasswordWeak');
   String get showPassword => t('showPassword');
   String get hidePassword => t('hidePassword');
   String get back => t('back');
   String get accountCreated => t('accountCreated');
   String get resetSoon => t('resetSoon');
+  String get verifyEmail => t('verifyEmail');
+  String get verifySoon => t('verifySoon');
+  String get errVerifyEmailFirst => t('errVerifyEmailFirst');
   String get homeHello => t('homeHello');
   String get homeFriend => t('homeFriend');
   String get homeTitle => t('homeTitle');

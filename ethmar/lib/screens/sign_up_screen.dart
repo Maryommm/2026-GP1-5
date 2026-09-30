@@ -20,6 +20,7 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _form = GlobalKey<FormState>();
+  final _emailField = GlobalKey<FormFieldState<String>>();
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -33,16 +34,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  void _verifyEmail() {
+    FocusScope.of(context).unfocus();
+    if (!(_emailField.currentState?.validate() ?? false)) return;
+    // TODO(firebase): Firebase only sends verification links to a signed-in
+    // user, so this link starts the account:
+    // 1) Validate the password field too (it's needed to create the user).
+    // 2) createUserWithEmailAndPassword(email, password) — or, if this user
+    //   already exists from an earlier tap, just resend.
+    // 3) currentUser!.sendEmailVerification(), then toast "Link sent".
+    // Handle FirebaseAuthException 'email-already-in-use' with a friendly error.
+    showEthmarToast(context, S.of(context).verifySoon,
+        icon: Icons.info_outline_rounded);
+  }
+
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!(_form.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
-    // TODO(firebase): 1) Check the username is free in Firestore
+    // TODO(firebase): Finish creating the account (the Auth user already
+    // exists from the "Verify email" link):
+    // 1) await currentUser!.reload(); if currentUser is null (link never
+    //   tapped) or !currentUser!.emailVerified, set _loading = false, show
+    //   showEthmarToast(context, s.errVerifyEmailFirst,
+    //   icon: Icons.error_outline_rounded) and return — no account is saved.
+    // 2) Check the username is free in Firestore
     //   (`usernames/{username.toLowerCase()}`); if taken, show errUsernameTaken.
-    // 2) FirebaseAuth.createUserWithEmailAndPassword(email, password).
     // 3) In one transaction, write `usernames/{lowercased}` -> {uid} and
     //   `users/{uid}` -> {username, email, createdAt} so two people can't
     //   claim the same username at the same time.
+    // 4) Only then show the success toast and go Home (below). On any
+    //   FirebaseException, set _loading = false and show an error instead.
     await Future<void>.delayed(const Duration(milliseconds: 1100));
     if (!mounted) return;
     setState(() => _loading = false);
@@ -89,13 +111,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         EthmarTextField(
                           label: s.email,
                           hint: s.emailHint,
+                          fieldKey: _emailField,
                           controller: _email,
                           forceLtr: true,
                           keyboardType: TextInputType.emailAddress,
                           autofillHints: const [AutofillHints.email],
                           validator: (v) => Validators.email(v, s),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: EthmarLink(
+                            label: s.verifyEmail,
+                            onTap: _verifyEmail,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         EthmarTextField(
                           label: s.password,
                           hint: s.passwordHint,

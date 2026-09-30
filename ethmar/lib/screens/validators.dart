@@ -24,11 +24,19 @@ class Validators {
     return null;
   }
 
+  static final _upperRe = RegExp(r'[A-Z]');
+  static final _digitRe = RegExp(r'[0-9]');
+  static final _specialRe = RegExp(r'[^A-Za-z0-9\s]');
+
+  /// Sign-up rules: 8+ characters, one capital, one number, one special.
   static String? password(String? v, S s) {
     final t = v ?? '';
     if (t.isEmpty) return s.errPasswordRequired;
-    if (t.length < 8) return s.errPasswordShort;
-    return null;
+    final ok = t.length >= 8 &&
+        _upperRe.hasMatch(t) &&
+        _digitRe.hasMatch(t) &&
+        _specialRe.hasMatch(t);
+    return ok ? null : s.errPasswordWeak;
   }
 
   static String? passwordRequired(String? v, S s) =>
