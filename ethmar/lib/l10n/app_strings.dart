@@ -78,6 +78,20 @@ class AppStrings {
     'homeTitle': 'Your garden is\nalmost ready',
     'homeBody': "We're planting the next screens. Come back soon!",
     'logOut': 'Log out',
+    'cropPreviewLink': 'Try crop recommendations (preview)',
+    'cropTitle': 'Crops picked\nfor you',
+    'cropAccent': 'based on your weather today',
+    'cropLoading1': 'Finding where you are…',
+    'cropLoading2': 'Checking today\'s weather…',
+    'cropLoading3': 'Picking your perfect crops…',
+    'cropHumidity': 'humidity',
+    'cropTempRange': 'Temperature',
+    'cropIrrigation': 'Watering',
+    'cropSeason': 'Season',
+    'cropHarvest': 'Harvest in',
+    'cropDays': 'days',
+    'cropError': "We couldn't get your recommendations. Please try again",
+    'tryAgain': 'Try again',
   };
 
   static const Map<String, String> ar = {
@@ -149,6 +163,20 @@ class AppStrings {
     'homeTitle': 'حديقتك\nتقريبًا جاهزة',
     'homeBody': 'قاعدين نزرع باقي الشاشات. ارجع لنا قريب!',
     'logOut': 'تسجيل الخروج',
+    'cropPreviewLink': 'جرّب اقتراح المحاصيل (تجريبي)',
+    'cropTitle': 'محاصيل\nاخترناها لك',
+    'cropAccent': 'حسب طقسك اليوم',
+    'cropLoading1': 'نحدد موقعك…',
+    'cropLoading2': 'نشيّك على طقس اليوم…',
+    'cropLoading3': 'نختار لك أنسب المحاصيل…',
+    'cropHumidity': 'رطوبة',
+    'cropTempRange': 'درجة الحرارة',
+    'cropIrrigation': 'الري',
+    'cropSeason': 'الموسم',
+    'cropHarvest': 'الحصاد بعد',
+    'cropDays': 'يوم',
+    'cropError': 'تعذّر جلب الاقتراحات. حاول مرة أخرى',
+    'tryAgain': 'حاول مرة أخرى',
   };
 }
 
@@ -224,4 +252,17 @@ class S {
   String get homeTitle => t('homeTitle');
   String get homeBody => t('homeBody');
   String get logOut => t('logOut');
+  String get cropPreviewLink => t('cropPreviewLink');
+  String get cropTitle => t('cropTitle');
+  String get cropAccent => t('cropAccent');
+  List<String> get cropLoadingSteps =>
+      [t('cropLoading1'), t('cropLoading2'), t('cropLoading3')];
+  String get cropHumidity => t('cropHumidity');
+  String get cropTempRange => t('cropTempRange');
+  String get cropIrrigation => t('cropIrrigation');
+  String get cropSeason => t('cropSeason');
+  String get cropHarvest => t('cropHarvest');
+  String get cropDays => t('cropDays');
+  String get cropError => t('cropError');
+  String get tryAgain => t('tryAgain');
 }

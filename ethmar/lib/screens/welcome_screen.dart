@@ -12,6 +12,7 @@ import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_logo.dart';
 import '../widgets/language_chip.dart';
 import '../widgets/page_routes.dart';
+import 'crop_recommendation_screen.dart';
 import 'login_screen.dart';
 import 'sign_up_screen.dart';
 
@@ -56,7 +57,7 @@ class WelcomeScreen extends StatelessWidget {
                     Text(s.welcomeTitle, style: AppText.title(context)),
                     const SizedBox(height: 8),
                     Text(s.welcomeBody, style: AppText.body(context)),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     EthmarButton(
                       label: s.createAccount,
                       onPressed: () => Navigator.of(context)
@@ -68,6 +69,15 @@ class WelcomeScreen extends StatelessWidget {
                       outlined: true,
                       onPressed: () => Navigator.of(context)
                           .push(riseRoute(const LoginScreen())),
+                    ),
+                    // TEMP: shortcut to the crop recommendation screen
+                    // until the home page exists.
+                    Center(
+                      child: EthmarLink(
+                        label: s.cropPreviewLink,
+                        onTap: () => Navigator.of(context).push(
+                            riseRoute(const CropRecommendationScreen())),
+                      ),
                     ),
                   ],
                 ),
