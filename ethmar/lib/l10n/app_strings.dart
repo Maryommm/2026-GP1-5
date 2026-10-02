@@ -36,13 +36,12 @@ class AppStrings {
     'errUsernameRequired': 'Pick a username so we can say hi',
     'errUsernameInvalid':
         'Use 3–20 letters, numbers, dots or underscores (no spaces)',
-    'errUsernameTaken': 'That username is already taken',
+    'errUsernameTaken': 'Username is already taken.',
     'errEmailRequired': 'Enter your email',
     'errEmailInvalid':
         "That email doesn't look right. Try something like name@example.com",
     'errPasswordRequired': 'Enter your password',
-    'errPasswordWeak':
-        'Use at least 8 characters, with a capital letter, a number and a special character (like ! or @)',
+    'errPasswordWeak': 'Use at least 8 characters, with a capital letter, a number and a special character (like ! or @)',
     'showPassword': 'Show password',
     'hidePassword': 'Hide password',
     'back': 'Back',
@@ -52,14 +51,28 @@ class AppStrings {
     'resetAccent': "we'll get you back in",
     'sendResetLink': 'Send reset link',
     'backToLogin': 'Back to Login',
-    'resetLinkSent': 'Reset link sent! Check your inbox',
+    'resetLinkSent': 'If an account exists for this email, you will receive a password reset link.',
     'errEmailNotRegistered': "We couldn't find an account with that email",
     'verifyEmail': 'Verify email',
     'verifySoon': 'Email verification is coming soon',
+    'verificationLinkSent': 'Verification link sent! Check your inbox',
+    'emailVerified': 'Your email has been verified',
     'errVerifyEmailFirst':
         'Verify your email first. Check your inbox for the link',
-    'errInvalidCredentials':
-        "That email or password doesn't match. Try again",
+    'errEmailAlreadyInUse':
+        'That email is already in use. Log in or reset your password',
+    'errTooManyRequests':
+        'Too many attempts. Please wait a little and try again',
+    'errNetwork': 'Connection problem. Check your internet and try again',
+    'errAuthGeneral': "We couldn't complete the request. Please try again",
+    'errAuthSessionMismatch': 'The current account session does not match this sign-up attempt. Please try again',
+    'errInvalidCredentials': "That email or password doesn't match. Try again",
+    'errProfileCreate':
+        "We couldn't finish setting up your profile. Please try again",
+    'errProfileConflict': 'The registration data for this account is inconsistent. Please contact support',
+    'errProfileMissing': 'Your Ethmar profile is missing. Please complete account creation first',
+    'errProfileLoad': "We couldn't load your Ethmar profile. Please try again",
+    'errLogout': "We couldn't log you out. Please try again",
     'homeHello': 'Hello',
     'homeFriend': 'friend',
     'homeTitle': 'Your garden is\nalmost ready',
@@ -93,12 +106,12 @@ class AppStrings {
     'errUsernameRequired': 'اختر اسم مستخدم عشان نسلّم عليك',
     'errUsernameInvalid':
         'استخدم من ٣ إلى ٢٠ حرف إنجليزي أو رقم أو نقطة أو _ (بدون مسافات)',
-    'errUsernameTaken': 'اسم المستخدم مستخدم من قبل',
+    'errUsernameTaken': 'اسم المستخدم مستخدم بالفعل.',
     'errEmailRequired': 'اكتب بريدك الإلكتروني',
-    'errEmailInvalid': 'البريد الإلكتروني غير صحيح. جرّب مثلًا name@example.com',
+    'errEmailInvalid':
+        'البريد الإلكتروني غير صحيح. جرّب مثلًا name@example.com',
     'errPasswordRequired': 'اكتب كلمة المرور',
-    'errPasswordWeak':
-        'استخدم ٨ أحرف على الأقل، فيها حرف إنجليزي كبير ورقم ورمز خاص (مثل ! أو @)',
+    'errPasswordWeak': 'استخدم ٨ أحرف على الأقل، فيها حرف إنجليزي كبير ورقم ورمز خاص (مثل ! أو @)',
     'showPassword': 'إظهار كلمة المرور',
     'hidePassword': 'إخفاء كلمة المرور',
     'back': 'رجوع',
@@ -108,12 +121,29 @@ class AppStrings {
     'resetAccent': 'نرجّعك لمزرعتك',
     'sendResetLink': 'أرسل رابط الاستعادة',
     'backToLogin': 'رجوع لتسجيل الدخول',
-    'resetLinkSent': 'أرسلنا رابط الاستعادة! شيّك على بريدك',
+    'resetLinkSent': 'إذا كان هناك حساب مرتبط بهذا البريد الإلكتروني، فسيصلك رابط لإعادة تعيين كلمة المرور.',
     'errEmailNotRegistered': 'ما لقينا حساب بهذا البريد الإلكتروني',
     'verifyEmail': 'تأكيد البريد الإلكتروني',
     'verifySoon': 'تأكيد البريد الإلكتروني قريبًا',
-    'errVerifyEmailFirst': 'أكّد بريدك الإلكتروني أولًا. الرابط وصلك على الإيميل',
-    'errInvalidCredentials': 'البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة ثانية',
+    'verificationLinkSent': 'أرسلنا رابط التحقق! تحقق من بريدك الإلكتروني',
+    'emailVerified': 'تم تأكيد بريدك الإلكتروني',
+    'errVerifyEmailFirst':
+        'أكّد بريدك الإلكتروني أولًا. الرابط وصلك على الإيميل',
+    'errEmailAlreadyInUse':
+        'هذا البريد مستخدم بالفعل. سجّل الدخول أو استعد كلمة المرور',
+    'errTooManyRequests': 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى',
+    'errNetwork': 'توجد مشكلة في الاتصال. تحقق من الإنترنت وحاول مرة أخرى',
+    'errAuthGeneral': 'تعذّر إكمال الطلب. حاول مرة أخرى',
+    'errAuthSessionMismatch':
+        'جلسة الحساب الحالية لا تطابق محاولة التسجيل هذه. حاول مرة أخرى',
+    'errInvalidCredentials':
+        'البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة ثانية',
+    'errProfileCreate': 'تعذّر إكمال إعداد ملفك الشخصي. حاول مرة أخرى',
+    'errProfileConflict': 'بيانات تسجيل هذا الحساب غير متسقة. تواصل مع الدعم',
+    'errProfileMissing':
+        'ملفك الشخصي في إثمار غير موجود. أكمل إنشاء الحساب أولًا',
+    'errProfileLoad': 'تعذّر تحميل ملفك الشخصي في إثمار. حاول مرة أخرى',
+    'errLogout': 'تعذّر تسجيل الخروج. حاول مرة أخرى',
     'homeHello': 'أهلًا',
     'homeFriend': 'يا صديقي',
     'homeTitle': 'حديقتك\nتقريبًا جاهزة',
@@ -175,8 +205,20 @@ class S {
   String get errEmailNotRegistered => t('errEmailNotRegistered');
   String get verifyEmail => t('verifyEmail');
   String get verifySoon => t('verifySoon');
+  String get verificationLinkSent => t('verificationLinkSent');
+  String get emailVerified => t('emailVerified');
   String get errVerifyEmailFirst => t('errVerifyEmailFirst');
+  String get errEmailAlreadyInUse => t('errEmailAlreadyInUse');
+  String get errTooManyRequests => t('errTooManyRequests');
+  String get errNetwork => t('errNetwork');
+  String get errAuthGeneral => t('errAuthGeneral');
+  String get errAuthSessionMismatch => t('errAuthSessionMismatch');
   String get errInvalidCredentials => t('errInvalidCredentials');
+  String get errProfileCreate => t('errProfileCreate');
+  String get errProfileConflict => t('errProfileConflict');
+  String get errProfileMissing => t('errProfileMissing');
+  String get errProfileLoad => t('errProfileLoad');
+  String get errLogout => t('errLogout');
   String get homeHello => t('homeHello');
   String get homeFriend => t('homeFriend');
   String get homeTitle => t('homeTitle');

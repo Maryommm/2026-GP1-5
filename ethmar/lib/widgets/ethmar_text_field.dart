@@ -11,6 +11,7 @@ class EthmarTextField extends StatefulWidget {
     super.key,
     required this.label,
     required this.hint,
+    this.enabled = true,
     this.controller,
     this.validator,
     this.keyboardType,
@@ -24,6 +25,7 @@ class EthmarTextField extends StatefulWidget {
 
   final String label;
   final String hint;
+  final bool enabled;
   final TextEditingController? controller;
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
@@ -62,6 +64,7 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
         ),
         TextFormField(
           key: widget.fieldKey,
+          enabled: widget.enabled,
           controller: widget.controller,
           validator: widget.validator,
           keyboardType: widget.keyboardType,
@@ -94,6 +97,7 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
                 : null,
             errorStyle: AppText.small(context, color: AppColors.error),
             errorMaxLines: 3,
+            disabledBorder: _border(AppColors.border),
             enabledBorder: _border(AppColors.border),
             focusedBorder: _border(AppColors.forest, 1.6),
             errorBorder: _border(AppColors.error),

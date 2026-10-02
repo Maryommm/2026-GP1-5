@@ -42,6 +42,25 @@ void main() {
     });
   });
 
+  group('Validators.username', () {
+    test('accepts allowed characters and trims surrounding spaces', () {
+      expect(Validators.username('Fanar_2.0', s), isNull);
+      expect(Validators.username('  fanar  ', s), isNull);
+      expect(Validators.username('abcdefghijklmnopqrst', s), isNull);
+    });
+
+    test('rejects invalid length, spaces, and unsupported characters', () {
+      expect(Validators.username('ab', s), s.errUsernameInvalid);
+      expect(
+        Validators.username('abcdefghijklmnopqrstu', s),
+        s.errUsernameInvalid,
+      );
+      expect(Validators.username('fanar user', s), s.errUsernameInvalid);
+      expect(Validators.username('fanar-user', s), s.errUsernameInvalid);
+      expect(Validators.username('فَنار', s), s.errUsernameInvalid);
+    });
+  });
+
   group('Validators.password', () {
     test('rejects an empty password', () {
       expect(Validators.password('', s), s.errPasswordRequired);
@@ -49,10 +68,22 @@ void main() {
 
     test('rejects a password missing any one rule', () {
       expect(Validators.password('Seed@12', s), s.errPasswordWeak); // < 8
-      expect(Validators.password('seed@123', s), s.errPasswordWeak); // no capital
-      expect(Validators.password('Seed@abc', s), s.errPasswordWeak); // no number
-      expect(Validators.password('Seed1234', s), s.errPasswordWeak); // no special
-      expect(Validators.password('Seed 1234', s), s.errPasswordWeak); // space isn't special
+      expect(
+        Validators.password('seed@123', s),
+        s.errPasswordWeak,
+      ); // no capital
+      expect(
+        Validators.password('Seed@abc', s),
+        s.errPasswordWeak,
+      ); // no number
+      expect(
+        Validators.password('Seed1234', s),
+        s.errPasswordWeak,
+      ); // no special
+      expect(
+        Validators.password('Seed 1234', s),
+        s.errPasswordWeak,
+      ); // space isn't special
     });
 
     test('accepts a password that meets every rule', () {

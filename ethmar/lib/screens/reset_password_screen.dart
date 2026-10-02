@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
+import '../services/auth_service.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/backgrounds.dart';
 import '../widgets/entrance.dart';
@@ -21,7 +23,9 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _form = GlobalKey<FormState>();
+  final _authService = AuthService();
   late final _email = TextEditingController(text: widget.email);
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -29,21 +33,46 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_loading) return;
     FocusScope.of(context).unfocus();
     if (!(_form.currentState?.validate() ?? false)) return;
-    // TODO(firebase): FirebaseAuth.instance.sendPasswordResetEmail(
-    //   email: _email.text.trim()), then show
-    //   showEthmarToast(context, s.resetLinkSent) and pop back to Log in.
-    // On FirebaseAuthException 'user-not-found', show
-    //   showEthmarToast(context, s.errEmailNotRegistered,
-    //   icon: Icons.error_outline_rounded) and stay on this screen.
-    // NOTE: Firebase only returns 'user-not-found' here if "Email enumeration
-    // protection" is turned OFF (Firebase console > Authentication >
-    // Settings > User actions). It's ON by default for new projects, and then
-    // unregistered emails silently "succeed".
-    showEthmarToast(context, S.of(context).resetSoon,
-        icon: Icons.info_outline_rounded);
+
+    final email = _email.text.trim();
+    final s = S.of(context);
+    setState(() => _loading = true);
+    try {
+      await _authService.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      showEthmarToast(context, s.resetLinkSent);
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      if (error.code == 'user-not-found') {
+        // Keep the same response so this screen does not reveal registrations.
+        showEthmarToast(context, s.resetLinkSent);
+      } else {
+        final message = switch (error.code) {
+          'invalid-email' => s.errEmailInvalid,
+          'too-many-requests' => s.errTooManyRequests,
+          'network-request-failed' => s.errNetwork,
+          _ => s.errAuthGeneral,
+        };
+        showEthmarToast(
+          context,
+          message,
+          icon: Icons.error_outline_rounded,
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      showEthmarToast(
+        context,
+        s.errAuthGeneral,
+        icon: Icons.error_outline_rounded,
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -71,24 +100,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       EthmarTextField(
                         label: s.email,
                         hint: s.emailHint,
+                        enabled: !_loading,
                         controller: _email,
                         forceLtr: true,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.done,
                         autofillHints: const [AutofillHints.email],
                         validator: (v) => Validators.email(v, s),
-                        onSubmitted: (_) => _submit(),
+                        onSubmitted: _loading ? null : (_) => _submit(),
                       ),
                       const SizedBox(height: 36),
                       EthmarButton(
                         label: s.sendResetLink,
                         showArrow: true,
-                        onPressed: _submit,
+                        loading: _loading,
+                        onPressed: _loading ? null : _submit,
                       ),
                       const SizedBox(height: 12),
-                      EthmarLink(
-                        label: s.backToLogin,
-                        onTap: () => Navigator.of(context).pop(),
+                      IgnorePointer(
+                        ignoring: _loading,
+                        child: EthmarLink(
+                          label: s.backToLogin,
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
                       ),
                     ],
                   ),

@@ -11,9 +11,6 @@ class Validators {
     final t = v?.trim() ?? '';
     if (t.isEmpty) return s.errUsernameRequired;
     if (!_usernameRe.hasMatch(t)) return s.errUsernameInvalid;
-    // TODO(firebase): Uniqueness can't be checked here. In SignUpScreen._submit,
-    // check Firestore (e.g. a `usernames/{lowercased}` doc) before creating the
-    // account, and show s.errUsernameTaken if it already exists.
     return null;
   }
 
