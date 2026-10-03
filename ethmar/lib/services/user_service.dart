@@ -1,5 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+
+/// The signed-in user's username, shared by Home and Profile so they update
+/// right away when it changes (same idea as `appLocale` for the language).
+final ValueNotifier<String> currentUsername = ValueNotifier('');
 
 class UserProfileMissingException implements Exception {
   const UserProfileMissingException();
@@ -91,6 +96,7 @@ class UserService {
         'createdAt': FieldValue.serverTimestamp(),
       });
     });
+    currentUsername.value = trimmedUsername;
   }
 
   Future<String> getCurrentUsername() async {
@@ -122,6 +128,81 @@ class UserService {
       throw const UserProfileInvalidException();
     }
 
+    currentUsername.value = username;
     return username;
+  }
+
+  /// Changes the signed-in user's username.
+  ///
+  /// Uniqueness is case-insensitive: the reservation document's ID is the
+  /// lowercased name, so Fanar / fanar / FANAR all share `usernames/fanar`.
+  /// * Only the capitalization changed: the reservation is already ours,
+  ///   so just `username` is updated.
+  /// * New name: reserve it, update both username fields and release the
+  ///   old reservation, all in one transaction.
+  /// * Name reserved by another account: [UsernameAlreadyTakenException].
+  Future<void> updateCurrentUsername(String newUsername) async {
+    final user = _auth.currentUser;
+    final email = user?.email?.trim();
+    final trimmedUsername = newUsername.trim();
+    final normalizedUsername = trimmedUsername.toLowerCase();
+
+    if (user == null || !user.emailVerified || email == null || email.isEmpty) {
+      throw StateError('A verified authenticated user is required.');
+    }
+    if (!_usernamePattern.hasMatch(trimmedUsername)) {
+      throw ArgumentError.value(newUsername, 'username', 'Username is invalid.');
+    }
+
+    final profile = _firestore.collection('users').doc(user.uid);
+    final newReservation =
+        _firestore.collection('usernames').doc(normalizedUsername);
+
+    await _firestore.runTransaction<void>((transaction) async {
+      // All reads come before any writes in a transaction.
+      final profileSnapshot = await transaction.get(profile);
+      final data = profileSnapshot.data();
+      final oldUsername = data?['username'];
+      final oldNormalizedUsername = data?['normalizedUsername'];
+      if (!profileSnapshot.exists ||
+          oldUsername is! String ||
+          oldNormalizedUsername is! String) {
+        throw const UserProfileMissingException();
+      }
+
+      // Nothing changed: no write needed.
+      if (oldUsername == trimmedUsername) return;
+
+      // Same name, different capitalization: keep our reservation.
+      if (oldNormalizedUsername == normalizedUsername) {
+        transaction.update(profile, {'username': trimmedUsername});
+        return;
+      }
+
+      final oldReservation =
+          _firestore.collection('usernames').doc(oldNormalizedUsername);
+      final newReservationSnapshot = await transaction.get(newReservation);
+      final oldReservationSnapshot = await transaction.get(oldReservation);
+
+      if (newReservationSnapshot.exists) {
+        if (newReservationSnapshot.data()?['uid'] != user.uid) {
+          throw const UsernameAlreadyTakenException();
+        }
+        // Reserved for us but not used by our profile: data is out of sync.
+        throw const UserProfileConflictException();
+      }
+      if (oldReservationSnapshot.data()?['uid'] != user.uid) {
+        throw const UserProfileConflictException();
+      }
+
+      transaction.set(newReservation, {'uid': user.uid});
+      transaction.update(profile, {
+        'username': trimmedUsername,
+        'normalizedUsername': normalizedUsername,
+      });
+      transaction.delete(oldReservation);
+    });
+
+    currentUsername.value = trimmedUsername;
   }
 }

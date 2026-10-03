@@ -77,7 +77,7 @@ class AppStrings {
     'homeFriend': 'friend',
     'homeTitle': 'Your garden is\nalmost ready',
     'homeBody': "We're planting the next screens. Come back soon!",
-    'logOut': 'Log out',
+    'logOut': 'Log Out',
     'cropPreviewLink': 'Try crop recommendations (preview)',
     'cropTitle': 'Crops picked\nfor you',
     'cropAccent': 'based on your weather today',
@@ -92,6 +92,44 @@ class AppStrings {
     'cropDays': 'days',
     'cropError': "We couldn't get your recommendations. Please try again",
     'tryAgain': 'Try again',
+    'homeGoodMorning': 'Good morning,',
+    'homeGoodAfternoon': 'Good afternoon,',
+    'homeGoodEvening': 'Good evening,',
+    'homeMotivation': 'every big harvest starts small',
+    'homeStreakDays': '0 days streak',
+    'homeStreakHint': 'Add a plant to start your streak',
+    'homeAddPlant': 'Add Plant',
+    'homeWhatToPlant': 'What to plant?',
+    'homeScanPlant': 'Scan plant',
+    'homeNearMe': 'Near me',
+    'homeAskEthmar': 'Ask Ethmar',
+    'navHome': 'Home',
+    'navDailyTasks': 'Daily Tasks',
+    'navVirtualFarm': 'Virtual Farm',
+    'navLeaderboard': 'Leaderboard',
+    'profile': 'Profile',
+    'editProfile': 'Edit Profile',
+    'statPlants': 'Plants',
+    'statRank': 'Rank',
+    'editProfileTitle': 'Edit your profile',
+    'editProfileAccent': 'keep it fresh',
+    'takePhoto': 'Take Photo',
+    'chooseFromGallery': 'Choose from Gallery',
+    'save': 'Save',
+    'cancel': 'Cancel',
+    'profileUpdated': 'Profile updated successfully.',
+    'errUsernameInUse':
+        'This username is already in use. Please choose another one.',
+    'errProfileUpdate': "We couldn't update your profile. Please try again.",
+    'discardChangesTitle': 'Discard changes?',
+    'keepEditing': 'Keep editing',
+    'discard': 'Discard',
+    'weatherCityRiyadh': 'Riyadh',
+    'weatherSunny': 'Sunny',
+    'weatherCloudy': 'Cloudy',
+    'weatherRainy': 'Rainy',
+    'weatherWindy': 'Windy',
+    'weatherCold': 'Cold',
   };
 
   static const Map<String, String> ar = {
@@ -177,6 +215,43 @@ class AppStrings {
     'cropDays': 'يوم',
     'cropError': 'تعذّر جلب الاقتراحات. حاول مرة أخرى',
     'tryAgain': 'حاول مرة أخرى',
+    'homeGoodMorning': 'صباح الخير،',
+    'homeGoodAfternoon': 'مساء الخير،',
+    'homeGoodEvening': 'مساء الخير،',
+    'homeMotivation': 'كل حصاد كبير يبدأ صغير',
+    'homeStreakDays': '٠ أيام متتالية',
+    'homeStreakHint': 'أضف نبتة عشان تبدأ سلسلتك',
+    'homeAddPlant': 'أضف نبتة',
+    'homeWhatToPlant': 'وش أزرع؟',
+    'homeScanPlant': 'افحص نبتتك',
+    'homeNearMe': 'قريب مني',
+    'homeAskEthmar': 'اسأل إثمار',
+    'navHome': 'الرئيسية',
+    'navDailyTasks': 'المهام اليومية',
+    'navVirtualFarm': 'المزرعة الافتراضية',
+    'navLeaderboard': 'المتصدرون',
+    'profile': 'الملف الشخصي',
+    'editProfile': 'تعديل الملف الشخصي',
+    'statPlants': 'النباتات',
+    'statRank': 'الترتيب',
+    'editProfileTitle': 'عدّل ملفك',
+    'editProfileAccent': 'خلّه دايم جديد',
+    'takePhoto': 'التقط صورة',
+    'chooseFromGallery': 'اختر من المعرض',
+    'save': 'حفظ',
+    'cancel': 'إلغاء',
+    'profileUpdated': 'تم تحديث الملف الشخصي بنجاح.',
+    'errUsernameInUse': 'اسم المستخدم مستخدم بالفعل. الرجاء اختيار اسم آخر.',
+    'errProfileUpdate': 'تعذّر تحديث ملفك الشخصي. حاول مرة أخرى.',
+    'discardChangesTitle': 'هل تريد تجاهل التغييرات؟',
+    'keepEditing': 'متابعة التعديل',
+    'discard': 'تجاهل',
+    'weatherCityRiyadh': 'الرياض',
+    'weatherSunny': 'مشمس',
+    'weatherCloudy': 'غائم',
+    'weatherRainy': 'ممطر',
+    'weatherWindy': 'عاصف',
+    'weatherCold': 'بارد',
   };
 }
 
@@ -265,4 +340,41 @@ class S {
   String get cropDays => t('cropDays');
   String get cropError => t('cropError');
   String get tryAgain => t('tryAgain');
+  String get homeGoodMorning => t('homeGoodMorning');
+  String get homeGoodAfternoon => t('homeGoodAfternoon');
+  String get homeGoodEvening => t('homeGoodEvening');
+  String get homeMotivation => t('homeMotivation');
+  String get homeStreakDays => t('homeStreakDays');
+  String get homeStreakHint => t('homeStreakHint');
+  String get homeAddPlant => t('homeAddPlant');
+  String get homeWhatToPlant => t('homeWhatToPlant');
+  String get homeScanPlant => t('homeScanPlant');
+  String get homeNearMe => t('homeNearMe');
+  String get homeAskEthmar => t('homeAskEthmar');
+  String get navHome => t('navHome');
+  String get navDailyTasks => t('navDailyTasks');
+  String get navVirtualFarm => t('navVirtualFarm');
+  String get navLeaderboard => t('navLeaderboard');
+  String get profile => t('profile');
+  String get editProfile => t('editProfile');
+  String get statPlants => t('statPlants');
+  String get statRank => t('statRank');
+  String get editProfileTitle => t('editProfileTitle');
+  String get editProfileAccent => t('editProfileAccent');
+  String get takePhoto => t('takePhoto');
+  String get chooseFromGallery => t('chooseFromGallery');
+  String get save => t('save');
+  String get cancel => t('cancel');
+  String get profileUpdated => t('profileUpdated');
+  String get errUsernameInUse => t('errUsernameInUse');
+  String get errProfileUpdate => t('errProfileUpdate');
+  String get discardChangesTitle => t('discardChangesTitle');
+  String get keepEditing => t('keepEditing');
+  String get discard => t('discard');
+  String get weatherCityRiyadh => t('weatherCityRiyadh');
+  String get weatherSunny => t('weatherSunny');
+  String get weatherCloudy => t('weatherCloudy');
+  String get weatherRainy => t('weatherRainy');
+  String get weatherWindy => t('weatherWindy');
+  String get weatherCold => t('weatherCold');
 }

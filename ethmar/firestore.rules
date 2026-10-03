@@ -49,7 +49,24 @@ service cloud.firestore {
           getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.normalizedUsername)).data.keys().hasOnly(['uid']) &&
           getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.normalizedUsername)).data.uid == uid;
 
-      allow update, delete: if false;
+      // Username change (Edit Profile). Only the owner, only the username
+      // fields; email and createdAt must stay the same.
+      allow update: if ownsProfile(uid) &&
+          validProfile(request.resource.data) &&
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          (
+            // Same name, only capitalization changed: the reservation stays.
+            request.resource.data.normalizedUsername == resource.data.normalizedUsername ||
+            // New name: reserve it for this user and release the old one in the same write.
+            (
+              !exists(/databases/$(database)/documents/usernames/$(request.resource.data.normalizedUsername)) &&
+              getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.normalizedUsername)).data.uid == uid &&
+              !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.normalizedUsername))
+            )
+          );
+
+      allow delete: if false;
     }
 
     match /usernames/{normalizedUsername} {
@@ -68,7 +85,24 @@ service cloud.firestore {
           getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.normalizedUsername == normalizedUsername &&
           getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.createdAt == request.time;
 
-      allow update, delete: if false;
+      // Rename: the user's profile already exists, used a different name
+      // before this write, and uses this name after it.
+      allow create: if hasVerifiedEmail() &&
+          validNormalizedUsername(normalizedUsername) &&
+          request.resource.data.keys().hasAll(['uid']) &&
+          request.resource.data.keys().hasOnly(['uid']) &&
+          request.resource.data.uid == request.auth.uid &&
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.normalizedUsername != normalizedUsername &&
+          getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.normalizedUsername == normalizedUsername;
+
+      allow update: if false;
+
+      // Release an old name: only its owner, and only once their profile no
+      // longer uses it.
+      allow delete: if hasVerifiedEmail() &&
+          resource.data.uid == request.auth.uid &&
+          getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.normalizedUsername != normalizedUsername;
     }
 
     match /{document=**} {

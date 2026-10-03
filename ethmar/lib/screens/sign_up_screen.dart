@@ -10,7 +10,7 @@ import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
-import 'home_placeholder_screen.dart';
+import 'home_screen.dart';
 import 'login_screen.dart';
 import 'validators.dart';
 
@@ -182,7 +182,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       showEthmarToast(context, s.accountCreated);
       Navigator.of(context).pushAndRemoveUntil(
-        riseRoute(HomePlaceholderScreen(username: username)),
+        riseRoute(HomeScreen(username: username)),
         (_) => false,
       );
     } on FirebaseAuthException catch (error) {
