@@ -57,6 +57,12 @@ class AppStrings {
     'verifySoon': 'Email verification is coming soon',
     'verificationLinkSent': 'Verification link sent! Check your inbox',
     'emailVerified': 'Your email has been verified',
+    'verifyDialogTitle': 'Check your email',
+    'verifyDialogBody':
+        "We sent a verification link to {email}. Open it to verify your account. Can't find it? Check your spam folder.",
+    'verifyDialogWaiting': 'Waiting for verification…',
+    'resendEmail': 'Resend email',
+    'verificationResent': 'Sent again! Check your inbox',
     'errVerifyEmailFirst':
         'Verify your email first. Check your inbox for the link',
     'errEmailAlreadyInUse':
@@ -78,7 +84,6 @@ class AppStrings {
     'homeTitle': 'Your garden is\nalmost ready',
     'homeBody': "We're planting the next screens. Come back soon!",
     'logOut': 'Log Out',
-    'cropPreviewLink': 'Try crop recommendations (preview)',
     'cropTitle': 'Crops picked\nfor you',
     'cropAccent': 'based on your weather today',
     'cropLoading1': 'Finding where you are…',
@@ -179,6 +184,12 @@ class AppStrings {
     'verifySoon': 'تأكيد البريد الإلكتروني قريبًا',
     'verificationLinkSent': 'أرسلنا رابط التحقق! تحقق من بريدك الإلكتروني',
     'emailVerified': 'تم تأكيد بريدك الإلكتروني',
+    'verifyDialogTitle': 'تحقق من بريدك',
+    'verifyDialogBody':
+        'أرسلنا رابط التحقق إلى {email}. افتحه لتأكيد حسابك. ما لقيته؟ شيّك على مجلد الرسائل غير المرغوب فيها (Spam).',
+    'verifyDialogWaiting': 'ننتظر تأكيد بريدك…',
+    'resendEmail': 'أعد إرسال الرابط',
+    'verificationResent': 'أرسلناه مرة ثانية! تحقق من بريدك',
     'errVerifyEmailFirst':
         'أكّد بريدك الإلكتروني أولًا. الرابط وصلك على الإيميل',
     'errEmailAlreadyInUse':
@@ -201,7 +212,6 @@ class AppStrings {
     'homeTitle': 'حديقتك\nتقريبًا جاهزة',
     'homeBody': 'قاعدين نزرع باقي الشاشات. ارجع لنا قريب!',
     'logOut': 'تسجيل الخروج',
-    'cropPreviewLink': 'جرّب اقتراح المحاصيل (تجريبي)',
     'cropTitle': 'محاصيل\nاخترناها لك',
     'cropAccent': 'حسب طقسك اليوم',
     'cropLoading1': 'نحدد موقعك…',
@@ -310,6 +320,12 @@ class S {
   String get verifySoon => t('verifySoon');
   String get verificationLinkSent => t('verificationLinkSent');
   String get emailVerified => t('emailVerified');
+  String get verifyDialogTitle => t('verifyDialogTitle');
+  String verifyDialogBody(String email) =>
+      t('verifyDialogBody').replaceAll('{email}', email);
+  String get verifyDialogWaiting => t('verifyDialogWaiting');
+  String get resendEmail => t('resendEmail');
+  String get verificationResent => t('verificationResent');
   String get errVerifyEmailFirst => t('errVerifyEmailFirst');
   String get errEmailAlreadyInUse => t('errEmailAlreadyInUse');
   String get errTooManyRequests => t('errTooManyRequests');
@@ -327,7 +343,6 @@ class S {
   String get homeTitle => t('homeTitle');
   String get homeBody => t('homeBody');
   String get logOut => t('logOut');
-  String get cropPreviewLink => t('cropPreviewLink');
   String get cropTitle => t('cropTitle');
   String get cropAccent => t('cropAccent');
   List<String> get cropLoadingSteps =>

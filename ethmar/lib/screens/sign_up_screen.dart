@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../widgets/auth_header.dart';
@@ -23,8 +27,6 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _form = GlobalKey<FormState>();
-  final _emailField = GlobalKey<FormFieldState<String>>();
-  final _passwordField = GlobalKey<FormFieldState<String>>();
   final _authService = AuthService();
   final _userService = UserService();
   final _username = TextEditingController();
@@ -33,6 +35,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _loading = false;
   String? _verificationAccountId;
   String? _verificationAccountEmail;
+  bool _verificationSent = false;
 
   bool get _hasVerificationAccount =>
       _verificationAccountId != null && _verificationAccountEmail != null;
@@ -79,22 +82,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
     showEthmarToast(context, message, icon: Icons.error_outline_rounded);
   }
 
-  Future<void> _verifyEmail() async {
+  /// Create account: creates the Firebase account (first tap only), sends
+  /// the verification email, then waits in a dialog until the link is
+  /// opened. Once verified, the profile is created and Home opens.
+  Future<void> _submit() async {
     if (_loading) return;
     FocusScope.of(context).unfocus();
-    final emailIsValid = _emailField.currentState?.validate() ?? false;
-    final passwordIsValid = _passwordField.currentState?.validate() ?? false;
-    if (!emailIsValid || !passwordIsValid) return;
+    if (!(_form.currentState?.validate() ?? false)) return;
 
     final email = _email.text.trim();
     final password = _password.text;
-    final existingAccountId = _verificationAccountId;
-    final existingAccountEmail = _verificationAccountEmail;
+    final username = _username.text.trim();
     final s = S.of(context);
 
     setState(() => _loading = true);
     try {
-      if (existingAccountId == null || existingAccountEmail == null) {
+      final existingAccountEmail = _verificationAccountEmail;
+      if (existingAccountEmail == null) {
         final credential = await _authService.createAccount(
           email: email,
           password: password,
@@ -112,64 +116,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _verificationAccountEmail = createdEmail;
         });
       } else if (email.toLowerCase() != existingAccountEmail.toLowerCase()) {
-        if (!mounted) return;
         _showError(s.errAuthSessionMismatch);
         return;
       }
 
       if (!_currentUserMatchesVerificationAccount()) {
-        if (!mounted) return;
         _showError(s.errAuthSessionMismatch);
         return;
       }
 
-      await _authService.sendEmailVerification();
-      if (!mounted) return;
-      showEthmarToast(context, s.verificationLinkSent);
-    } on FirebaseAuthException catch (error) {
-      if (!mounted) return;
-      _showError(_authErrorMessage(error, s));
-    } on StateError {
-      if (!mounted) return;
-      _showError(s.errAuthSessionMismatch);
-    } catch (_) {
-      if (!mounted) return;
-      _showError(s.errAuthGeneral);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
+      // Skipped when an earlier attempt already got verified (e.g. the
+      // username was taken and the user picked a new one).
+      if (!await _authService.isEmailVerified()) {
+        // Send automatically only once; the dialog has a resend button.
+        if (!_verificationSent) {
+          await _authService.sendEmailVerification();
+          _verificationSent = true;
+        }
+        if (!mounted) return;
+        final verified = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => _VerifyEmailDialog(
+            email: _verificationAccountEmail ?? email,
+            authService: _authService,
+          ),
+        );
+        if (verified != true || !mounted) return;
+      }
 
-  Future<void> _submit() async {
-    if (_loading) return;
-    FocusScope.of(context).unfocus();
-    if (!(_form.currentState?.validate() ?? false)) return;
-
-    final displayedEmail = _email.text.trim();
-    final username = _username.text.trim();
-    final accountId = _verificationAccountId;
-    final accountEmail = _verificationAccountEmail;
-    final s = S.of(context);
-    if (accountId == null || accountEmail == null) {
-      _showError(s.errVerifyEmailFirst);
-      return;
-    }
-    if (displayedEmail.toLowerCase() != accountEmail.toLowerCase() ||
-        !_currentUserMatchesVerificationAccount()) {
-      _showError(s.errAuthSessionMismatch);
-      return;
-    }
-
-    setState(() => _loading = true);
-    try {
-      final isVerified = await _authService.isEmailVerified();
-      if (!mounted) return;
       if (!_currentUserMatchesVerificationAccount()) {
         _showError(s.errAuthSessionMismatch);
-        return;
-      }
-      if (!isVerified) {
-        _showError(s.errVerifyEmailFirst);
         return;
       }
 
@@ -250,30 +227,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             label: s.email,
                             hint: s.emailHint,
                             enabled: !_loading && !_hasVerificationAccount,
-                            fieldKey: _emailField,
                             controller: _email,
                             forceLtr: true,
                             keyboardType: TextInputType.emailAddress,
                             autofillHints: const [AutofillHints.email],
                             validator: (v) => Validators.email(v, s),
                           ),
-                          const SizedBox(height: 4),
-                          Align(
-                            alignment: AlignmentDirectional.centerEnd,
-                            child: IgnorePointer(
-                              ignoring: _loading,
-                              child: EthmarLink(
-                                label: s.verifyEmail,
-                                onTap: _verifyEmail,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 20),
                           EthmarTextField(
                             label: s.password,
                             hint: s.passwordHint,
                             enabled: !_loading && !_hasVerificationAccount,
-                            fieldKey: _passwordField,
                             controller: _password,
                             isPassword: true,
                             forceLtr: true,
@@ -311,6 +275,163 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Check your email" popup shown after the verification link is sent.
+/// Checks every few seconds and closes with `true` as soon as the email is
+/// verified, so sign-up can carry on to Home by itself.
+class _VerifyEmailDialog extends StatefulWidget {
+  const _VerifyEmailDialog({required this.email, required this.authService});
+
+  final String email;
+  final AuthService authService;
+
+  @override
+  State<_VerifyEmailDialog> createState() => _VerifyEmailDialogState();
+}
+
+class _VerifyEmailDialogState extends State<_VerifyEmailDialog>
+    with WidgetsBindingObserver {
+  Timer? _timer;
+  bool _checking = false;
+  bool _resending = false;
+  String? _resendMessage;
+  bool _resendFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _timer = Timer.periodic(const Duration(seconds: 3), (_) => _check());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Check right away when the user comes back from their mail app.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _check();
+  }
+
+  Future<void> _check() async {
+    if (_checking) return;
+    _checking = true;
+    try {
+      final verified = await widget.authService.isEmailVerified();
+      if (verified && mounted) {
+        _timer?.cancel();
+        Navigator.of(context).pop(true);
+      }
+    } catch (_) {
+      // Network hiccup: the next tick tries again.
+    } finally {
+      _checking = false;
+    }
+  }
+
+  Future<void> _resend() async {
+    if (_resending) return;
+    final s = S.of(context);
+    setState(() => _resending = true);
+    String message;
+    var failed = false;
+    try {
+      await widget.authService.sendEmailVerification();
+      message = s.verificationResent;
+    } on FirebaseAuthException catch (error) {
+      failed = true;
+      message = switch (error.code) {
+        'too-many-requests' => s.errTooManyRequests,
+        'network-request-failed' => s.errNetwork,
+        _ => s.errAuthGeneral,
+      };
+    } catch (_) {
+      failed = true;
+      message = s.errAuthGeneral;
+    }
+    if (!mounted) return;
+    setState(() {
+      _resending = false;
+      _resendMessage = message;
+      _resendFailed = failed;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.mark_email_unread_rounded,
+                size: 56, color: AppColors.forest),
+            const SizedBox(height: 16),
+            Text(
+              s.verifyDialogTitle,
+              textAlign: TextAlign.center,
+              style: AppText.title(context).copyWith(fontSize: 22),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              s.verifyDialogBody(widget.email),
+              textAlign: TextAlign.center,
+              style: AppText.body(context),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.2, color: AppColors.forest),
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(s.verifyDialogWaiting,
+                      style: AppText.small(context,
+                          color: AppColors.textSecondary)),
+                ),
+              ],
+            ),
+            if (_resendMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _resendMessage!,
+                textAlign: TextAlign.center,
+                style: AppText.small(context,
+                    color:
+                        _resendFailed ? AppColors.error : AppColors.success),
+              ),
+            ],
+            const SizedBox(height: 24),
+            EthmarButton(
+              label: s.resendEmail,
+              loading: _resending,
+              onPressed: _resend,
+            ),
+            const SizedBox(height: 12),
+            EthmarButton(
+              label: s.cancel,
+              outlined: true,
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+          ],
         ),
       ),
     );
