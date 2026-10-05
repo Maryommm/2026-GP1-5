@@ -79,10 +79,7 @@ class AppStrings {
     'errProfileMissing': 'Your Ethmar profile is missing. Please complete account creation first',
     'errProfileLoad': "We couldn't load your Ethmar profile. Please try again",
     'errLogout': "We couldn't log you out. Please try again",
-    'homeHello': 'Hello',
     'homeFriend': 'friend',
-    'homeTitle': 'Your garden is\nalmost ready',
-    'homeBody': "We're planting the next screens. Come back soon!",
     'logOut': 'Log Out',
     'cropTitle': 'Crops picked\nfor you',
     'cropAccent': 'based on your weather today',
@@ -207,10 +204,7 @@ class AppStrings {
         'ملفك الشخصي في إثمار غير موجود. أكمل إنشاء الحساب أولًا',
     'errProfileLoad': 'تعذّر تحميل ملفك الشخصي في إثمار. حاول مرة أخرى',
     'errLogout': 'تعذّر تسجيل الخروج. حاول مرة أخرى',
-    'homeHello': 'أهلًا',
     'homeFriend': 'يا صديقي',
-    'homeTitle': 'حديقتك\nتقريبًا جاهزة',
-    'homeBody': 'قاعدين نزرع باقي الشاشات. ارجع لنا قريب!',
     'logOut': 'تسجيل الخروج',
     'cropTitle': 'محاصيل\nاخترناها لك',
     'cropAccent': 'حسب طقسك اليوم',
@@ -338,10 +332,7 @@ class S {
   String get errProfileMissing => t('errProfileMissing');
   String get errProfileLoad => t('errProfileLoad');
   String get errLogout => t('errLogout');
-  String get homeHello => t('homeHello');
   String get homeFriend => t('homeFriend');
-  String get homeTitle => t('homeTitle');
-  String get homeBody => t('homeBody');
   String get logOut => t('logOut');
   String get cropTitle => t('cropTitle');
   String get cropAccent => t('cropAccent');

@@ -1,7 +1,7 @@
 # Ethmar – إثمار
 
 Friendly Arabic / English gardening app (IT496).
-Screens so far: animated splash → welcome → sign up / log in → temporary home.
+Screens so far: animated splash → welcome → sign up / log in → home.
 
 ## Run it in VS Code
 
@@ -31,7 +31,7 @@ lib/
   theme/app_theme.dart       fonts & text styles
   l10n/app_strings.dart      ALL text, Arabic + English
   l10n/locale_controller.dart  current language (Arabic by default)
-  screens/                   splash, welcome, sign up, log in, home placeholder
+  screens/                   splash, welcome, sign up, log in, home, profile, crop recommendation
   widgets/                   logo, buttons, text field, doodles, character…
 assets/images/               put the character PNGs here
 ```
@@ -56,7 +56,6 @@ Put them in `assets/images/` as **PNG with a transparent background**:
 | `character_welcome.png` | Welcome hero |
 | `character_signup.png` | Sign up header |
 | `character_login.png` | Log in header |
-| `character_home.png` | Home placeholder |
 
 Until a file exists, a placeholder "plant buddy" is drawn instead (you may see
 an "Unable to load asset" note in the debug console – that's expected).
