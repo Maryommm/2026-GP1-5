@@ -1,12 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-/// All app text in one place, in both languages.
-///
-/// Usage:  final s = S.of(context);  Text(s.welcomeTitle)
-///
-/// The screens are written ONCE. Flutter flips the whole layout to
-/// right-to-left automatically when the language is Arabic, so there is
-/// no separate "Arabic screen".
 class AppStrings {
   AppStrings._();
 
@@ -58,8 +51,7 @@ class AppStrings {
     'verificationLinkSent': 'Verification link sent! Check your inbox',
     'emailVerified': 'Your email has been verified',
     'verifyDialogTitle': 'Check your email',
-    'verifyDialogBody':
-        "We sent a verification link to {email}. Open it to verify your account. Can't find it? Check your spam folder.",
+    'verifyDialogBody': "We sent a verification link to {email}. Open it to verify your account. Can't find it? Check your spam folder.",
     'verifyDialogWaiting': 'Waiting for verification…',
     'resendEmail': 'Resend email',
     'verificationResent': 'Sent again! Check your inbox',
@@ -182,8 +174,7 @@ class AppStrings {
     'verificationLinkSent': 'أرسلنا رابط التحقق! تحقق من بريدك الإلكتروني',
     'emailVerified': 'تم تأكيد بريدك الإلكتروني',
     'verifyDialogTitle': 'تحقق من بريدك',
-    'verifyDialogBody':
-        'أرسلنا رابط التحقق إلى {email}. افتحه لتأكيد حسابك. ما لقيته؟ شيّك على مجلد الرسائل غير المرغوب فيها (Spam).',
+    'verifyDialogBody': 'أرسلنا رابط التحقق إلى {email}. افتحه لتأكيد حسابك. ما لقيته؟ شيّك على مجلد الرسائل غير المرغوب فيها (Spam).',
     'verifyDialogWaiting': 'ننتظر تأكيد بريدك…',
     'resendEmail': 'أعد إرسال الرابط',
     'verificationResent': 'أرسلناه مرة ثانية! تحقق من بريدك',
@@ -336,8 +327,11 @@ class S {
   String get logOut => t('logOut');
   String get cropTitle => t('cropTitle');
   String get cropAccent => t('cropAccent');
-  List<String> get cropLoadingSteps =>
-      [t('cropLoading1'), t('cropLoading2'), t('cropLoading3')];
+  List<String> get cropLoadingSteps => [
+    t('cropLoading1'),
+    t('cropLoading2'),
+    t('cropLoading3'),
+  ];
   String get cropHumidity => t('cropHumidity');
   String get cropTempRange => t('cropTempRange');
   String get cropIrrigation => t('cropIrrigation');

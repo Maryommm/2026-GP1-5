@@ -13,9 +13,6 @@ import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 
-/// Smart crop recommendations: while the model works we show the thinking
-/// buddy, then a list of crop cards (border colour = crop category).
-/// Tapping a card expands it to show growing details.
 class CropRecommendationScreen extends StatefulWidget {
   const CropRecommendationScreen({super.key});
 
@@ -48,7 +45,9 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
             return AnimatedSwitcher(
               duration: const Duration(milliseconds: 350),
               child: KeyedSubtree(
-                  key: ValueKey(snap.connectionState), child: child),
+                key: ValueKey(snap.connectionState),
+                child: child,
+              ),
             );
           },
         ),
@@ -56,10 +55,6 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Loading
-// ---------------------------------------------------------------------------
 
 class _LoadingView extends StatefulWidget {
   const _LoadingView();
@@ -75,7 +70,6 @@ class _LoadingViewState extends State<_LoadingView> {
   @override
   void initState() {
     super.initState();
-    // Walk through the steps once, then stay on the last one.
     _timer = Timer.periodic(const Duration(milliseconds: 1100), (t) {
       if (_step >= 2) return t.cancel();
       setState(() => _step++);
@@ -119,7 +113,9 @@ class _LoadingViewState extends State<_LoadingView> {
                           ),
                         ),
                         const EthmarCharacter(
-                            name: 'ethmar_buddy_thinking', height: 190),
+                          name: 'ethmar_buddy_thinking',
+                          height: 190,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 32),
@@ -155,10 +151,6 @@ class _LoadingViewState extends State<_LoadingView> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Error
-// ---------------------------------------------------------------------------
-
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.onRetry});
   final VoidCallback onRetry;
@@ -181,11 +173,15 @@ class _ErrorView extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const EthmarCharacter(
-                      name: 'ethmar_buddy_worried', height: 160),
+                    name: 'ethmar_buddy_worried',
+                    height: 160,
+                  ),
                   const SizedBox(height: 24),
-                  Text(s.cropError,
-                      textAlign: TextAlign.center,
-                      style: AppText.body(context)),
+                  Text(
+                    s.cropError,
+                    textAlign: TextAlign.center,
+                    style: AppText.body(context),
+                  ),
                   const SizedBox(height: 24),
                   EthmarButton(label: s.tryAgain, onPressed: onRetry),
                 ],
@@ -212,7 +208,8 @@ class _ResultsView extends StatelessWidget {
     final crops = result.crops;
     return ListView(
       padding: EdgeInsets.only(
-          bottom: MediaQuery.paddingOf(context).bottom + 24),
+        bottom: MediaQuery.paddingOf(context).bottom + 24,
+      ),
       children: [
         AuthHeader(
           title: s.cropTitle,
@@ -239,7 +236,6 @@ class _ResultsView extends StatelessWidget {
   }
 }
 
-/// "Riyadh · 31°C · Sunny · 22% humidity" — what the model used.
 class _ConditionsStrip extends StatelessWidget {
   const _ConditionsStrip({required this.conditions});
   final GrowingConditions conditions;
@@ -254,11 +250,13 @@ class _ConditionsStrip extends StatelessWidget {
       children: [
         _Pill(icon: Icons.place_rounded, text: c.city.of(context)),
         _Pill(
-            icon: Icons.wb_sunny_rounded,
-            text: '${c.temperature}°C · ${c.sky.of(context)}'),
+          icon: Icons.wb_sunny_rounded,
+          text: '${c.temperature}°C · ${c.sky.of(context)}',
+        ),
         _Pill(
-            icon: Icons.water_drop_rounded,
-            text: '${c.humidity}% ${s.cropHumidity}'),
+          icon: Icons.water_drop_rounded,
+          text: '${c.humidity}% ${s.cropHumidity}',
+        ),
       ],
     );
   }
@@ -290,7 +288,6 @@ class _Pill extends StatelessWidget {
   }
 }
 
-/// Crop card: name + category on top; tap to reveal the details.
 class _CropCard extends StatefulWidget {
   const _CropCard({required this.crop});
   final CropRecommendation crop;
@@ -338,7 +335,9 @@ class _CropCardState extends State<_CropCard> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                            color: cat.tint, shape: BoxShape.circle),
+                          color: cat.tint,
+                          shape: BoxShape.circle,
+                        ),
                         child: Icon(cat.icon, color: cat.dark),
                       ),
                       const SizedBox(width: 14),
@@ -346,9 +345,11 @@ class _CropCardState extends State<_CropCard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(crop.name.of(context),
-                                style: AppText.title(context)
-                                    .copyWith(fontSize: 21)),
+                            Text(
+                              crop.name.of(context),
+                              style: AppText.title(context)
+                                  .copyWith(fontSize: 21),
+                            ),
                             const SizedBox(height: 4),
                             _CategoryChip(category: cat),
                           ],
@@ -357,26 +358,43 @@ class _CropCardState extends State<_CropCard> {
                       AnimatedRotation(
                         turns: _open ? 0.5 : 0,
                         duration: const Duration(milliseconds: 260),
-                        child: const Icon(Icons.keyboard_arrow_down_rounded,
-                            color: AppColors.forest, size: 28),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.forest,
+                          size: 28,
+                        ),
                       ),
                     ],
                   ),
                   if (_open) ...[
                     const SizedBox(height: 14),
-                    Text(crop.reason.of(context),
-                        style: AppText.body(context)),
+                    Text(crop.reason.of(context), style: AppText.body(context)),
                     const SizedBox(height: 14),
-                    _DetailGrid(items: [
-                      _Detail(Icons.thermostat_rounded, s.cropTempRange,
-                          '${crop.minTemp}–${crop.maxTemp}°C'),
-                      _Detail(Icons.water_drop_rounded, s.cropIrrigation,
-                          crop.irrigation.of(context)),
-                      _Detail(Icons.calendar_month_rounded, s.cropSeason,
-                          crop.season.of(context)),
-                      _Detail(Icons.agriculture_rounded, s.cropHarvest,
-                          '${crop.daysToHarvest} ${s.cropDays}'),
-                    ], category: cat),
+                    _DetailGrid(
+                      items: [
+                        _Detail(
+                          Icons.thermostat_rounded,
+                          s.cropTempRange,
+                          '${crop.minTemp}–${crop.maxTemp}°C',
+                        ),
+                        _Detail(
+                          Icons.water_drop_rounded,
+                          s.cropIrrigation,
+                          crop.irrigation.of(context),
+                        ),
+                        _Detail(
+                          Icons.calendar_month_rounded,
+                          s.cropSeason,
+                          crop.season.of(context),
+                        ),
+                        _Detail(
+                          Icons.agriculture_rounded,
+                          s.cropHarvest,
+                          '${crop.daysToHarvest} ${s.cropDays}',
+                        ),
+                      ],
+                      category: cat,
+                    ),
                   ],
                 ],
               ),
@@ -402,8 +420,10 @@ class _CategoryChip extends StatelessWidget {
       ),
       child: Text(
         category.label.of(context),
-        style: AppText.small(context, color: category.dark)
-            .copyWith(fontWeight: FontWeight.w600, fontSize: 12),
+        style: AppText.small(
+          context,
+          color: category.dark,
+        ).copyWith(fontWeight: FontWeight.w600, fontSize: 12),
       ),
     );
   }
@@ -424,43 +444,48 @@ class _DetailGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, c) {
-      const gap = 10.0;
-      final tileW = (c.maxWidth - gap) / 2;
-      return Wrap(
-        spacing: gap,
-        runSpacing: gap,
-        children: [
-          for (final d in items)
-            Container(
-              width: tileW,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(d.icon, size: 16, color: category.dark),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(d.label,
+    return LayoutBuilder(
+      builder: (context, c) {
+        const gap = 10.0;
+        final tileW = (c.maxWidth - gap) / 2;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final d in items)
+              Container(
+                width: tileW,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(d.icon, size: 16, color: category.dark),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            d.label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppText.small(context).copyWith(fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(d.value, style: AppText.label(context)),
-                ],
+                            style: AppText.small(context)
+                                .copyWith(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(d.value, style: AppText.label(context)),
+                  ],
+                ),
               ),
-            ),
-        ],
-      );
-    });
+          ],
+        );
+      },
+    );
   }
 }

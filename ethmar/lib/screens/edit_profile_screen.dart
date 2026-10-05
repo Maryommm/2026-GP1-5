@@ -13,9 +13,6 @@ import '../widgets/ethmar_text_field.dart';
 import '../widgets/user_avatar.dart';
 import 'validators.dart';
 
-/// Edit Profile: the same header and form style as Sign Up / Log in.
-/// The username can be changed for real; the profile photo controls are
-/// placeholders for now. Leaving with unsaved changes asks first.
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key, required this.username});
   final String username;
@@ -240,8 +237,11 @@ class _PhotoArea extends StatelessWidget {
                   onTap: () {},
                   child: const Padding(
                     padding: EdgeInsets.all(8),
-                    child: Icon(Icons.photo_camera_rounded,
-                        size: 18, color: AppColors.onForest),
+                    child: Icon(
+                      Icons.photo_camera_rounded,
+                      size: 18,
+                      color: AppColors.onForest,
+                    ),
                   ),
                 ),
               ),
@@ -256,7 +256,9 @@ class _PhotoArea extends StatelessWidget {
           children: [
             _PhotoPill(icon: Icons.photo_camera_outlined, label: s.takePhoto),
             _PhotoPill(
-                icon: Icons.photo_library_outlined, label: s.chooseFromGallery),
+              icon: Icons.photo_library_outlined,
+              label: s.chooseFromGallery,
+            ),
           ],
         ),
       ],

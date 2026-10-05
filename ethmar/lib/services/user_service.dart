@@ -2,8 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
-/// The signed-in user's username, shared by Home and Profile so they update
-/// right away when it changes (same idea as `appLocale` for the language).
 final ValueNotifier<String> currentUsername = ValueNotifier('');
 
 class UserProfileMissingException implements Exception {
@@ -151,12 +149,17 @@ class UserService {
       throw StateError('A verified authenticated user is required.');
     }
     if (!_usernamePattern.hasMatch(trimmedUsername)) {
-      throw ArgumentError.value(newUsername, 'username', 'Username is invalid.');
+      throw ArgumentError.value(
+        newUsername,
+        'username',
+        'Username is invalid.',
+      );
     }
 
     final profile = _firestore.collection('users').doc(user.uid);
-    final newReservation =
-        _firestore.collection('usernames').doc(normalizedUsername);
+    final newReservation = _firestore
+        .collection('usernames')
+        .doc(normalizedUsername);
 
     await _firestore.runTransaction<void>((transaction) async {
       // All reads come before any writes in a transaction.
@@ -179,8 +182,9 @@ class UserService {
         return;
       }
 
-      final oldReservation =
-          _firestore.collection('usernames').doc(oldNormalizedUsername);
+      final oldReservation = _firestore
+          .collection('usernames')
+          .doc(oldNormalizedUsername);
       final newReservationSnapshot = await transaction.get(newReservation);
       final oldReservationSnapshot = await transaction.get(oldReservation);
 
