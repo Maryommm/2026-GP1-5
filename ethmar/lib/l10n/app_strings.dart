@@ -85,6 +85,10 @@ class AppStrings {
     'cropHarvest': 'Harvest in',
     'cropDays': 'days',
     'cropError': "We couldn't get your recommendations. Please try again",
+    'cropPrev': 'Previous crop',
+    'cropNext': 'Next crop',
+    'cropSwipeHint': 'Swipe sideways for other crop types',
+    'cropSwipeUp': 'Swipe up for more',
     'tryAgain': 'Try again',
     'homeGoodMorning': 'Good morning,',
     'homeGoodAfternoon': 'Good afternoon,',
@@ -209,6 +213,10 @@ class AppStrings {
     'cropHarvest': 'الحصاد بعد',
     'cropDays': 'يوم',
     'cropError': 'تعذّر جلب الاقتراحات. حاول مرة أخرى',
+    'cropPrev': 'المحصول السابق',
+    'cropNext': 'المحصول التالي',
+    'cropSwipeHint': 'اسحب يمين ويسار لباقي الأنواع',
+    'cropSwipeUp': 'اسحب لفوق للمزيد',
     'tryAgain': 'حاول مرة أخرى',
     'homeGoodMorning': 'صباح الخير،',
     'homeGoodAfternoon': 'مساء الخير،',
@@ -339,6 +347,10 @@ class S {
   String get cropHarvest => t('cropHarvest');
   String get cropDays => t('cropDays');
   String get cropError => t('cropError');
+  String get cropPrev => t('cropPrev');
+  String get cropNext => t('cropNext');
+  String get cropSwipeHint => t('cropSwipeHint');
+  String get cropSwipeUp => t('cropSwipeUp');
   String get tryAgain => t('tryAgain');
   String get homeGoodMorning => t('homeGoodMorning');
   String get homeGoodAfternoon => t('homeGoodAfternoon');
