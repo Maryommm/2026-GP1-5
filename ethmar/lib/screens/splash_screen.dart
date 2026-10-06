@@ -36,8 +36,6 @@ class _SplashScreenState extends State<SplashScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future<void>.delayed(const Duration(milliseconds: 250));
       if (!mounted) return;
-      precacheImage(
-          const AssetImage('assets/images/character_welcome.png'), context);
       _c.forward().whenComplete(() {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(fadeRoute(const WelcomeScreen()));

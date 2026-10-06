@@ -1,16 +1,13 @@
-import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/backgrounds.dart';
 import '../widgets/entrance.dart';
+import '../widgets/email_verification_dialog.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
@@ -137,12 +134,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
         final verified = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
-          builder: (_) => _VerifyEmailDialog(
+          builder: (_) => EmailVerificationDialog(
             email: _verificationAccountEmail ?? email,
             authService: _authService,
           ),
         );
-        if (verified != true || !mounted) return;
+        if (verified != true) {
+          try {
+            await _authService.signOut();
+          } catch (_) {
+            if (!mounted) return;
+            _showError(s.errLogout);
+            return;
+          }
+          if (!mounted) return;
+          Navigator.of(context)
+              .pushReplacement(riseRoute(LoginScreen(email: email)));
+          return;
+        }
+        if (!mounted) return;
       }
 
       if (!_currentUserMatchesVerificationAccount()) {
@@ -275,163 +285,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "Check your email" popup shown after the verification link is sent.
-/// Checks every few seconds and closes with `true` as soon as the email is
-/// verified, so sign-up can carry on to Home by itself.
-class _VerifyEmailDialog extends StatefulWidget {
-  const _VerifyEmailDialog({required this.email, required this.authService});
-
-  final String email;
-  final AuthService authService;
-
-  @override
-  State<_VerifyEmailDialog> createState() => _VerifyEmailDialogState();
-}
-
-class _VerifyEmailDialogState extends State<_VerifyEmailDialog>
-    with WidgetsBindingObserver {
-  Timer? _timer;
-  bool _checking = false;
-  bool _resending = false;
-  String? _resendMessage;
-  bool _resendFailed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) => _check());
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  // Check right away when the user comes back from their mail app.
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _check();
-  }
-
-  Future<void> _check() async {
-    if (_checking) return;
-    _checking = true;
-    try {
-      final verified = await widget.authService.isEmailVerified();
-      if (verified && mounted) {
-        _timer?.cancel();
-        Navigator.of(context).pop(true);
-      }
-    } catch (_) {
-      // Network hiccup: the next tick tries again.
-    } finally {
-      _checking = false;
-    }
-  }
-
-  Future<void> _resend() async {
-    if (_resending) return;
-    final s = S.of(context);
-    setState(() => _resending = true);
-    String message;
-    var failed = false;
-    try {
-      await widget.authService.sendEmailVerification();
-      message = s.verificationResent;
-    } on FirebaseAuthException catch (error) {
-      failed = true;
-      message = switch (error.code) {
-        'too-many-requests' => s.errTooManyRequests,
-        'network-request-failed' => s.errNetwork,
-        _ => s.errAuthGeneral,
-      };
-    } catch (_) {
-      failed = true;
-      message = s.errAuthGeneral;
-    }
-    if (!mounted) return;
-    setState(() {
-      _resending = false;
-      _resendMessage = message;
-      _resendFailed = failed;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    return Dialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.mark_email_unread_rounded,
-                size: 56, color: AppColors.forest),
-            const SizedBox(height: 16),
-            Text(
-              s.verifyDialogTitle,
-              textAlign: TextAlign.center,
-              style: AppText.title(context).copyWith(fontSize: 22),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              s.verifyDialogBody(widget.email),
-              textAlign: TextAlign.center,
-              style: AppText.body(context),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.2, color: AppColors.forest),
-                ),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(s.verifyDialogWaiting,
-                      style: AppText.small(context,
-                          color: AppColors.textSecondary)),
-                ),
-              ],
-            ),
-            if (_resendMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _resendMessage!,
-                textAlign: TextAlign.center,
-                style: AppText.small(context,
-                    color:
-                        _resendFailed ? AppColors.error : AppColors.success),
-              ),
-            ],
-            const SizedBox(height: 24),
-            EthmarButton(
-              label: s.resendEmail,
-              loading: _resending,
-              onPressed: _resend,
-            ),
-            const SizedBox(height: 12),
-            EthmarButton(
-              label: s.cancel,
-              outlined: true,
-              onPressed: () => Navigator.of(context).pop(false),
-            ),
-          ],
         ),
       ),
     );

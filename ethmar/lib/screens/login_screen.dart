@@ -7,16 +7,20 @@ import '../services/user_service.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/backgrounds.dart';
 import '../widgets/entrance.dart';
+import '../widgets/email_verification_dialog.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
+import 'complete_registration_screen.dart';
 import 'home_screen.dart';
 import 'reset_password_screen.dart';
 import 'sign_up_screen.dart';
 import 'validators.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.email = ''});
+
+  final String email;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -26,9 +30,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final _form = GlobalKey<FormState>();
   final _authService = AuthService();
   final _userService = UserService();
-  final _email = TextEditingController();
+  late final TextEditingController _email;
   final _password = TextEditingController();
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _email = TextEditingController(text: widget.email);
+  }
 
   @override
   void dispose() {
@@ -58,19 +68,51 @@ class _LoginScreenState extends State<LoginScreen> {
         throw StateError('Firebase did not return the signed-in user.');
       }
 
-      final isVerified = await _authService.isEmailVerified();
-      final currentUser = FirebaseAuth.instance.currentUser;
+      var isVerified = await _authService.isEmailVerified();
+      var currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null || currentUser.uid != signedInUserId) {
         throw StateError('The authenticated user changed during sign-in.');
       }
       if (!isVerified) {
-        await _signOutQuietly();
         if (!mounted) return;
-        _showError(s.errVerifyEmailFirst);
-        return;
+        isVerified =
+            await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => EmailVerificationDialog(
+                email: currentUser?.email ?? email,
+                authService: _authService,
+                recovery: true,
+              ),
+            ) ==
+            true;
+        if (!isVerified) {
+          final signedOut = await _signOutQuietly();
+          if (!signedOut && mounted) _showError(s.errLogout);
+          return;
+        }
       }
 
-      final username = await _userService.getCurrentUsername();
+      currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null ||
+          currentUser.uid != signedInUserId ||
+          !currentUser.emailVerified) {
+        throw StateError('The authenticated user changed during verification.');
+      }
+
+      late final String username;
+      try {
+        username = await _userService.getCurrentUsername();
+      } on UserProfileMissingException {
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          riseRoute(
+            CompleteRegistrationScreen(email: currentUser.email ?? email),
+          ),
+          (_) => false,
+        );
+        return;
+      }
       if (!mounted) return;
       if (FirebaseAuth.instance.currentUser?.uid != signedInUserId) {
         throw StateError('The authenticated user changed while loading.');
@@ -84,10 +126,6 @@ class _LoginScreenState extends State<LoginScreen> {
       await _signOutQuietly();
       if (!mounted) return;
       _showError(_authErrorMessage(error, s));
-    } on UserProfileMissingException {
-      await _signOutQuietly();
-      if (!mounted) return;
-      _showError(s.errProfileMissing);
     } on UserProfileInvalidException {
       await _signOutQuietly();
       if (!mounted) return;
@@ -129,11 +167,13 @@ class _LoginScreenState extends State<LoginScreen> {
     };
   }
 
-  Future<void> _signOutQuietly() async {
+  Future<bool> _signOutQuietly() async {
     try {
       await _authService.signOut();
+      return true;
     } catch (_) {
       // The original error is more useful to the user than a cleanup failure.
+      return false;
     }
   }
 

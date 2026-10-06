@@ -55,6 +55,14 @@ class AppStrings {
     'verifyDialogWaiting': 'Waiting for verification…',
     'resendEmail': 'Resend email',
     'verificationResent': 'Sent again! Check your inbox',
+    'emailNotVerifiedTitle': 'Email not verified',
+    'verificationRecoveryBody': 'The email for this account ({email}) is not verified. The previous link may have expired. Resend a fresh verification email, open it, then check again.',
+    'checkVerification': 'Check verification / continue',
+    'verificationStillPending': 'Your email is still not verified. Open the latest verification email, then try again.',
+    'completeRegistrationTitle': 'Complete your\nregistration',
+    'completeRegistrationAccent': 'one last step',
+    'completeRegistrationBody': 'Your email is verified, but your Ethmar profile is not finished. Choose a username to continue.',
+    'completeRegistrationButton': 'Complete registration',
     'errVerifyEmailFirst':
         'Verify your email first. Check your inbox for the link',
     'errEmailAlreadyInUse':
@@ -182,6 +190,14 @@ class AppStrings {
     'verifyDialogWaiting': 'ننتظر تأكيد بريدك…',
     'resendEmail': 'أعد إرسال الرابط',
     'verificationResent': 'أرسلناه مرة ثانية! تحقق من بريدك',
+    'emailNotVerifiedTitle': 'البريد الإلكتروني غير مؤكّد',
+    'verificationRecoveryBody': 'لم يتم تأكيد البريد الإلكتروني لهذا الحساب ({email}). قد تكون صلاحية الرابط السابق انتهت. أعد إرسال رسالة تحقق جديدة، ثم افتحها واضغط على التحقق والمتابعة.',
+    'checkVerification': 'التحقق والمتابعة',
+    'verificationStillPending': 'لم يتم تأكيد بريدك الإلكتروني بعد. افتح أحدث رسالة تحقق ثم حاول مرة أخرى.',
+    'completeRegistrationTitle': 'أكمل\nتسجيلك',
+    'completeRegistrationAccent': 'باقي خطوة واحدة',
+    'completeRegistrationBody': 'تم تأكيد بريدك الإلكتروني، لكن ملفك في إثمار غير مكتمل. اختر اسم مستخدم للمتابعة.',
+    'completeRegistrationButton': 'إكمال التسجيل',
     'errVerifyEmailFirst':
         'أكّد بريدك الإلكتروني أولًا. الرابط وصلك على الإيميل',
     'errEmailAlreadyInUse':
@@ -319,6 +335,15 @@ class S {
   String get verifyDialogWaiting => t('verifyDialogWaiting');
   String get resendEmail => t('resendEmail');
   String get verificationResent => t('verificationResent');
+  String get emailNotVerifiedTitle => t('emailNotVerifiedTitle');
+  String verificationRecoveryBody(String email) =>
+      t('verificationRecoveryBody').replaceAll('{email}', email);
+  String get checkVerification => t('checkVerification');
+  String get verificationStillPending => t('verificationStillPending');
+  String get completeRegistrationTitle => t('completeRegistrationTitle');
+  String get completeRegistrationAccent => t('completeRegistrationAccent');
+  String get completeRegistrationBody => t('completeRegistrationBody');
+  String get completeRegistrationButton => t('completeRegistrationButton');
   String get errVerifyEmailFirst => t('errVerifyEmailFirst');
   String get errEmailAlreadyInUse => t('errEmailAlreadyInUse');
   String get errTooManyRequests => t('errTooManyRequests');
