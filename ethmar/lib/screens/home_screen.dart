@@ -15,6 +15,7 @@ import 'add_plant_screen.dart';
 import 'agri_map_screen.dart';
 import 'chat_screen.dart';
 import 'crop_recommendation_screen.dart';
+import 'leaderboard_screen.dart';
 import 'leaf_scan_screen.dart';
 import 'profile_screen.dart';
 import 'virtual_farm_screen.dart';
@@ -533,7 +534,8 @@ class _FeatureCard extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // Bottom bar: Home (selected), Daily Tasks, Virtual Farm, Leaderboard.
-// Virtual Farm opens its screen; Daily Tasks and Leaderboard do nothing yet.
+// Virtual Farm and Leaderboard open their screens; Daily Tasks does nothing
+// yet.
 // ---------------------------------------------------------------------------
 
 class _HomeBottomBar extends StatelessWidget {
@@ -565,7 +567,11 @@ class _HomeBottomBar extends StatelessWidget {
                     .push(riseRoute(const VirtualFarmScreen())),
               ),
               _NavItem(
-                  icon: Icons.leaderboard_outlined, label: s.navLeaderboard),
+                icon: Icons.leaderboard_outlined,
+                label: s.navLeaderboard,
+                onTap: () => Navigator.of(context)
+                    .push(riseRoute(const LeaderboardScreen())),
+              ),
             ],
           ),
         ),

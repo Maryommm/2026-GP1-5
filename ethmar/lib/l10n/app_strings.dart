@@ -242,6 +242,17 @@ class AppStrings {
     'tomorrow': 'Tomorrow',
     'editPlantTitle': 'Edit plant',
     'plantUpdated': 'Plant updated',
+    'leaderboardTitle': 'Leaderboard',
+    'leaderboardAccent': "who's growing the most?",
+    'rankFirst': "You're #1! Your farm is the biggest of all.",
+    'rankTopTen': "You're #{rank} and in the top 10! Keep growing.",
+    'rankKeepGoing':
+        'You rank #{rank} with {plants}. Keep going to reach the top 10!',
+    'plantsCount': '{n} plants',
+    'plantsCountOne': '1 plant',
+    'you': 'You',
+    'rankLabel': 'Rank {rank}',
+    'rankToTopTen': '{plants} to go',
   };
 
   static const Map<String, String> ar = {
@@ -482,6 +493,16 @@ class AppStrings {
     'tomorrow': 'بكرة',
     'editPlantTitle': 'تعديل النبتة',
     'plantUpdated': 'تم تحديث النبتة',
+    'leaderboardTitle': 'المتصدرون',
+    'leaderboardAccent': 'مين يزرع أكثر؟',
+    'rankFirst': 'أنت الأول! مزرعتك هي الأكبر.',
+    'rankTopTen': 'ترتيبك #{rank} وأنت من أفضل ١٠! كمّل زراعة.',
+    'rankKeepGoing': 'ترتيبك #{rank} وعندك {plants}. كمّل عشان توصل لأفضل ١٠!',
+    'plantsCount': '{n} نبتة',
+    'plantsCountOne': 'نبتة وحدة',
+    'you': 'أنت',
+    'rankLabel': 'المركز {rank}',
+    'rankToTopTen': 'باقي {plants}',
   };
 }
 
@@ -735,4 +756,24 @@ class S {
   String get tomorrow => t('tomorrow');
   String get editPlantTitle => t('editPlantTitle');
   String get plantUpdated => t('plantUpdated');
+  String get leaderboardTitle => t('leaderboardTitle');
+  String get leaderboardAccent => t('leaderboardAccent');
+
+  /// The line under the header, depending on where the user ranks.
+  String rankMessage(int rank, int plants) => rank == 1
+      ? t('rankFirst')
+      : rank <= 10
+      ? t('rankTopTen').replaceAll('{rank}', '$rank')
+      : t('rankKeepGoing')
+            .replaceAll('{rank}', '$rank')
+            .replaceAll('{plants}', plantsCount(plants));
+
+  /// "1 plant", "12 plants".
+  String plantsCount(int n) => n == 1
+      ? t('plantsCountOne')
+      : t('plantsCount').replaceAll('{n}', '$n');
+  String get you => t('you');
+  String rankLabel(int rank) => t('rankLabel').replaceAll('{rank}', '$rank');
+  String rankToTopTen(int plants) =>
+      t('rankToTopTen').replaceAll('{plants}', plantsCount(plants));
 }
