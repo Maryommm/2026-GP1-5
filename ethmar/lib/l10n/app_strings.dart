@@ -157,6 +157,34 @@ class AppStrings {
     'chatGreeting': 'Hi {name}, tell me what you need.',
     'chatHint': 'Ask Ethmar…',
     'chatSend': 'Send',
+    'close': 'Close',
+    'mapAccent': 'nurseries & farm stores around you',
+    'mapFilterAll': 'All',
+    'mapFilterNurseries': 'Nurseries',
+    'mapFilterStores': 'Farm stores',
+    'mapNursery': 'Nursery',
+    'mapStore': 'Farm store',
+    'mapKm': '{km} km',
+    'mapPermissionTitle': 'Allow location access?',
+    'mapPermissionBody':
+        'Ethmar uses your location to show nurseries and farm stores near you.',
+    'mapAllow': 'Allow',
+    'mapDontAllow': "Don't allow",
+    'mapLocating': 'Finding your location…',
+    'mapDeniedTitle': 'Location access needed',
+    'mapDeniedBody':
+        'GPS access is required to find nearby services. Allow location access to see the map.',
+    'mapAllowLocation': 'Allow location',
+    'mapRecenter': 'Show my location',
+    'mapYouAreHere': 'You are here',
+    'farmTitle': 'My virtual farm',
+    'farmAccent': 'your land is ready for its first seed',
+    'farmLand': 'Your empty farm land',
+    'farmZoomIn': 'Zoom in',
+    'farmZoomOut': 'Zoom out',
+    'farmResetView': 'Reset view',
+    'farmPinchHint': 'Pinch to zoom in and out',
+    'farmAddLand': 'Add land',
   };
 
   static const Map<String, String> ar = {
@@ -313,6 +341,34 @@ class AppStrings {
     'chatGreeting': 'أهلًا {name}، قول لي وش تحتاج.',
     'chatHint': 'اسأل إثمار…',
     'chatSend': 'إرسال',
+    'close': 'إغلاق',
+    'mapAccent': 'مشاتل ومتاجر زراعية حولك',
+    'mapFilterAll': 'الكل',
+    'mapFilterNurseries': 'مشاتل',
+    'mapFilterStores': 'متاجر زراعية',
+    'mapNursery': 'مشتل',
+    'mapStore': 'متجر زراعي',
+    'mapKm': '{km} كم',
+    'mapPermissionTitle': 'تسمح لنا نعرف موقعك؟',
+    'mapPermissionBody':
+        'إثمار يستخدم موقعك عشان يوريك المشاتل والمتاجر الزراعية القريبة منك.',
+    'mapAllow': 'السماح',
+    'mapDontAllow': 'عدم السماح',
+    'mapLocating': 'نحدد موقعك…',
+    'mapDeniedTitle': 'نحتاج إذن الموقع',
+    'mapDeniedBody':
+        'نحتاج الوصول لموقعك (GPS) عشان نلقى الخدمات القريبة منك. اسمح بالوصول للموقع عشان تشوف الخريطة.',
+    'mapAllowLocation': 'السماح بالموقع',
+    'mapRecenter': 'اعرض موقعي',
+    'mapYouAreHere': 'أنت هنا',
+    'farmTitle': 'مزرعتي الافتراضية',
+    'farmAccent': 'أرضك جاهزة لأول بذرة',
+    'farmLand': 'أرض مزرعتك الفاضية',
+    'farmZoomIn': 'تكبير',
+    'farmZoomOut': 'تصغير',
+    'farmResetView': 'إعادة العرض',
+    'farmPinchHint': 'قرّب وبعّد بإصبعين',
+    'farmAddLand': 'أضف أرض',
   };
 }
 
@@ -479,4 +535,30 @@ class S {
       t('chatGreeting').replaceAll('{name}', name);
   String get chatHint => t('chatHint');
   String get chatSend => t('chatSend');
+  String get close => t('close');
+  String get mapAccent => t('mapAccent');
+  String get mapFilterAll => t('mapFilterAll');
+  String get mapFilterNurseries => t('mapFilterNurseries');
+  String get mapFilterStores => t('mapFilterStores');
+  String get mapNursery => t('mapNursery');
+  String get mapStore => t('mapStore');
+  String mapKm(String km) => t('mapKm').replaceAll('{km}', km);
+  String get mapPermissionTitle => t('mapPermissionTitle');
+  String get mapPermissionBody => t('mapPermissionBody');
+  String get mapAllow => t('mapAllow');
+  String get mapDontAllow => t('mapDontAllow');
+  String get mapLocating => t('mapLocating');
+  String get mapDeniedTitle => t('mapDeniedTitle');
+  String get mapDeniedBody => t('mapDeniedBody');
+  String get mapAllowLocation => t('mapAllowLocation');
+  String get mapRecenter => t('mapRecenter');
+  String get mapYouAreHere => t('mapYouAreHere');
+  String get farmTitle => t('farmTitle');
+  String get farmAccent => t('farmAccent');
+  String get farmLand => t('farmLand');
+  String get farmZoomIn => t('farmZoomIn');
+  String get farmZoomOut => t('farmZoomOut');
+  String get farmResetView => t('farmResetView');
+  String get farmPinchHint => t('farmPinchHint');
+  String get farmAddLand => t('farmAddLand');
 }

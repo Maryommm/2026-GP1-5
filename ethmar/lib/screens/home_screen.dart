@@ -11,17 +11,18 @@ import '../widgets/ethmar_buttons.dart' show kControlRadius;
 import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/user_avatar.dart';
+import 'agri_map_screen.dart';
 import 'chat_screen.dart';
 import 'crop_recommendation_screen.dart';
 import 'leaf_scan_screen.dart';
 import 'profile_screen.dart';
+import 'virtual_farm_screen.dart';
 
 /// Home: logo and avatar on top, a time-of-day greeting, the streak card,
 /// the character card with "Add Plant", then the four feature cards.
 /// The bottom bar holds Home, Daily Tasks, Virtual Farm and Leaderboard.
 ///
-/// UI only for now: "What to plant?", "Scan plant" and "Ask Ethmar" open
-/// screens.
+/// UI only for now: the four feature cards open their screens.
 /// The other actions are drawn but do nothing until their features are built.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, this.username = ''});
@@ -467,6 +468,8 @@ class _FeatureGrid extends StatelessWidget {
               child: _FeatureCard(
                 icon: Icons.map_outlined,
                 label: s.homeNearMe,
+                onTap: () => Navigator.of(context)
+                    .push(riseRoute(const AgriMapScreen())),
               ),
             ),
             const SizedBox(width: 12),
@@ -529,7 +532,7 @@ class _FeatureCard extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // Bottom bar: Home (selected), Daily Tasks, Virtual Farm, Leaderboard.
-// Only Home exists so far; the other items do nothing yet.
+// Virtual Farm opens its screen; Daily Tasks and Leaderboard do nothing yet.
 // ---------------------------------------------------------------------------
 
 class _HomeBottomBar extends StatelessWidget {
@@ -554,7 +557,12 @@ class _HomeBottomBar extends StatelessWidget {
               _NavItem(
                   icon: Icons.home_rounded, label: s.navHome, selected: true),
               _NavItem(icon: Icons.checklist_rounded, label: s.navDailyTasks),
-              _NavItem(icon: Icons.yard_outlined, label: s.navVirtualFarm),
+              _NavItem(
+                icon: Icons.yard_outlined,
+                label: s.navVirtualFarm,
+                onTap: () => Navigator.of(context)
+                    .push(riseRoute(const VirtualFarmScreen())),
+              ),
               _NavItem(
                   icon: Icons.leaderboard_outlined, label: s.navLeaderboard),
             ],
@@ -570,10 +578,14 @@ class _NavItem extends StatelessWidget {
     required this.icon,
     required this.label,
     this.selected = false,
+    this.onTap,
   });
   final IconData icon;
   final String label;
   final bool selected;
+
+  /// Null for tabs whose screen isn't built yet (tapping does nothing).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -583,7 +595,7 @@ class _NavItem extends StatelessWidget {
         selected: selected,
         button: true,
         child: InkWell(
-          onTap: () {},
+          onTap: onTap ?? () {},
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
