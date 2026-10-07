@@ -11,6 +11,7 @@ import '../widgets/ethmar_buttons.dart' show kControlRadius;
 import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/user_avatar.dart';
+import 'chat_screen.dart';
 import 'crop_recommendation_screen.dart';
 import 'leaf_scan_screen.dart';
 import 'profile_screen.dart';
@@ -19,7 +20,8 @@ import 'profile_screen.dart';
 /// the character card with "Add Plant", then the four feature cards.
 /// The bottom bar holds Home, Daily Tasks, Virtual Farm and Leaderboard.
 ///
-/// UI only for now: just "What to plant?" and "Scan plant" open screens.
+/// UI only for now: "What to plant?", "Scan plant" and "Ask Ethmar" open
+/// screens.
 /// The other actions are drawn but do nothing until their features are built.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, this.username = ''});
@@ -472,6 +474,8 @@ class _FeatureGrid extends StatelessWidget {
               child: _FeatureCard(
                 icon: Icons.smart_toy_outlined,
                 label: s.homeAskEthmar,
+                onTap: () => Navigator.of(context)
+                    .push(riseRoute(const ChatScreen())),
               ),
             ),
           ],

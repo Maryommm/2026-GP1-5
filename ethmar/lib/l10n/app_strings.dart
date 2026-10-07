@@ -153,6 +153,10 @@ class AppStrings {
         'The leaf edges are drying out. This usually comes from strong sun or not enough water.',
     'scanAnother': 'Scan another leaf',
     'backToHome': 'Back to Home',
+    'chatTitle': 'Ethmar is always here to help',
+    'chatGreeting': 'Hi {name}, tell me what you need.',
+    'chatHint': 'Ask Ethmar…',
+    'chatSend': 'Send',
   };
 
   static const Map<String, String> ar = {
@@ -305,6 +309,10 @@ class AppStrings {
         'أطراف الورقة بدأت تجف. غالبًا السبب شمس قوية أو ري قليل.',
     'scanAnother': 'افحص ورقة ثانية',
     'backToHome': 'رجوع للرئيسية',
+    'chatTitle': 'إثمار دايم موجود يساعدك',
+    'chatGreeting': 'أهلًا {name}، قول لي وش تحتاج.',
+    'chatHint': 'اسأل إثمار…',
+    'chatSend': 'إرسال',
   };
 }
 
@@ -466,4 +474,9 @@ class S {
   String get diagDryLeavesBody => t('diagDryLeavesBody');
   String get scanAnother => t('scanAnother');
   String get backToHome => t('backToHome');
+  String get chatTitle => t('chatTitle');
+  String chatGreeting(String name) =>
+      t('chatGreeting').replaceAll('{name}', name);
+  String get chatHint => t('chatHint');
+  String get chatSend => t('chatSend');
 }
