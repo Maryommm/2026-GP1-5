@@ -11,6 +11,7 @@ import '../widgets/ethmar_buttons.dart' show kControlRadius;
 import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/user_avatar.dart';
+import 'add_plant_screen.dart';
 import 'agri_map_screen.dart';
 import 'chat_screen.dart';
 import 'crop_recommendation_screen.dart';
@@ -392,7 +393,7 @@ class _WeatherRow extends StatelessWidget {
 }
 
 /// Small forest pill, same colours and text style as [EthmarButton].
-/// The Add Plant flow isn't built yet, so tapping does nothing.
+/// Opens the add-a-plant steps.
 class _AddPlantPill extends StatelessWidget {
   const _AddPlantPill();
 
@@ -405,7 +406,7 @@ class _AddPlantPill extends StatelessWidget {
       shadowColor: AppColors.overlay,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {},
+        onTap: () => AddPlantScreen.open(context),
         splashColor: const Color(0x22FFFFFF),
         child: Padding(
           padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 18, 10),

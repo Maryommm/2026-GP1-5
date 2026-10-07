@@ -185,6 +185,40 @@ class AppStrings {
     'farmResetView': 'Reset view',
     'farmPinchHint': 'Pinch to zoom in and out',
     'farmAddLand': 'Add land',
+    'filterAll': 'All',
+    'addPlantTitle': 'Add a plant',
+    'addPlantStep': 'Step {n} of 2',
+    'addPlantChoose': 'Choose your crop',
+    'addPlantDetails': 'Name & schedules',
+    'addPlantChange': 'Change',
+    'addPlantNameLabel': 'Name your plant',
+    'addPlantNameHint': 'e.g. Balcony tomato',
+    'errPlantNameRequired': 'Give your plant a name',
+    'errPlantNameLong': 'Keep the name under 30 characters',
+    'addPlantButton': 'Add plant',
+    'addPlantLaterHint': 'Schedules are optional. You can set them later.',
+    'schedIrrigation': 'Irrigation schedule',
+    'schedFertilization': 'Fertilization schedule',
+    'schedRemind': 'Remind me',
+    'schedRepetition': 'Repetition',
+    'schedAlarmTime': 'Alarm time',
+    'schedLessOften': 'Less often',
+    'schedMoreOften': 'More often',
+    'repeatEveryDay': 'Every day',
+    'repeatEvery2Days': 'Every 2 days',
+    'repeatEvery3Days': 'Every 3 days',
+    'repeatEveryWeek': 'Every week',
+    'repeatEvery2Weeks': 'Every 2 weeks',
+    'repeatEveryMonth': 'Every month',
+    'summaryTitle': 'Ready to plant?',
+    'summaryIrrigation': 'Irrigation',
+    'summaryFertilization': 'Fertilization',
+    'summaryNotSet': 'Not set yet',
+    'summaryAt': '{repeat} at {time}',
+    'confirm': 'Confirm',
+    'plantAdded': '{name} was added to your farm',
+    'farmLandFull':
+        'Your land is full. Add a new land in your virtual farm to keep planting.',
   };
 
   static const Map<String, String> ar = {
@@ -369,6 +403,40 @@ class AppStrings {
     'farmResetView': 'إعادة العرض',
     'farmPinchHint': 'قرّب وبعّد بإصبعين',
     'farmAddLand': 'أضف أرض',
+    'filterAll': 'الكل',
+    'addPlantTitle': 'أضف نبتة',
+    'addPlantStep': 'الخطوة {n} من 2',
+    'addPlantChoose': 'اختر محصولك',
+    'addPlantDetails': 'الاسم والمواعيد',
+    'addPlantChange': 'تغيير',
+    'addPlantNameLabel': 'سمّ نبتتك',
+    'addPlantNameHint': 'مثلًا: طماطم البلكونة',
+    'errPlantNameRequired': 'اكتب اسم لنبتتك',
+    'errPlantNameLong': 'خلّ الاسم أقل من ٣٠ حرف',
+    'addPlantButton': 'أضف النبتة',
+    'addPlantLaterHint': 'المواعيد اختيارية، تقدر تضبطها بعدين.',
+    'schedIrrigation': 'جدول الري',
+    'schedFertilization': 'جدول التسميد',
+    'schedRemind': 'ذكّرني',
+    'schedRepetition': 'التكرار',
+    'schedAlarmTime': 'وقت التنبيه',
+    'schedLessOften': 'أقل تكرار',
+    'schedMoreOften': 'أكثر تكرار',
+    'repeatEveryDay': 'كل يوم',
+    'repeatEvery2Days': 'كل يومين',
+    'repeatEvery3Days': 'كل ٣ أيام',
+    'repeatEveryWeek': 'كل أسبوع',
+    'repeatEvery2Weeks': 'كل أسبوعين',
+    'repeatEveryMonth': 'كل شهر',
+    'summaryTitle': 'جاهز تزرعها؟',
+    'summaryIrrigation': 'الري',
+    'summaryFertilization': 'التسميد',
+    'summaryNotSet': 'ما تحدد بعد',
+    'summaryAt': '{repeat} الساعة {time}',
+    'confirm': 'تأكيد',
+    'plantAdded': 'تمت إضافة {name} لمزرعتك',
+    'farmLandFull':
+        'أرضك امتلأت! أضف أرض جديدة في مزرعتك الافتراضية عشان تكمل الزراعة.',
   };
 }
 
@@ -561,4 +629,38 @@ class S {
   String get farmResetView => t('farmResetView');
   String get farmPinchHint => t('farmPinchHint');
   String get farmAddLand => t('farmAddLand');
+  String get filterAll => t('filterAll');
+  String get addPlantTitle => t('addPlantTitle');
+  String addPlantStep(int n) => t('addPlantStep').replaceAll('{n}', '$n');
+  String get addPlantChoose => t('addPlantChoose');
+  String get addPlantDetails => t('addPlantDetails');
+  String get addPlantChange => t('addPlantChange');
+  String get addPlantNameLabel => t('addPlantNameLabel');
+  String get addPlantNameHint => t('addPlantNameHint');
+  String get errPlantNameRequired => t('errPlantNameRequired');
+  String get errPlantNameLong => t('errPlantNameLong');
+  String get addPlantButton => t('addPlantButton');
+  String get addPlantLaterHint => t('addPlantLaterHint');
+  String get schedIrrigation => t('schedIrrigation');
+  String get schedFertilization => t('schedFertilization');
+  String get schedRemind => t('schedRemind');
+  String get schedRepetition => t('schedRepetition');
+  String get schedAlarmTime => t('schedAlarmTime');
+  String get schedLessOften => t('schedLessOften');
+  String get schedMoreOften => t('schedMoreOften');
+  String get repeatEveryDay => t('repeatEveryDay');
+  String get repeatEvery2Days => t('repeatEvery2Days');
+  String get repeatEvery3Days => t('repeatEvery3Days');
+  String get repeatEveryWeek => t('repeatEveryWeek');
+  String get repeatEvery2Weeks => t('repeatEvery2Weeks');
+  String get repeatEveryMonth => t('repeatEveryMonth');
+  String get summaryTitle => t('summaryTitle');
+  String get summaryIrrigation => t('summaryIrrigation');
+  String get summaryFertilization => t('summaryFertilization');
+  String get summaryNotSet => t('summaryNotSet');
+  String summaryAt(String repeat, String time) =>
+      t('summaryAt').replaceAll('{repeat}', repeat).replaceAll('{time}', time);
+  String get confirm => t('confirm');
+  String plantAdded(String name) => t('plantAdded').replaceAll('{name}', name);
+  String get farmLandFull => t('farmLandFull');
 }

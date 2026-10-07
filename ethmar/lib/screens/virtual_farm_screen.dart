@@ -3,18 +3,20 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
+import '../models/farm_plant.dart';
+import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/entrance.dart';
+import 'add_plant_screen.dart';
 
 /// Virtual Farm: the user's lands as 3D (isometric) blocks of grass on
 /// soil, floating on a soft sky. Pinch or use the buttons to zoom.
 ///
-/// Each land holds 8 × 8 = 64 crops. When it's full, a new land can be added
-/// next to it, growing the farm up to 3 × 3 lands.
-///
-/// The lands are empty for now; crops will be placed on their grids later.
-/// TODO(farm-plants): Draw the user's plants on the lands' grid cells.
+/// Each land holds 5 × 5 = 25 plants. New plants go in the next free square
+/// automatically, row by row from the back corner. When every land is full,
+/// a new land can be added next to them, growing the farm up to 3 × 3 lands.
+/// The farm itself comes from [FarmStore].
 class VirtualFarmScreen extends StatefulWidget {
   const VirtualFarmScreen({super.key});
 
@@ -37,10 +39,10 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     (2, 0), (2, 1), (0, 2), (1, 2), (2, 2),
   ];
 
-  // TODO(backend): Load how many lands the user has from the database.
-  //   Prototype: starts with one land; "Add land" adds more on this screen
-  //   only (they're gone when it's reopened).
-  int _landCount = 1;
+  int get _landCount => FarmStore.lands.value;
+
+  /// Index of a plant added while this screen is open; it pops in.
+  int? _newest;
 
   final _view = TransformationController();
   late final _move = AnimationController(
@@ -53,11 +55,25 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
   Size _viewport = Size.zero;
 
   @override
+  void initState() {
+    super.initState();
+    FarmStore.lands.addListener(_farmChanged);
+    FarmStore.plants.addListener(_plantsChanged);
+  }
+
+  @override
   void dispose() {
+    FarmStore.lands.removeListener(_farmChanged);
+    FarmStore.plants.removeListener(_plantsChanged);
     _move.dispose();
     _view.dispose();
     super.dispose();
   }
+
+  void _farmChanged() => setState(() {});
+
+  void _plantsChanged() =>
+      setState(() => _newest = FarmStore.plants.value.length - 1);
 
   void _onMove() {
     final tween = _moveTween;
@@ -76,31 +92,20 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     _move.forward(from: 0);
   }
 
-  /// Crops planted across all the user's lands.
+  /// The next spot a land can be added in. Null until every land is full
+  /// (25 plants each), and once the farm is at its biggest.
   ///
-  /// TODO(backend): Count the user's planted crops from the database.
-  ///   Prototype: no crops yet, so the lands are never full.
-  int get _plantedCount => 0;
-
-  /// True when every square on every land has a crop (64 per land).
-  bool get _landsFull =>
-      _plantedCount >= _landCount * _FarmLayout.cells * _FarmLayout.cells;
-
-  /// The next spot a land can be added in. Null until the lands are full,
-  /// and once the farm is at its biggest.
-  ///
-  /// TODO(backend): Test once crops are saved: fill a land (all 64 squares)
-  ///   → the "Add land" spot appears next to it; not full → it doesn't.
-  ///   To try the design without the backend, make [_plantedCount] return
-  ///   64 * [_landCount].
-  (int, int)? get _nextSpot => _landsFull && _landCount < _landSpots.length
+  /// TODO(backend): Test once plants are saved: fill a land (all 25
+  ///   squares) → the "Add land" spot appears next to it; not full → it
+  ///   doesn't. Then reopen the app: the lands and plants should still be
+  ///   there.
+  (int, int)? get _nextSpot =>
+      FarmStore.landsFull && _landCount < _landSpots.length
       ? _landSpots[_landCount]
       : null;
 
-  void _addLand() {
-    // TODO(backend): Save the new land for the user, then show it.
-    setState(() => _landCount++);
-  }
+  // TODO(backend): Save the new land for the user (inside FarmStore).
+  void _addLand() => FarmStore.addLand();
 
   double get _maxScale => _maxZoomOneLand * _zoomRoom;
 
@@ -143,6 +148,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                   final lands = _landSpots.take(_landCount).toList();
                   final next = _nextSpot;
                   final layout = _FarmLayout(lands, next, fit);
+                  final plants = FarmStore.plants.value;
                   _zoomRoom =
                       _FarmLayout([lands.first], null, fit).landWidth /
                       layout.landWidth;
@@ -168,10 +174,26 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                                     image: true,
                                     label: s.farmLand,
                                     child: CustomPaint(
-                                      painter: _FarmPainter(layout),
+                                      painter: _FarmPainter(
+                                        layout,
+                                        plants.length,
+                                      ),
                                     ),
                                   ),
                                 ),
+                                // Back squares first, so plants in front
+                                // overlap the ones behind them.
+                                for (final i in layout.backToFront(
+                                  plants.length,
+                                ))
+                                  _PlacedPlant(
+                                    key: ValueKey(i),
+                                    plant: plants[i],
+                                    at: layout.squareMiddle(i),
+                                    squareWidth:
+                                        layout.landWidth / _FarmLayout.cells,
+                                    popIn: i == _newest,
+                                  ),
                                 if (next != null)
                                   Positioned.fromRect(
                                     rect: Rect.fromCenter(
@@ -206,11 +228,22 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
-                        child: Text(
-                          s.farmPinchHint,
-                          style: AppText.small(context),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              s.farmPinchHint,
+                              style: AppText.small(context),
+                            ),
+                            const SizedBox(height: 10),
+                            _AddPlantButton(
+                              onPressed: () => AddPlantScreen.open(context),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(width: 12),
                       _ZoomControls(
                         onZoomIn: () => _zoomBy(1.4),
                         onZoomOut: () => _zoomBy(1 / 1.4),
@@ -331,6 +364,134 @@ class _ZoomControls extends StatelessWidget {
   }
 }
 
+/// One plant standing in its square: the crop's picture, its base on the
+/// square's middle. [popIn] grows it in, for the plant just added.
+class _PlacedPlant extends StatelessWidget {
+  const _PlacedPlant({
+    super.key,
+    required this.plant,
+    required this.at,
+    required this.squareWidth,
+    this.popIn = false,
+  });
+  final FarmPlant plant;
+  final Offset at;
+  final double squareWidth;
+  final bool popIn;
+
+  @override
+  Widget build(BuildContext context) {
+    // Narrower than the square, so there's grass between neighbours (in
+    // this view the next square along is only half a square to the side).
+    // The pictures are about 4:5.
+    final width = squareWidth * 0.6;
+    final height = width * 1.3;
+    Widget picture = Image.asset(
+      plant.crop.image,
+      width: width,
+      height: height,
+      fit: BoxFit.contain,
+      alignment: Alignment.bottomCenter,
+      cacheWidth: 200,
+      filterQuality: FilterQuality.medium,
+    );
+    if (popIn) picture = _PopIn(child: picture);
+    return Positioned(
+      left: at.dx - width / 2,
+      // The pictures' soil sits a little above their bottom edge.
+      top: at.dy - height * 0.94,
+      child: Semantics(
+        label: plant.name,
+        image: true,
+        child: IgnorePointer(child: picture),
+      ),
+    );
+  }
+}
+
+/// Grows its child up from the ground with a little bounce. Waits a moment
+/// first, so it plays once the add-a-plant screen has slid away.
+class _PopIn extends StatefulWidget {
+  const _PopIn({required this.child});
+  final Widget child;
+
+  @override
+  State<_PopIn> createState() => _PopInState();
+}
+
+class _PopInState extends State<_PopIn> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 650),
+  );
+  late final _scale = CurvedAnimation(parent: _c, curve: Curves.elasticOut);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_c.status != AnimationStatus.dismissed) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _c.value = 1;
+      return;
+    }
+    Future.delayed(const Duration(milliseconds: 450), () {
+      if (mounted) _c.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scale,
+      alignment: Alignment.bottomCenter,
+      child: widget.child,
+    );
+  }
+}
+
+/// "+ Add plant": opens the add-a-plant steps. Same look as the "Add Plant"
+/// pill on Home, a bit taller.
+class _AddPlantButton extends StatelessWidget {
+  const _AddPlantButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.forest,
+      shape: const StadiumBorder(),
+      elevation: 3,
+      shadowColor: AppColors.overlay,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        splashColor: const Color(0x22FFFFFF),
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 22, 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.add_rounded,
+                size: 22,
+                color: AppColors.onForest,
+              ),
+              const SizedBox(width: 8),
+              Text(S.of(context).homeAddPlant, style: AppText.button(context)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// "+ Add land", sitting on the empty spot where the next land will go.
 /// On a small spot (a big farm, zoomed out) it's just a round "+".
 class _AddLandButton extends StatelessWidget {
@@ -407,9 +568,9 @@ class _FarmLayout {
     size = Size(widthInLands * landWidth, heightInLands * landWidth);
   }
 
-  /// Squares per side of a land: 8 × 8 = 64, one crop each. The grid isn't
-  /// drawn; it only tells the app where crops go.
-  static const cells = 8;
+  /// Squares per side of a land, one plant each. The grid isn't drawn; it
+  /// only tells the app where plants go.
+  static const cells = FarmStore.squaresPerSide;
 
   /// Side thickness, as a part of a land's width.
   static const depth = 0.15;
@@ -441,12 +602,45 @@ class _FarmLayout {
   /// Middle of the land's grass top.
   Offset middleOf((int, int) spot) => pointOn(spot, 0.5, 0.5);
 
+  /// Where plant number [i] grows: its land, and its square's row and
+  /// column there. Squares fill row by row from the land's back corner,
+  /// one land after another.
+  ({(int, int) land, int row, int col}) squareOf(int i) {
+    final square = i % (cells * cells);
+    return (
+      land: lands[i ~/ (cells * cells)],
+      row: square ~/ cells,
+      col: square % cells,
+    );
+  }
+
+  /// Middle of plant number [i]'s square.
+  Offset squareMiddle(int i) {
+    final s = squareOf(i);
+    return pointOn(s.land, (s.col + 0.5) / cells, (s.row + 0.5) / cells);
+  }
+
+  /// Plant numbers below [count], ordered from the back of the farm to the
+  /// front, so drawing them in this order layers them correctly.
+  List<int> backToFront(int count) {
+    int depth(int i) {
+      final s = squareOf(i);
+      return (s.land.$1 + s.land.$2) * cells + s.row + s.col;
+    }
+
+    return List.generate(count, (i) => i)
+      ..sort((a, b) => depth(a).compareTo(depth(b)));
+  }
+
   bool hasLand((int, int) spot) => lands.contains(spot);
 }
 
 class _FarmPainter extends CustomPainter {
-  const _FarmPainter(this.layout);
+  const _FarmPainter(this.layout, this.plantCount);
   final _FarmLayout layout;
+
+  /// Planted squares get a soft shadow under the plant.
+  final int plantCount;
 
   static const _grassTop = Color(0xFFA9D57F);
   static const _grassLit = Color(0xFF97C86F);
@@ -480,6 +674,21 @@ class _FarmPainter extends CustomPainter {
       ..sort((a, b) => (a.$1 + a.$2).compareTo(b.$1 + b.$2));
     for (final spot in ordered) {
       _land(canvas, spot, w, t);
+    }
+
+    final square = w / _FarmLayout.cells;
+    final shadow = Paint()
+      ..color = AppColors.forest.withValues(alpha: 0.2)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, square * 0.06);
+    for (var i = 0; i < plantCount; i++) {
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: layout.squareMiddle(i),
+          width: square * 0.45,
+          height: square * 0.18,
+        ),
+        shadow,
+      );
     }
 
     final next = layout.next;
@@ -637,6 +846,7 @@ class _FarmPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FarmPainter old) =>
+      old.plantCount != plantCount ||
       old.layout.lands.length != layout.lands.length ||
       old.layout.landWidth != layout.landWidth ||
       old.layout.next != layout.next;
