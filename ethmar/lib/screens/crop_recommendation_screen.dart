@@ -357,10 +357,6 @@ class _ResultsViewState extends State<_ResultsView> {
   }
 }
 
-/// The crops of one category stacked top to bottom at their natural
-/// heights. It scrolls as one smooth list and snaps the nearest packet's
-/// top into place when you let go. Packets inside don't scroll on their
-/// own, so nothing fights for the finger.
 class _CropStack extends StatefulWidget {
   const _CropStack({
     super.key,

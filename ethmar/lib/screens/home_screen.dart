@@ -12,14 +12,15 @@ import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/user_avatar.dart';
 import 'crop_recommendation_screen.dart';
+import 'leaf_scan_screen.dart';
 import 'profile_screen.dart';
 
 /// Home: logo and avatar on top, a time-of-day greeting, the streak card,
 /// the character card with "Add Plant", then the four feature cards.
 /// The bottom bar holds Home, Daily Tasks, Virtual Farm and Leaderboard.
 ///
-/// UI only for now: just "What to plant?" opens a screen. The other
-/// actions are drawn but do nothing until their features are built.
+/// UI only for now: just "What to plant?" and "Scan plant" open screens.
+/// The other actions are drawn but do nothing until their features are built.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, this.username = ''});
   final String username;
@@ -450,6 +451,8 @@ class _FeatureGrid extends StatelessWidget {
               child: _FeatureCard(
                 icon: Icons.photo_camera_outlined,
                 label: s.homeScanPlant,
+                onTap: () => Navigator.of(context)
+                    .push(riseRoute(const LeafScanScreen())),
               ),
             ),
           ],

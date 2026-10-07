@@ -136,6 +136,23 @@ class AppStrings {
     'weatherRainy': 'Rainy',
     'weatherWindy': 'Windy',
     'weatherCold': 'Cold',
+    'scanTitle': 'Scan a leaf',
+    'scanAccent': 'show me the sick leaf up close',
+    'scanTipsTitle': 'For the best results',
+    'scanTipLight': 'Good light',
+    'scanTipOneLeaf': 'One leaf',
+    'scanTipStill': 'Hold still',
+    'scanCapture': 'Take photo of the leaf',
+    'scanNoCamera': "We can't open the camera. Allow camera access, then try again.",
+    'scanAnalysing1': 'Looking at your leaf…',
+    'scanAnalysing2': 'Checking spots and colour…',
+    'scanAnalysing3': 'Finding what it needs…',
+    'diagEasyToFix': 'Easy to fix',
+    'diagDryLeavesName': 'Dry leaves',
+    'diagDryLeavesBody':
+        'The leaf edges are drying out. This usually comes from strong sun or not enough water.',
+    'scanAnother': 'Scan another leaf',
+    'backToHome': 'Back to Home',
   };
 
   static const Map<String, String> ar = {
@@ -271,6 +288,23 @@ class AppStrings {
     'weatherRainy': 'ممطر',
     'weatherWindy': 'عاصف',
     'weatherCold': 'بارد',
+    'scanTitle': 'افحص ورقة',
+    'scanAccent': 'قرّب لي الورقة المريضة',
+    'scanTipsTitle': 'لأفضل نتيجة',
+    'scanTipLight': 'إضاءة جيدة',
+    'scanTipOneLeaf': 'ورقة وحدة',
+    'scanTipStill': 'ثبّت يدك',
+    'scanCapture': 'التقط صورة للورقة',
+    'scanNoCamera': 'ما قدرنا نفتح الكاميرا. اسمح باستخدام الكاميرا ثم حاول مرة أخرى.',
+    'scanAnalysing1': 'نطالع ورقتك…',
+    'scanAnalysing2': 'نشيّك على البقع والألوان…',
+    'scanAnalysing3': 'نعرف وش تحتاج…',
+    'diagEasyToFix': 'علاجها سهل',
+    'diagDryLeavesName': 'جفاف الأوراق',
+    'diagDryLeavesBody':
+        'أطراف الورقة بدأت تجف. غالبًا السبب شمس قوية أو ري قليل.',
+    'scanAnother': 'افحص ورقة ثانية',
+    'backToHome': 'رجوع للرئيسية',
   };
 }
 
@@ -414,4 +448,22 @@ class S {
   String get weatherRainy => t('weatherRainy');
   String get weatherWindy => t('weatherWindy');
   String get weatherCold => t('weatherCold');
+  String get scanTitle => t('scanTitle');
+  String get scanAccent => t('scanAccent');
+  String get scanTipsTitle => t('scanTipsTitle');
+  String get scanTipLight => t('scanTipLight');
+  String get scanTipOneLeaf => t('scanTipOneLeaf');
+  String get scanTipStill => t('scanTipStill');
+  String get scanCapture => t('scanCapture');
+  String get scanNoCamera => t('scanNoCamera');
+  List<String> get scanAnalysingSteps => [
+    t('scanAnalysing1'),
+    t('scanAnalysing2'),
+    t('scanAnalysing3'),
+  ];
+  String get diagEasyToFix => t('diagEasyToFix');
+  String get diagDryLeavesName => t('diagDryLeavesName');
+  String get diagDryLeavesBody => t('diagDryLeavesBody');
+  String get scanAnother => t('scanAnother');
+  String get backToHome => t('backToHome');
 }
