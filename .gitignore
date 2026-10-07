@@ -16,3 +16,6 @@ venv/
 
 # Environment
 .env
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep

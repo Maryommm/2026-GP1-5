@@ -1,0 +1,30 @@
+{
+  "weights": {
+    "temperature": 0.30,
+    "rainfall": 0.15,
+    "soil_ph": 0.12,
+    "climate_zone": 0.15,
+    "sunlight": 0.10,
+    "water": 0.10,
+    "life_cycle": 0.08
+  },
+  "bands": {
+    "excellent": 0.80,
+    "good": 0.62,
+    "marginal": 0.42
+  },
+  "hard_gates": {
+    "absolute_temp": true,
+    "min_rainfall": true,
+    "soil_texture": true,
+    "growing_days": true
+  },
+  "penalties": {
+    "alkaline_mismatch": 0.85,
+    "no_climate_zone_data": 0.97,
+    "imputed_ph": 0.98
+  },
+  "defaults": {
+    "imputed_ph_species": 6.5
+  }
+}
