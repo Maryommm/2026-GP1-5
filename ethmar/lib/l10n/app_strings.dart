@@ -219,6 +219,29 @@ class AppStrings {
     'plantAdded': '{name} was added to your farm',
     'farmLandFull':
         'Your land is full. Add a new land in your virtual farm to keep planting.',
+    'myPlants': 'My plants',
+    'myPlantsAccent': 'everything growing on your farm',
+    'myPlantsEmpty': 'No plants yet',
+    'myPlantsEmptyBody': 'Add your first plant and it will show up here.',
+    'plantedToday': 'Planted today',
+    'plantDays': '{n} days',
+    'plantDayOne': '1 day',
+    'daysSincePlanting': 'Days since planting',
+    'stagesTitle': 'Stages of growth',
+    'stagesEmpty':
+        'No pictures yet. Upload one now and then to see how your plant grows.',
+    'uploadPicture': 'Upload a picture',
+    'notesTitle': 'Add a note?',
+    'notesLabel': 'Notes (optional)',
+    'notesHint': 'e.g. First flowers appeared',
+    'pictureAdded': 'Picture added to the growth timeline',
+    'careSchedule': 'Care schedule',
+    'edit': 'Edit',
+    'scheduleNext': 'Next: {when}',
+    'today': 'Today',
+    'tomorrow': 'Tomorrow',
+    'editPlantTitle': 'Edit plant',
+    'plantUpdated': 'Plant updated',
   };
 
   static const Map<String, String> ar = {
@@ -437,6 +460,28 @@ class AppStrings {
     'plantAdded': 'تمت إضافة {name} لمزرعتك',
     'farmLandFull':
         'أرضك امتلأت! أضف أرض جديدة في مزرعتك الافتراضية عشان تكمل الزراعة.',
+    'myPlants': 'نباتاتي',
+    'myPlantsAccent': 'كل اللي يكبر في مزرعتك',
+    'myPlantsEmpty': 'ما عندك نباتات للحين',
+    'myPlantsEmptyBody': 'أضف أول نبتة وبتطلع لك هنا.',
+    'plantedToday': 'انزرعت اليوم',
+    'plantDays': '{n} يوم',
+    'plantDayOne': 'يوم واحد',
+    'daysSincePlanting': 'أيام منذ الزراعة',
+    'stagesTitle': 'مراحل النمو',
+    'stagesEmpty': 'ما فيه صور للحين. ارفع صورة كل فترة عشان تشوف نبتتك وهي تكبر.',
+    'uploadPicture': 'ارفع صورة',
+    'notesTitle': 'تضيف ملاحظة؟',
+    'notesLabel': 'ملاحظات (اختياري)',
+    'notesHint': 'مثلًا: طلعت أول زهرة',
+    'pictureAdded': 'تمت إضافة الصورة لمراحل النمو',
+    'careSchedule': 'جدول العناية',
+    'edit': 'تعديل',
+    'scheduleNext': 'القادم: {when}',
+    'today': 'اليوم',
+    'tomorrow': 'بكرة',
+    'editPlantTitle': 'تعديل النبتة',
+    'plantUpdated': 'تم تحديث النبتة',
   };
 }
 
@@ -663,4 +708,31 @@ class S {
   String get confirm => t('confirm');
   String plantAdded(String name) => t('plantAdded').replaceAll('{name}', name);
   String get farmLandFull => t('farmLandFull');
+  String get myPlants => t('myPlants');
+  String get myPlantsAccent => t('myPlantsAccent');
+  String get myPlantsEmpty => t('myPlantsEmpty');
+  String get myPlantsEmptyBody => t('myPlantsEmptyBody');
+
+  /// "Planted today", "1 day", "24 days".
+  String plantAge(int days) => switch (days) {
+    0 => t('plantedToday'),
+    1 => t('plantDayOne'),
+    _ => t('plantDays').replaceAll('{n}', '$days'),
+  };
+  String get daysSincePlanting => t('daysSincePlanting');
+  String get stagesTitle => t('stagesTitle');
+  String get stagesEmpty => t('stagesEmpty');
+  String get uploadPicture => t('uploadPicture');
+  String get notesTitle => t('notesTitle');
+  String get notesLabel => t('notesLabel');
+  String get notesHint => t('notesHint');
+  String get pictureAdded => t('pictureAdded');
+  String get careSchedule => t('careSchedule');
+  String get edit => t('edit');
+  String scheduleNext(String when) =>
+      t('scheduleNext').replaceAll('{when}', when);
+  String get today => t('today');
+  String get tomorrow => t('tomorrow');
+  String get editPlantTitle => t('editPlantTitle');
+  String get plantUpdated => t('plantUpdated');
 }

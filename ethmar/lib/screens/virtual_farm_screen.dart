@@ -8,7 +8,11 @@ import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/entrance.dart';
+import '../widgets/page_header.dart';
+import '../widgets/page_routes.dart';
 import 'add_plant_screen.dart';
+import 'my_plants_screen.dart';
+import 'plant_details_screen.dart';
 
 /// Virtual Farm: the user's lands as 3D (isometric) blocks of grass on
 /// soil, floating on a soft sky. Pinch or use the buttons to zoom.
@@ -193,6 +197,9 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                                     squareWidth:
                                         layout.landWidth / _FarmLayout.cells,
                                     popIn: i == _newest,
+                                    onTap: () => Navigator.of(context).push(
+                                      riseRoute(PlantDetailsScreen(index: i)),
+                                    ),
                                   ),
                                 if (next != null)
                                   Positioned.fromRect(
@@ -217,7 +224,14 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                 },
               ),
             ),
-            const Align(alignment: Alignment.topCenter, child: _FarmHeader()),
+            Align(
+              alignment: Alignment.topCenter,
+              child: EthmarPageHeader(
+                title: s.farmTitle,
+                accent: s.farmAccent,
+                trailing: const _MyPlantsButton(),
+              ),
+            ),
             Align(
               alignment: Alignment.bottomCenter,
               child: SafeArea(
@@ -261,62 +275,33 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
   }
 }
 
-/// Soft green header (same style as the chat and map): back, title and
-/// the hand-written line.
-class _FarmHeader extends StatelessWidget {
-  const _FarmHeader();
+/// "My plants" in the header corner, with how many plants there are.
+class _MyPlantsButton extends StatelessWidget {
+  const _MyPlantsButton();
 
   @override
   Widget build(BuildContext context) {
-    final s = S.of(context);
-    return Container(
-      padding: EdgeInsetsDirectional.fromSTEB(
-        16,
-        MediaQuery.paddingOf(context).top + 8,
-        16,
-        14,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.forestTint,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.forest.withValues(alpha: 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Material(
-            color: AppColors.surface,
-            shape: const CircleBorder(),
-            child: IconButton(
-              tooltip: s.back,
-              onPressed: () => Navigator.of(context).maybePop(),
-              style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-              icon: const Icon(
-                Icons.arrow_back_rounded,
-                color: AppColors.forest,
-              ),
+    return ValueListenableBuilder<List<FarmPlant>>(
+      valueListenable: FarmStore.plants,
+      builder: (context, plants, _) => Badge(
+        isLabelVisible: plants.isNotEmpty,
+        label: Text('${plants.length}'),
+        backgroundColor: AppColors.coralDark,
+        offset: const Offset(-2, 2),
+        child: Material(
+          color: AppColors.surface,
+          shape: const CircleBorder(),
+          child: IconButton(
+            tooltip: S.of(context).myPlants,
+            onPressed: () =>
+                Navigator.of(context).push(riseRoute(const MyPlantsScreen())),
+            style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+            icon: const Icon(
+              Icons.format_list_bulleted_rounded,
+              color: AppColors.forest,
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.farmTitle,
-                  style: AppText.title(context).copyWith(fontSize: 24),
-                ),
-                Text(s.farmAccent, style: AppText.accent(context, size: 16)),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -366,17 +351,20 @@ class _ZoomControls extends StatelessWidget {
 
 /// One plant standing in its square: the crop's picture, its base on the
 /// square's middle. [popIn] grows it in, for the plant just added.
+/// Tapping it opens the plant's details.
 class _PlacedPlant extends StatelessWidget {
   const _PlacedPlant({
     super.key,
     required this.plant,
     required this.at,
     required this.squareWidth,
+    required this.onTap,
     this.popIn = false,
   });
   final FarmPlant plant;
   final Offset at;
   final double squareWidth;
+  final VoidCallback onTap;
   final bool popIn;
 
   @override
@@ -402,8 +390,13 @@ class _PlacedPlant extends StatelessWidget {
       top: at.dy - height * 0.94,
       child: Semantics(
         label: plant.name,
-        image: true,
-        child: IgnorePointer(child: picture),
+        button: true,
+        excludeSemantics: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: picture,
+        ),
       ),
     );
   }

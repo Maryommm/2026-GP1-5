@@ -32,6 +32,12 @@ class FarmStore {
     plants.value = [...plants.value, plant];
   }
 
+  /// Replaces plant number [index] (e.g. after editing its schedules or
+  /// adding to its growth timeline). It keeps its square.
+  static void updatePlant(int index, FarmPlant plant) {
+    plants.value = [...plants.value]..[index] = plant;
+  }
+
   static void addLand() {
     if (lands.value < maxLands) lands.value++;
   }
