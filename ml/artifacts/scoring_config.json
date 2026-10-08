@@ -1,30 +1,35 @@
 {
   "weights": {
-    "temperature": 0.30,
-    "rainfall": 0.15,
-    "soil_ph": 0.12,
-    "climate_zone": 0.15,
-    "sunlight": 0.10,
-    "water": 0.10,
-    "life_cycle": 0.08
+    "temperature": 0.42,
+    "soil_ph": 0.1,
+    "rainfall": 0.08,
+    "sunlight": 0.1,
+    "water": 0.05,
+    "popularity": 0.25
   },
   "bands": {
-    "excellent": 0.80,
+    "excellent": 0.8,
     "good": 0.62,
     "marginal": 0.42
   },
-  "hard_gates": {
-    "absolute_temp": true,
-    "min_rainfall": true,
-    "soil_texture": true,
-    "growing_days": true
-  },
   "penalties": {
     "alkaline_mismatch": 0.85,
-    "no_climate_zone_data": 0.97,
     "imputed_ph": 0.98
   },
-  "defaults": {
-    "imputed_ph_species": 6.5
+  "popularity": {
+    "common": 1.0,
+    "home_garden": 0.7,
+    "other": 0.4
+  },
+  "season": {
+    "default_annual_days": 120,
+    "best_month_ratio": 0.85,
+    "best_month_floor": 0.6,
+    "plant_now_months": 2
+  },
+  "protection": {
+    "heat_margin_c": 3.0,
+    "cold_margin_c": 2.0,
+    "month_score": 0.25
   }
 }

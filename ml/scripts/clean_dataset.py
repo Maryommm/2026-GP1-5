@@ -31,6 +31,7 @@ RAW_PATH = ROOT / "data" / "raw" / "ethmar_master_dataset.csv"
 PROCESSED_DIR = ROOT / "data" / "processed"
 RECOMMENDABLE_PATH = PROCESSED_DIR / "ethmar_recommendable.csv"
 REFERENCE_PATH = PROCESSED_DIR / "ethmar_reference.csv"
+COMMON_CROPS_PATH = ROOT / "ml" / "artifacts" / "common_crops.csv"
 
 # --------------------------------------------------------------------------- #
 # Column groups
@@ -270,8 +271,91 @@ def classify(row: pd.Series) -> pd.Series:
 
 
 # --------------------------------------------------------------------------- #
-# Stage 3 — species-level merge
+# Stage 3 — synonym unification + species-level merge
 # --------------------------------------------------------------------------- #
+
+BINOMIAL = re.compile(r"^([a-z]+) ([a-z][a-z-]+)$")
+
+# ECOCROP sometimes lists a separate crop among a species' synonyms. These
+# pairs were reviewed and are distinct plants, so they are never merged.
+SYNONYM_BLOCKLIST = {
+    ("allium porrum", "allium cepa"),         # leek is not onion
+    ("mentha aquatica", "mentha piperita"),   # water mint is a parent of peppermint
+}
+
+# Renames newer than ECOCROP, which therefore does not list them as synonyms.
+SYNONYM_ADDITIONS = {
+    "salvia rosmarinus": "rosmarinus officinalis",   # rosemary, moved to Salvia in 2017
+}
+
+
+def _binomial(name) -> str | None:
+    """First two words of a botanical name, lower-cased, or None."""
+    text = _to_null(name)
+    if not text:
+        return None
+    words = text.lower().split()
+    if len(words) < 2:
+        return None
+    candidate = f"{words[0]} {words[1]}"
+    return candidate if BINOMIAL.match(candidate) else None
+
+
+def synonym_map(df: pd.DataFrame) -> dict:
+    """
+    Map a Permapeople name to the ECOCROP species it is a synonym of.
+
+    The two sources do not always use the same botanical name. Permapeople
+    files tomato under Solanum lycopersicum, ECOCROP under Lycopersicon
+    esculentum with Solanum lycopersicum as a listed synonym. Without this the
+    Permapeople record has no climate data and the ECOCROP record has no
+    edibility flag, so tomato fell out of the recommendation table entirely.
+
+    Two guards keep distinct species apart:
+      * a synonym that is itself an accepted ECOCROP name is skipped
+        (ECOCROP lists Cucurbita maxima under C. moschata, but both are real
+        species with their own records);
+      * a synonym claimed by more than one ECOCROP species is skipped.
+    """
+    has_ecocrop = df["ecocrop_scientific_name"].notna()
+    accepted = {_binomial(v) for v in df.loc[has_ecocrop, "ecocrop_scientific_name"]}
+    accepted |= {_binomial(v) for v in df.loc[has_ecocrop, "canonical_binomial"]}
+    accepted.discard(None)
+
+    claims: dict[str, set] = {}
+    for target, synonyms in zip(df.loc[has_ecocrop, "canonical_binomial"],
+                                df.loc[has_ecocrop, "ecocrop_synonyms"]):
+        target = _binomial(target)
+        text = _to_null(synonyms)
+        if not target or not text:
+            continue
+        for synonym in text.split(","):
+            name = _binomial(synonym)
+            if name and name != target and name not in accepted:
+                claims.setdefault(name, set()).add(target)
+
+    mapping = {name: next(iter(targets))
+               for name, targets in claims.items() if len(targets) == 1}
+    for pair in SYNONYM_BLOCKLIST:
+        if mapping.get(pair[0]) == pair[1]:
+            del mapping[pair[0]]
+    for name, target in SYNONYM_ADDITIONS.items():
+        if target in accepted:
+            mapping[name] = target
+    return mapping
+
+
+def unify_synonyms(df: pd.DataFrame):
+    """Point rows without ECOCROP data at the ECOCROP species they belong to."""
+    df = df.copy()
+    mapping = synonym_map(df)
+    keys = df["canonical_binomial"].fillna(df["scientific_name"]).str.lower().str.strip()
+    remapped = keys.map(mapping)
+    use = df["ecocrop_scientific_name"].isna() & remapped.notna()
+    df["_species_key"] = keys.where(~use, remapped)
+    unified = sorted({(key, mapping[key]) for key in keys[use]})
+    return df, unified
+
 
 def _first_non_null(series: pd.Series):
     for value in series:
@@ -346,9 +430,10 @@ def _merge_group(group: pd.DataFrame) -> pd.Series:
 
 def merge_species(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    df["_species_key"] = (
-        df["canonical_binomial"].fillna(df["scientific_name"]).str.lower().str.strip()
-    )
+    if "_species_key" not in df.columns:
+        df["_species_key"] = (
+            df["canonical_binomial"].fillna(df["scientific_name"]).str.lower().str.strip()
+        )
     df = df[df["_species_key"].notna() & (df["_species_key"] != "")]
 
     grouped = df.groupby("_species_key", sort=False).apply(_merge_group)
@@ -446,10 +531,106 @@ def split_tables(df: pd.DataFrame):
 
 
 # --------------------------------------------------------------------------- #
-# Stage 5 — report + write
+# Stage 5 — user-facing crop groups
 # --------------------------------------------------------------------------- #
 
-def print_report(raw_count, normalized, merged, recommendable, reference, reasons, ph_imputed):
+CROP_GROUPS = ("leafy_herb", "fruiting", "root", "legume", "fruit_tree", "other")
+
+
+def _parts(row) -> set:
+    text = _to_null(row.get("edible_parts_raw")) or ""
+    return {part.strip().lower() for part in text.split(",") if part.strip()}
+
+
+def rule_crop_group(row) -> str:
+    """
+    The group a home grower would file the plant under, from what it is grown
+    for. These are the groups the app filters by and the questionnaire asked
+    about: leafy greens and herbs, fruiting vegetables, roots, fruit trees.
+
+    ethmar_category is kept as it is, but it calls a plant a root crop whenever
+    'Root' appears anywhere in its edible parts, which mislabels okra, pumpkin
+    and celery. Here fruit is checked first, then ECOCROP's own roots/tubers
+    label, and a listed root only wins when no leaves are listed.
+    """
+    category = _to_null(row.get("ethmar_category")) or ""
+    ecocrop = (_to_null(row.get("ecocrop_category")) or "").lower()
+    lifespan = (_to_null(row.get("ecocrop_lifespan")) or "").lower()
+    form = (_to_null(row.get("ecocrop_life_form")) or "").lower()
+    parts = _parts(row)
+    woody = lifespan == "perennial" and ("tree" in form or "shrub" in form)
+
+    if category in {"fruit_tree", "nut"}:
+        return "fruit_tree"
+    if category == "legume":
+        return "legume"
+    if "fruit" in parts:
+        return "fruit_tree" if woody else "fruiting"
+    if "roots/tubers" in ecocrop:
+        return "root"
+    if ("root" in parts or "tuber" in parts) and "leaves" not in parts:
+        return "root"
+    if category in {"herb", "vegetable"} or "leaves" in parts:
+        return "leafy_herb"
+    if "root" in parts:
+        return "root"
+    return "other"
+
+
+def _load_common_crops() -> pd.DataFrame | None:
+    if not COMMON_CROPS_PATH.exists():
+        return None
+    common = pd.read_csv(COMMON_CROPS_PATH, comment="#")
+    unknown = set(common["crop_group"]) - set(CROP_GROUPS)
+    if unknown:
+        raise ValueError(f"unknown crop_group in {COMMON_CROPS_PATH.name}: {unknown}")
+    return common
+
+
+def add_crop_groups(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add crop_group, is_common, name_ar and home_garden.
+
+    The reviewed list in ml/artifacts/common_crops.csv wins over the rule for
+    the crops beginners ask about most, and marks them is_common so the
+    recommender can prefer a tomato over a wild plant with a similar climate
+    envelope.
+    """
+    df = df.copy()
+    df["crop_group"] = df.apply(rule_crop_group, axis=1)
+    df["is_common"] = 0
+    df["name_ar"] = None
+
+    common = _load_common_crops()
+    if common is not None:
+        lookup = common.set_index("canonical_binomial")
+        match = df["canonical_binomial"].isin(lookup.index)
+        names = df.loc[match, "canonical_binomial"]
+        df.loc[match, "crop_group"] = names.map(lookup["crop_group"]).values
+        df.loc[match, "name_ar"] = names.map(lookup["name_ar"]).values
+        # Permapeople's first name is sometimes the Latin one ("Cucumis melo").
+        df.loc[match, "common_name"] = names.map(lookup["name_en"]).values
+        df.loc[match, "is_common"] = 1
+
+    prosy = df["ecocrop_prosy"].fillna("")
+    df["home_garden"] = prosy.str.contains("home garden", case=False).astype(int)
+    return df
+
+
+def missing_common_crops(recommendable: pd.DataFrame) -> list:
+    """Reviewed crops that did not reach the recommendation table."""
+    common = _load_common_crops()
+    if common is None:
+        return []
+    return sorted(set(common["canonical_binomial"]) - set(recommendable["canonical_binomial"]))
+
+
+# --------------------------------------------------------------------------- #
+# Stage 6 — report + write
+# --------------------------------------------------------------------------- #
+
+def print_report(raw_count, normalized, merged, recommendable, reference, reasons,
+                 ph_imputed, unified=(), missing=()):
     print("=" * 62)
     print("Ethmar cleaning pipeline")
     print("=" * 62)
@@ -468,9 +649,23 @@ def print_report(raw_count, normalized, merged, recommendable, reference, reason
     for category, count in recommendable["ethmar_category"].value_counts().items():
         print(f"  {category:<22}: {count}")
     print("-" * 62)
+    print("Recommendable - crop group")
+    for group, count in recommendable["crop_group"].value_counts().items():
+        print(f"  {group:<22}: {count}")
+    print(f"  common (reviewed list): {int(recommendable['is_common'].sum())}")
+    print("-" * 62)
     print("Recommendable - edible evidence")
     for evidence, count in recommendable["edible_evidence"].value_counts().items():
         print(f"  {evidence:<22}: {count}")
+    print("-" * 62)
+    print(f"Synonyms unified        : {len(unified)}")
+    for source, target in unified:
+        print(f"  {source} -> {target}")
+    if missing:
+        print("-" * 62)
+        print("WARNING - reviewed common crops missing from recommendable:")
+        for name in missing:
+            print(f"  {name}")
     print("=" * 62)
 
 
@@ -487,11 +682,13 @@ def main() -> int:
     normalized = df.copy()
 
     df = df.apply(classify, axis=1)
+    df, unified = unify_synonyms(df)
     merged = merge_species(df)
     merged = repair_envelopes(merged)
-
+    merged = add_crop_groups(merged)
 
     recommendable, reference, reasons, ph_imputed = split_tables(merged)
+    missing = missing_common_crops(recommendable)
 
     internal = {"_edible_raw", "_species_key"}
     recommendable = recommendable.drop(columns=[c for c in internal if c in recommendable])
@@ -500,7 +697,8 @@ def main() -> int:
     recommendable.to_csv(RECOMMENDABLE_PATH, index=False)
     reference.to_csv(REFERENCE_PATH, index=False)
 
-    print_report(raw_count, normalized, merged, recommendable, reference, reasons, ph_imputed)
+    print_report(raw_count, normalized, merged, recommendable, reference, reasons,
+                 ph_imputed, unified, missing)
     print(f"\nwritten: {RECOMMENDABLE_PATH}")
     print(f"written: {REFERENCE_PATH}")
     return 0

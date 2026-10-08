@@ -1,0 +1,58 @@
+# Reviewed list of crops beginners grow most. Read by ml/scripts/clean_dataset.py.
+# crop_group overrides the rule-based group; listed crops are flagged is_common
+# so the recommender prefers them over wild plants with a similar climate need.
+# crop_group: leafy_herb | fruiting | root | legume | fruit_tree | other
+canonical_binomial,name_en,name_ar,crop_group
+solanum lycopersicum,Tomato,طماطم,fruiting
+capsicum annuum,Pepper,فلفل,fruiting
+solanum melongena,Eggplant,باذنجان,fruiting
+cucumis sativus,Cucumber,خيار,fruiting
+cucumis melo,Melon,شمام,fruiting
+citrullus lanatus,Watermelon,بطيخ,fruiting
+cucurbita pepo,Zucchini,كوسة,fruiting
+cucurbita moschata,Butternut squash,قرع,fruiting
+cucurbita maxima,Pumpkin,يقطين,fruiting
+abelmoschus esculentus,Okra,بامية,fruiting
+fragaria ananassa,Strawberry,فراولة,fruiting
+zea mays,Sweet corn,ذرة,fruiting
+lactuca sativa,Lettuce,خس,leafy_herb
+spinacia oleracea,Spinach,سبانخ,leafy_herb
+mentha spicata,Mint,نعناع,leafy_herb
+ocimum basilicum,Basil,ريحان,leafy_herb
+petroselinum crispum,Parsley,بقدونس,leafy_herb
+coriandrum sativum,Coriander,كزبرة,leafy_herb
+eruca vesicaria,Arugula,جرجير,leafy_herb
+anethum graveolens,Dill,شبت,leafy_herb
+brassica oleracea,Cabbage,ملفوف,leafy_herb
+apium graveolens,Celery,كرفس,leafy_herb
+portulaca oleracea,Purslane,رجلة,leafy_herb
+trigonella foenum-graecum,Fenugreek,حلبة,leafy_herb
+salvia rosmarinus,Rosemary,إكليل الجبل,leafy_herb
+thymus vulgaris,Thyme,زعتر,leafy_herb
+salvia officinalis,Sage,مريمية,leafy_herb
+daucus carota,Carrot,جزر,root
+raphanus sativus,Radish,فجل,root
+allium cepa,Onion,بصل,root
+allium sativum,Garlic,ثوم,root
+solanum tuberosum,Potato,بطاطس,root
+ipomoea batatas,Sweet potato,بطاطا حلوة,root
+beta vulgaris,Beetroot,شمندر,root
+brassica rapa,Turnip,لفت,root
+phaseolus vulgaris,Green bean,فاصوليا,legume
+vicia faba,Broad bean,فول,legume
+pisum sativum,Pea,بازلاء,legume
+cicer arietinum,Chickpea,حمص,legume
+lens culinaris,Lentil,عدس,legume
+vigna unguiculata,Cowpea,لوبيا,legume
+phoenix dactylifera,Date palm,نخيل التمر,fruit_tree
+ficus carica,Fig,تين,fruit_tree
+citrus limon,Lemon,ليمون,fruit_tree
+citrus sinensis,Orange,برتقال,fruit_tree
+punica granatum,Pomegranate,رمان,fruit_tree
+olea europaea,Olive,زيتون,fruit_tree
+mangifera indica,Mango,مانجو,fruit_tree
+psidium guajava,Guava,جوافة,fruit_tree
+vitis vinifera,Grape,عنب,fruit_tree
+morus alba,Mulberry,توت,fruit_tree
+prunus persica,Peach,خوخ,fruit_tree
+carica papaya,Papaya,بابايا,fruit_tree
