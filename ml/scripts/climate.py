@@ -1,37 +1,35 @@
 """
-Ethmar — climate lookup from GPS coordinates.
+Ethmar - climate lookup from GPS coordinates.
 
-Given a latitude/longitude anywhere on Earth, this module returns everything the
-recommender needs to know about that place:
+This module takes a location (latitude and longitude) and returns the climate
+information that the recommendation model needs for that place:
 
-    * monthly temperature and rainfall normals  -> NASA POWER
-    * true ground elevation                     -> Open-Meteo (Copernicus DEM)
+    * monthly temperature and rainfall averages  -> NASA POWER
+    * ground elevation                          -> Open-Meteo (Copernicus DEM)
     * soil pH                                   -> SoilGrids (ISRIC)
-    * current conditions                        -> OpenWeather
 
-The design goal is that location is the only input. A user in Riyadh gets
-Riyadh, a user in Kuwait gets Kuwait, a user in Lima gets Lima - no city table,
-no hardcoded country logic.
+The only input is the location, so the module works for any place in the
+world. There is no list of cities or countries in the code.
 
-Caching
--------
-Climate normals change on a decadal scale, so they are cached on disk and
-refreshed at most once every 30 days. Coordinates are rounded to one decimal
-place (~11 km) before the cache key is built, so the whole of Saudi Arabia
-collapses to a few hundred cells instead of one request per user.
+Caching and privacy
+-------------------
+The location is first rounded to one decimal place (about 11 km), and all
+data is fetched for the centre of that area. This has two benefits:
+    * users who live close to each other share the same cache entry;
+    * the user's exact location is never sent to the services or saved.
+Climate averages change very slowly, so each result is reused for 30 days.
 
 Usage:
-    python ml/scripts/climate.py
-    python ml/scripts/climate.py 29.37 47.98
+    python ml/scripts/climate.py                # Riyadh
+    python ml/scripts/climate.py 29.37 47.98    # any latitude and longitude
 """
 
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass, fields
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -39,95 +37,75 @@ import requests
 
 ROOT = Path(__file__).resolve().parents[2]
 
-
-def _load_env_file() -> None:
-    """Read .env at the repo root so local runs see the API key."""
-    env_path = ROOT / ".env"
-    if not env_path.exists():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        os.environ.setdefault(key.strip(), value.strip())
-
-
-_load_env_file()
-
 CACHE_DIR = ROOT / "data" / "external" / "climate_cache"
 CACHE_MAX_AGE_DAYS = 30
-# Bump when the meaning of cached values changes, so stale entries are refetched.
-# Version 2: temperatures are means of daily highs/lows, not monthly extremes.
-# Version 3: temperatures corrected from NASA grid-cell elevation to the
-#            point's real elevation.
-CACHE_VERSION = 3
+# The cache version is increased whenever the meaning of the saved values
+# changes, so that old cache files are ignored and fetched again.
+#   Version 2: temperatures are averages of daily highs and lows.
+#   Version 3: temperatures are corrected for the real ground elevation.
+#   Version 4: data is fetched for the centre of the ~11 km area.
+CACHE_VERSION = 4
 
-NASA_HOST = "https://power.larc.nasa.gov"
-NASA_DAILY_URL = NASA_HOST + "/api/temporal/daily/point"
-NORMALS_START = "20050101"
+NASA_DAILY_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
+NORMALS_START = "20050101"   # 20 full years of daily data
 NORMALS_END = "20241231"
 ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
-SOILGRIDS_HOST = "https://rest.isric.org"
-SOILGRIDS_URL = SOILGRIDS_HOST + "/soilgrids/v2.0/properties/query"
-OPENWEATHER_HOST = "https://api.openweathermap.org"
-OPENWEATHER_URL = OPENWEATHER_HOST + "/data/2.5/weather"
+SOILGRIDS_URL = "https://rest.isric.org/soilgrids/v2.0/properties/query"
 
-TIMEOUT = 45
-NASA_TIMEOUT = 150
+TIMEOUT = 45          # seconds, for the small requests
+NASA_TIMEOUT = 150    # seconds, NASA returns 20 years of data in one response
 USER_AGENT = "Ethmar-GraduationProject/0.1"
 
-# SoilGrids masks built-up areas, so a city centre often has no pH value.
-# These rings (in degrees, ~11 km per 0.1) are searched outward until one
-# returns data.
+# SoilGrids has no data inside cities, so the centre of Riyadh has no pH value.
+# When this happens we search around the point at these distances (in degrees,
+# where 0.1 degree is about 11 km) and stop at the first distance with data.
 SOIL_SEARCH_RINGS = (0.1, 0.25, 0.5)
 
-# Standard environmental lapse rate: air cools about 6.5C per 1000 m of climb.
+# Air temperature drops by about 6.5 C for every 1000 m of height
+# (the standard environmental lapse rate).
 LAPSE_RATE_C_PER_M = 0.0065
 
 
 # --------------------------------------------------------------------------- #
-# Output shape
+# Data classes
 # --------------------------------------------------------------------------- #
 
 @dataclass
 class MonthClimate:
-    month: int
-    temp_high_c: float
-    temp_low_c: float
-    rain_mm: float
+    """Average climate of one month of the year."""
+
+    month: int            # 1 = January ... 12 = December
+    temp_high_c: float    # average daily maximum temperature
+    temp_low_c: float     # average daily minimum temperature
+    rain_mm: float        # average total rainfall in the month
 
 
 @dataclass
 class ClimateProfile:
+    """Everything the recommendation model needs to know about one location."""
+
     latitude: float
     longitude: float
-    monthly: list              # list[MonthClimate], index 0 = January
-    annual_rain_mm: float
-    annual_temp_min_c: float   # coldest month average
-    annual_temp_max_c: float   # hottest month average
+    monthly: list                   # 12 MonthClimate objects, index 0 = January
+    annual_rain_mm: float           # total rainfall in a year
+    annual_temp_min_c: float        # lowest monthly average of the daily lows
+    annual_temp_max_c: float        # highest monthly average of the daily highs
     soil_ph: float
-    soil_ph_source: str
-    elevation_m: float | None      # real ground elevation of the point
-    grid_elevation_m: float | None # elevation NASA assumed for its grid cell
-    temp_adjust_c: float           # added to every NASA temperature
-    current_temp_c: float | None
-    current_source: str
+    soil_ph_source: str             # "soilgrids", "soilgrids_nearby_<km>km" or "default"
+    elevation_m: float | None       # real ground elevation of the point
+    grid_elevation_m: float | None  # elevation that NASA used for its grid cell
+    temp_adjust_c: float            # correction added to every NASA temperature
     fetched_at: str
-
-    def for_month(self, month: int) -> MonthClimate:
-        return self.monthly[month - 1]
-
-    def month_window(self, month: int, span: int = 3) -> list:
-        """The planting window: this month plus the next `span - 1`."""
-        return [self.monthly[(month - 1 + offset) % 12] for offset in range(span)]
 
     def to_dict(self) -> dict:
         return asdict(self)
 
     @staticmethod
     def from_dict(data: dict) -> "ClimateProfile":
-        data = dict(data)
+        # Keep only the known fields, so that a cache file written by an older
+        # version of this module can still be read.
+        known = {f.name for f in fields(ClimateProfile)}
+        data = {key: value for key, value in data.items() if key in known}
         data["monthly"] = [MonthClimate(**m) for m in data["monthly"]]
         return ClimateProfile(**data)
 
@@ -136,9 +114,14 @@ class ClimateProfile:
 # Cache
 # --------------------------------------------------------------------------- #
 
+def area_centre(latitude: float, longitude: float):
+    """Round a location to one decimal place, the centre of its ~11 km area."""
+    return round(latitude, 1), round(longitude, 1)
+
+
 def _cache_key(latitude: float, longitude: float) -> str:
-    """Round to one decimal so nearby users share a cache entry."""
-    return f"{round(latitude, 1)}_{round(longitude, 1)}"
+    latitude, longitude = area_centre(latitude, longitude)
+    return f"{latitude}_{longitude}"
 
 
 def _cache_path(latitude: float, longitude: float) -> Path:
@@ -146,6 +129,7 @@ def _cache_path(latitude: float, longitude: float) -> Path:
 
 
 def _read_cache(latitude: float, longitude: float):
+    """Return the cached profile, or None if it is missing, old or unreadable."""
     path = _cache_path(latitude, longitude)
     if not path.exists():
         return None
@@ -169,23 +153,22 @@ def _write_cache(profile: ClimateProfile) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# NASA POWER — monthly climate normals
+# NASA POWER - monthly temperature and rainfall
 # --------------------------------------------------------------------------- #
 
 def fetch_nasa_power(latitude: float, longitude: float):
     """
-    Returns (12 months of temperature and rainfall normals, grid-cell
-    elevation in metres), or (None, None).
+    Calculate the 12 monthly climate averages from 20 years of daily data.
 
-    Built from 20 years of daily data rather than the climatology endpoint. The
-    climatology T2M_MAX and T2M_MIN are the hottest and coldest readings ever
-    seen in that month, not typical ones: for Riyadh they put January at 32C
-    and -3C, while the mean daily high and low are about 22C and 8C. A grower
-    lives with the daily means, so those are what each month reports.
+    We use the daily data instead of NASA's ready-made monthly climatology,
+    because the climatology values T2M_MAX and T2M_MIN are the highest and
+    lowest temperatures ever recorded in each month. For Riyadh they give
+    32 C and -3 C for January, while a normal January day is about 22 C and
+    8 C. A plant experiences the normal days, so we average the daily values.
 
-    The values describe NASA's whole grid cell (about 50 km across) at that
-    cell's average elevation, which is returned so the caller can correct for
-    terrain; see `apply_elevation_correction`.
+    Returns:
+        (list of 12 MonthClimate, elevation of the NASA grid cell in metres),
+        or (None, None) if the response cannot be used.
     """
     response = requests.get(
         NASA_DAILY_URL,
@@ -205,19 +188,22 @@ def fetch_nasa_power(latitude: float, longitude: float):
     payload = response.json()
     parameters = payload.get("properties", {}).get("parameter", {})
     fill_value = payload.get("header", {}).get("fill_value", -999.0)
+
+    # NASA returns the elevation of its grid cell as the third coordinate.
     coordinates = payload.get("geometry", {}).get("coordinates") or []
     grid_elevation = float(coordinates[2]) if len(coordinates) > 2 else None
 
-    tmax = parameters.get("T2M_MAX")
-    tmin = parameters.get("T2M_MIN")
-    rain = parameters.get("PRECTOTCORR") or {}
+    tmax = parameters.get("T2M_MAX")   # daily maximum temperature
+    tmin = parameters.get("T2M_MIN")   # daily minimum temperature
+    rain = parameters.get("PRECTOTCORR") or {}   # daily rainfall in mm
 
     if not tmax or not tmin:
-        print("NASA POWER payload shape not understood.")
+        print("NASA POWER response does not contain temperature data.")
         print("parameter keys:", list(parameters.keys()))
         return None, None
 
-    # Keys are 'YYYYMMDD'. Gather every valid day under its month.
+    # Each key is a date in the form 'YYYYMMDD'. We group the valid days by
+    # month and skip NASA's fill value, which marks a missing day.
     highs = [[] for _ in range(12)]
     lows = [[] for _ in range(12)]
     rain_totals = [0.0] * 12
@@ -239,6 +225,8 @@ def fetch_nasa_power(latitude: float, longitude: float):
     for index in range(12):
         if not highs[index] or not lows[index]:
             return None, None
+        # Rain is summed over all years, so we divide by the number of years
+        # to get the rainfall of an average month.
         years = len(rain_years[index]) or 1
         monthly.append(MonthClimate(
             month=index + 1,
@@ -251,15 +239,15 @@ def fetch_nasa_power(latitude: float, longitude: float):
 
 
 # --------------------------------------------------------------------------- #
-# Elevation — correct grid-cell temperatures to the real point
+# Elevation correction
 # --------------------------------------------------------------------------- #
 
 def fetch_elevation(latitude: float, longitude: float, attempts: int = 3):
     """
-    Ground elevation in metres from a 90 m terrain model, or None.
+    Return the ground elevation in metres, or None if the service fails.
 
-    The service fails now and then under load, so it is retried a few times
-    before giving up.
+    The service sometimes fails when it is busy, so the request is repeated
+    up to `attempts` times with a short wait in between.
     """
     for attempt in range(attempts):
         try:
@@ -282,18 +270,24 @@ def fetch_elevation(latitude: float, longitude: float, attempts: int = 3):
 
 def apply_elevation_correction(monthly: list, grid_elevation, elevation) -> float:
     """
-    Shift every month's temperatures from the grid cell's elevation to the
-    point's, in place, and return the shift applied.
+    Correct the NASA temperatures from the grid cell height to the real height.
 
-    A NASA cell can mix a mountain town with the lowland beside it: Abha sits
-    at 2,200 m inside a cell averaged at 1,200 m, which read 6-7C too warm.
-    Flat places such as Riyadh barely move. With either elevation unknown the
-    data is left as it is.
+    NASA gives one value for a whole grid cell (about 50 km wide) at the
+    average height of that cell. In mountain areas this can be far from the
+    real height of the user: Abha is at about 2,200 m, but its NASA cell has
+    an average height of about 1,200 m, so its temperatures were 6-7 C too
+    warm. In flat areas such as Riyadh the correction is almost zero.
+
+    The months are changed in place. If one of the two heights is unknown,
+    nothing is changed.
+
+    Returns:
+        The correction in C that was added to every temperature.
     """
     if grid_elevation is None or elevation is None:
         return 0.0
-    # The sea has no ground to correct to; the terrain model reports it as 0
-    # or below, which would wrongly warm a coastal cell.
+    # Over the sea the terrain model gives 0 or a negative value, which would
+    # make coastal places too warm, so the height is never taken below 0.
     elevation = max(elevation, 0.0)
     shift = round((grid_elevation - elevation) * LAPSE_RATE_C_PER_M, 1)
     for month in monthly:
@@ -303,11 +297,11 @@ def apply_elevation_correction(monthly: list, grid_elevation, elevation) -> floa
 
 
 # --------------------------------------------------------------------------- #
-# SoilGrids — soil pH
+# SoilGrids - soil pH
 # --------------------------------------------------------------------------- #
 
 def _query_soil_ph(latitude: float, longitude: float):
-    """pH at one point, or None when SoilGrids has no value there."""
+    """Return the topsoil pH at one point, or None if there is no value."""
     try:
         response = requests.get(
             SOILGRIDS_URL,
@@ -329,7 +323,7 @@ def _query_soil_ph(latitude: float, longitude: float):
             for depth in layer.get("depths", []):
                 mean = (depth.get("values") or {}).get("mean")
                 if mean is not None:
-                    # SoilGrids returns pH multiplied by 10, so 78 means 7.8.
+                    # SoilGrids stores pH multiplied by 10 (78 means 7.8).
                     return float(mean) / 10.0
     except (requests.RequestException, ValueError, KeyError, TypeError):
         pass
@@ -338,13 +332,16 @@ def _query_soil_ph(latitude: float, longitude: float):
 
 def fetch_soil_ph(latitude: float, longitude: float):
     """
-    Topsoil pH at 0-5 cm.
+    Return the topsoil pH (0-5 cm) and where the value came from.
 
-    SoilGrids leaves built-up areas empty, so the centre of Riyadh has no
-    value. When the point itself is empty, rings of four points are searched
-    outward and the first ring with data gives the median. Falls back to a
-    neutral 7.0 only when nothing is found, and says so in the source field
-    rather than pretending the value was measured.
+    If the point itself has no value (for example in a city centre), four
+    points around it are checked, first at about 11 km, then 28 km, then
+    55 km. The median of the first ring that has data is used. If nothing is
+    found, a neutral pH of 7.0 is returned with the source "default", so that
+    it is clear the value was not measured.
+
+    Returns:
+        (pH, source)
     """
     value = _query_soil_ph(latitude, longitude)
     if value is not None:
@@ -359,63 +356,50 @@ def fetch_soil_ph(latitude: float, longitude: float):
         if found:
             found.sort()
             middle = len(found) // 2
-            median = found[middle] if len(found) % 2 else (found[middle - 1] + found[middle]) / 2
+            if len(found) % 2:
+                median = found[middle]
+            else:
+                median = (found[middle - 1] + found[middle]) / 2
             return round(median, 2), f"soilgrids_nearby_{round(radius * 111)}km"
 
     return 7.0, "default"
 
 
 # --------------------------------------------------------------------------- #
-# OpenWeather — current conditions
+# Main function
 # --------------------------------------------------------------------------- #
 
-def fetch_current_temperature(latitude: float, longitude: float):
+def _refresh_annual(profile: ClimateProfile) -> None:
+    """Recalculate the yearly summary values from the 12 months."""
+    profile.annual_rain_mm = round(sum(m.rain_mm for m in profile.monthly), 1)
+    profile.annual_temp_min_c = round(min(m.temp_low_c for m in profile.monthly), 1)
+    profile.annual_temp_max_c = round(max(m.temp_high_c for m in profile.monthly), 1)
+
+
+def lookup(latitude: float, longitude: float, use_cache: bool = True) -> ClimateProfile:
     """
-    Current air temperature in Celsius, or (None, reason).
+    Return the climate profile of a location.
 
-    Read from the environment so the key never appears in source. A missing key
-    is not an error: the recommender works from climate normals alone and uses
-    current temperature only as an extra signal.
+    The location is rounded to the centre of its ~11 km area first (see the
+    note at the top of this file). The cache is used when possible.
+    Otherwise the data is fetched from the three services, corrected for
+    elevation and saved in the cache.
+
+    Raises:
+        ValueError if the latitude or longitude is out of range.
+        RuntimeError if NASA POWER returns no usable data.
+        requests.HTTPError if NASA POWER cannot be reached.
     """
-    api_key = os.environ.get("OPENWEATHER_API_KEY")
-    if not api_key:
-        return None, "no_api_key"
+    if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
+        raise ValueError(f"invalid location: {latitude}, {longitude}")
+    latitude, longitude = area_centre(latitude, longitude)
 
-    try:
-        response = requests.get(
-            OPENWEATHER_URL,
-            params={
-                "lat": latitude,
-                "lon": longitude,
-                "appid": api_key,
-                "units": "metric",
-            },
-            headers={"User-Agent": USER_AGENT},
-            timeout=TIMEOUT,
-        )
-        if response.status_code != 200:
-            return None, f"http_{response.status_code}"
-        temperature = response.json().get("main", {}).get("temp")
-        if temperature is None:
-            return None, "no_temperature"
-        return round(float(temperature), 1), "openweather"
-    except (requests.RequestException, ValueError):
-        return None, "error"
-
-
-# --------------------------------------------------------------------------- #
-# Public entry point
-# --------------------------------------------------------------------------- #
-
-def lookup(latitude: float, longitude: float, use_cache: bool = True,
-           include_current: bool = True) -> ClimateProfile:
-    """Return the climate profile for a coordinate, fetching and caching as needed."""
     if use_cache:
         cached = _read_cache(latitude, longitude)
         if cached is not None:
-            # A default pH or a missing elevation is a placeholder, not a
-            # measurement: retry it rather than serve it for the whole cache
-            # lifetime.
+            # A default pH or a missing elevation means that a service failed
+            # last time. We try again instead of keeping the placeholder for
+            # the whole 30 days.
             changed = False
             if cached.soil_ph_source == "default":
                 soil_ph, ph_source = fetch_soil_ph(latitude, longitude)
@@ -432,28 +416,17 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True,
                     changed = True
             if changed:
                 _write_cache(cached)
-            if include_current:
-                current, source = fetch_current_temperature(latitude, longitude)
-                if current is not None:
-                    cached.current_temp_c = current
-                    cached.current_source = source
             return cached
 
     monthly, grid_elevation = fetch_nasa_power(latitude, longitude)
     if monthly is None:
         raise RuntimeError(
-            f"NASA POWER returned no usable climate data for "
-            f"{latitude}, {longitude}"
+            f"NASA POWER returned no usable climate data for {latitude}, {longitude}"
         )
 
     elevation = fetch_elevation(latitude, longitude)
     temp_adjust = apply_elevation_correction(monthly, grid_elevation, elevation)
-
     soil_ph, ph_source = fetch_soil_ph(latitude, longitude)
-
-    current, current_source = (None, "skipped")
-    if include_current:
-        current, current_source = fetch_current_temperature(latitude, longitude)
 
     profile = ClimateProfile(
         latitude=latitude,
@@ -467,24 +440,15 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True,
         elevation_m=elevation,
         grid_elevation_m=grid_elevation,
         temp_adjust_c=temp_adjust,
-        current_temp_c=current,
-        current_source=current_source,
         fetched_at=datetime.now().isoformat(timespec="seconds"),
     )
     _refresh_annual(profile)
-
     _write_cache(profile)
     return profile
 
 
-def _refresh_annual(profile: ClimateProfile) -> None:
-    """Recompute the yearly summary fields from the monthly values."""
-    profile.annual_rain_mm = round(sum(m.rain_mm for m in profile.monthly), 1)
-    profile.annual_temp_min_c = round(min(m.temp_low_c for m in profile.monthly), 1)
-    profile.annual_temp_max_c = round(max(m.temp_high_c for m in profile.monthly), 1)
-
-
 def _report(profile: ClimateProfile) -> None:
+    """Print a profile as a small table, for manual checking."""
     print(f"location      : {profile.latitude}, {profile.longitude}")
     print(f"elevation     : {profile.elevation_m} m "
           f"(NASA cell {profile.grid_elevation_m} m, "
@@ -492,7 +456,6 @@ def _report(profile: ClimateProfile) -> None:
     print(f"soil pH       : {profile.soil_ph} ({profile.soil_ph_source})")
     print(f"annual rain   : {profile.annual_rain_mm} mm")
     print(f"year temp     : {profile.annual_temp_min_c} to {profile.annual_temp_max_c} C")
-    print(f"right now     : {profile.current_temp_c} C ({profile.current_source})")
     print()
     print(f"{'Month':<7}{'high':>7}{'low':>7}{'rain':>9}")
     for month in profile.monthly:
@@ -500,8 +463,6 @@ def _report(profile: ClimateProfile) -> None:
 
 
 if __name__ == "__main__":
-    latitude = float(sys.argv[1]) if len(sys.argv) > 1 else 24.71
-    longitude = float(sys.argv[2]) if len(sys.argv) > 2 else 46.67
-
-    profile = lookup(latitude, longitude)
-    _report(profile)
+    lat = float(sys.argv[1]) if len(sys.argv) > 1 else 24.71
+    lon = float(sys.argv[2]) if len(sys.argv) > 2 else 46.67
+    _report(lookup(lat, lon))
