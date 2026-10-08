@@ -143,8 +143,9 @@ class Recommendation:
     season_months: int     # months from planting to first harvest
     best_months: list = field(default_factory=list)
     protection: list = field(default_factory=list)   # "shade" and/or "cover"
-    reasons: list = field(default_factory=list)
-    warnings: list = field(default_factory=list)
+    reasons: list = field(default_factory=list)      # notes, see _note()
+    warnings: list = field(default_factory=list)     # notes, see _note()
+    details: dict = field(default_factory=dict)      # see crop_details()
 
     def to_dict(self) -> dict:
         return {
@@ -162,6 +163,7 @@ class Recommendation:
             "protection": self.protection,
             "reasons": self.reasons,
             "warnings": self.warnings,
+            "details": self.details,
         }
 
 
@@ -245,6 +247,19 @@ def _mean_temp(month) -> float:
 def _month_list(months: list) -> str:
     """Turn [1, 2] into 'Jan, Feb'."""
     return ", ".join(MONTH_NAMES[m - 1] for m in months)
+
+
+def _note(code: str, text: str, **params) -> dict:
+    """
+    Build one reason or warning.
+
+    The app uses the code (and the values in params, such as months) to show
+    its own Arabic or English sentence. The English text is kept for testing
+    and for the chatbot.
+    Example: {"code": "plant_later", "text": "best planted in Feb ...",
+              "month": 2, "months": 4}
+    """
+    return {"code": code, "text": text, **params}
 
 
 # --------------------------------------------------------------------------- #
@@ -422,24 +437,34 @@ def temperature_notes(row, window: list, woody: bool, protection: dict):
 
     warnings = []
     if shade:
-        warnings.append(
+        warnings.append(_note(
+            "needs_shade",
             f"may need shading in {_month_list(shade)}: hotter than it can take "
-            "in open sun - use shade cloth or move the pot indoors"
-        )
+            "in open sun - use shade cloth or move the pot indoors",
+            months=shade,
+        ))
     if cover:
-        warnings.append(
+        warnings.append(_note(
+            "needs_cover",
             f"may need covering in {_month_list(cover)}: colder than it can take "
-            "uncovered - use a frost cloth or bring the pot inside at night"
-        )
+            "uncovered - use a frost cloth or bring the pot inside at night",
+            months=cover,
+        ))
     protect = (["shade"] if shade else []) + (["cover"] if cover else [])
 
     if not cold and not hot and not protect:
-        return ["temperatures suit it for the whole season"], [], []
+        return [_note("temp_ok", "temperatures suit it for the whole season")], [], []
 
     if cold:
-        warnings.append(f"cooler than it likes in {_month_list(cold)}; growth will slow")
+        warnings.append(_note(
+            "too_cool", f"cooler than it likes in {_month_list(cold)}; growth will slow",
+            months=cold,
+        ))
     if hot:
-        warnings.append(f"hotter than it likes in {_month_list(hot)}; give it afternoon shade")
+        warnings.append(_note(
+            "too_hot", f"hotter than it likes in {_month_list(hot)}; give it afternoon shade",
+            months=hot,
+        ))
     return [], warnings, protect
 
 
@@ -495,13 +520,15 @@ def score_rainfall(row, window: list):
     if rain > opt_max:
         ceiling = abs_max if abs_max and abs_max > opt_max else opt_max * 1.5
         score = max(0.0, 1.0 - (rain - opt_max) / max(ceiling - opt_max, 1.0))
-        return score, None, "wetter than it likes; plant in raised beds or pots that drain"
+        return score, None, _note(
+            "too_wet", "wetter than it likes; plant in raised beds or pots that drain")
 
     if rain >= opt_min:
-        return 1.0, "natural rainfall covers its needs", None
+        return 1.0, _note("rain_ok", "natural rainfall covers its needs"), None
     if abs_min is not None and rain < abs_min:
-        return 1.0, None, "your area is too dry for it without regular watering"
-    return 1.0, None, "needs watering between rains"
+        return 1.0, None, _note(
+            "too_dry", "your area is too dry for it without regular watering")
+    return 1.0, None, _note("needs_watering", "needs watering between rains")
 
 
 def score_soil_ph(row, ph: float, config: dict):
@@ -522,7 +549,7 @@ def score_soil_ph(row, ph: float, config: dict):
     if opt_min is None or opt_max is None:
         return 0.5, None, None
     if opt_min <= ph <= opt_max:
-        return 1.0, "soil pH suits it", None
+        return 1.0, _note("ph_ok", "soil pH suits it"), None
 
     width = max(opt_max - opt_min, 0.5)
     penalty = config["penalties"]["alkaline_mismatch"]
@@ -530,16 +557,20 @@ def score_soil_ph(row, ph: float, config: dict):
     if ph > opt_max:
         score = max(0.0, 1.0 - (ph - opt_max) / width)
         if abs_max is not None and ph > abs_max:
-            return score * penalty, None, (
+            return score * penalty, None, _note(
+                "needs_acidic_soil",
                 "needs acidic soil; your soil is alkaline - grow it in a pot "
-                "with potting mix or amend the soil"
+                "with potting mix or amend the soil",
             )
-        return score, None, "prefers slightly more acidic soil than yours"
+        return score, None, _note(
+            "prefers_more_acidic", "prefers slightly more acidic soil than yours")
 
     score = max(0.0, 1.0 - (opt_min - ph) / width)
     if abs_min is not None and ph < abs_min:
-        return score * penalty, None, "needs more alkaline soil than yours"
-    return score, None, "prefers slightly more alkaline soil than yours"
+        return score * penalty, None, _note(
+            "needs_alkaline_soil", "needs more alkaline soil than yours")
+    return score, None, _note(
+        "prefers_more_alkaline", "prefers slightly more alkaline soil than yours")
 
 
 def score_sunlight(row, site: Site):
@@ -553,8 +584,11 @@ def score_sunlight(row, site: Site):
     if wanted is None:
         return 0.6, None, None
     if wanted == 1:
-        return 1.0, "tolerates your light level", None
-    return 0.3, None, f"prefers different light than {site.sunlight} sun"
+        return 1.0, _note("light_ok", "tolerates your light level"), None
+    return 0.3, None, _note(
+        "light_mismatch", f"prefers different light than {site.sunlight} sun",
+        light=site.sunlight,
+    )
 
 
 def score_water(row, site: Site):
@@ -568,7 +602,7 @@ def score_water(row, site: Site):
     if wanted is None:
         return 0.6, None
     if wanted == 1:
-        return 1.0, "watering needs fit your setup"
+        return 1.0, _note("water_ok", "watering needs fit your setup")
     return 0.35, None
 
 
@@ -580,7 +614,8 @@ def score_soil_texture(row, site: Site):
         "clay": _number(row, "soil_heavy_clay"),
     }
     if flags.get(site.soil_texture) == 0:
-        return "your soil texture is not ideal for it"
+        return _note("soil_texture_mismatch", "your soil texture is not ideal for it",
+                     soil=site.soil_texture)
     return None
 
 
@@ -597,6 +632,30 @@ def score_popularity(row, config: dict) -> float:
     if _number(row, "home_garden") == 1:
         return values["home_garden"]
     return values["other"]
+
+
+def crop_details(row) -> dict:
+    """
+    Facts about the crop for its detail screen in the app. The product
+    backlog asks for the temperature range it survives in, its growth rate
+    and how much water it needs. Missing values are returned as None.
+    """
+    water = [level for level, column in (("low", "water_dry"),
+                                         ("medium", "water_moist"),
+                                         ("high", "water_wet"))
+             if _number(row, column) == 1]
+    return {
+        "temp_optimal_c": [_number(row, "ecocrop_temp_opt_min_c"),
+                           _number(row, "ecocrop_temp_opt_max_c")],
+        "temp_survival_c": [_number(row, "ecocrop_temp_abs_min_c"),
+                            _number(row, "ecocrop_temp_abs_max_c")],
+        "rain_optimal_mm": [_number(row, "ecocrop_rain_opt_min_mm"),
+                            _number(row, "ecocrop_rain_opt_max_mm")],
+        "growth_rate": _text(row, "growth_rate"),     # fast | medium | slow
+        "water_need": water,                          # e.g. ["low", "medium"]
+        "life_cycle": _text(row, "ecocrop_lifespan") or _text(row, "life_cycle_raw"),
+        "height_m": _number(row, "height_m"),
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -715,11 +774,17 @@ def score_species(row, climate, month: int, site: Site, config: dict):
     score = totals[plant_month]
 
     if status == "later":
-        warnings.append(
-            f"best planted in {MONTH_NAMES[plant_month - 1]} ({wait} months from now)"
-        )
+        warnings.append(_note(
+            "plant_later",
+            f"best planted in {MONTH_NAMES[plant_month - 1]} ({wait} months from now)",
+            month=plant_month, months=wait,
+        ))
     elif wait > 0:
-        reasons.append(f"best planted next month ({MONTH_NAMES[plant_month - 1]})")
+        reasons.append(_note(
+            "plant_next_month",
+            f"best planted next month ({MONTH_NAMES[plant_month - 1]})",
+            month=plant_month,
+        ))
 
     # The reasons and warnings describe the season the user will actually grow.
     window = window_for(plant_month)
@@ -750,6 +815,7 @@ def score_species(row, climate, month: int, site: Site, config: dict):
         protection=protect,
         reasons=reasons,
         warnings=warnings,
+        details=crop_details(row),
     )
 
 

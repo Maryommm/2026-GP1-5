@@ -19,3 +19,9 @@ venv/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
+
+# Firebase
+functions/venv/
+functions/ethmar_model/
+.firebase/
+*-debug.log

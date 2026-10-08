@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, fields
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -124,19 +125,41 @@ def _cache_key(latitude: float, longitude: float) -> str:
     return f"{latitude}_{longitude}"
 
 
-def _cache_path(latitude: float, longitude: float) -> Path:
-    return CACHE_DIR / f"{_cache_key(latitude, longitude)}.json"
+class FileCache:
+    """
+    Saves each profile as a JSON file in data/external/climate_cache/.
+    Used when the scripts run on a computer. On Firebase the Cloud Function
+    passes a Firestore cache instead; any object with the same get() and
+    set() methods can be used.
+    """
+
+    def __init__(self, folder: Path = CACHE_DIR):
+        self.folder = folder
+
+    def get(self, key: str) -> dict | None:
+        path = self.folder / f"{key}.json"
+        if not path.exists():
+            return None
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return None
+
+    def set(self, key: str, data: dict) -> None:
+        self.folder.mkdir(parents=True, exist_ok=True)
+        path = self.folder / f"{key}.json"
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
-def _read_cache(latitude: float, longitude: float):
+def _read_cache(cache, latitude: float, longitude: float):
     """Return the cached profile, or None if it is missing, old or unreadable."""
-    path = _cache_path(latitude, longitude)
-    if not path.exists():
+    payload = cache.get(_cache_key(latitude, longitude))
+    if not payload:
         return None
+    payload = dict(payload)
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
         fetched = datetime.fromisoformat(payload["fetched_at"])
-    except (json.JSONDecodeError, KeyError, ValueError):
+    except (KeyError, ValueError):
         return None
     if payload.pop("cache_version", None) != CACHE_VERSION:
         return None
@@ -145,11 +168,9 @@ def _read_cache(latitude: float, longitude: float):
     return ClimateProfile.from_dict(payload)
 
 
-def _write_cache(profile: ClimateProfile) -> None:
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path = _cache_path(profile.latitude, profile.longitude)
+def _write_cache(cache, profile: ClimateProfile) -> None:
     payload = {"cache_version": CACHE_VERSION, **profile.to_dict()}
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    cache.set(_cache_key(profile.latitude, profile.longitude), payload)
 
 
 # --------------------------------------------------------------------------- #
@@ -300,33 +321,47 @@ def apply_elevation_correction(monthly: list, grid_elevation, elevation) -> floa
 # SoilGrids - soil pH
 # --------------------------------------------------------------------------- #
 
-def _query_soil_ph(latitude: float, longitude: float):
-    """Return the topsoil pH at one point, or None if there is no value."""
-    try:
-        response = requests.get(
-            SOILGRIDS_URL,
-            params={
-                "lon": longitude,
-                "lat": latitude,
-                "property": "phh2o",
-                "depth": "0-5cm",
-                "value": "mean",
-            },
-            headers={"User-Agent": USER_AGENT},
-            timeout=TIMEOUT,
-        )
-        response.raise_for_status()
-        layers = response.json().get("properties", {}).get("layers", [])
-        for layer in layers:
-            if layer.get("name") != "phh2o":
+def _query_soil_ph(latitude: float, longitude: float, attempts: int = 4):
+    """
+    Return the topsoil pH at one point, or None if there is no value.
+
+    SoilGrids limits how many requests it accepts per minute and answers
+    429 ("too many requests") or 5xx when it is busy. In that case we wait
+    and try again, so that a busy service is not mistaken for "no data",
+    which would change the median of a search ring.
+    """
+    for attempt in range(attempts):
+        try:
+            response = requests.get(
+                SOILGRIDS_URL,
+                params={
+                    "lon": longitude,
+                    "lat": latitude,
+                    "property": "phh2o",
+                    "depth": "0-5cm",
+                    "value": "mean",
+                },
+                headers={"User-Agent": USER_AGENT},
+                timeout=TIMEOUT,
+            )
+            if response.status_code == 429 or response.status_code >= 500:
+                time.sleep(2.0 * (attempt + 1))
                 continue
-            for depth in layer.get("depths", []):
-                mean = (depth.get("values") or {}).get("mean")
-                if mean is not None:
-                    # SoilGrids stores pH multiplied by 10 (78 means 7.8).
-                    return float(mean) / 10.0
-    except (requests.RequestException, ValueError, KeyError, TypeError):
-        pass
+            response.raise_for_status()
+            layers = response.json().get("properties", {}).get("layers", [])
+            for layer in layers:
+                if layer.get("name") != "phh2o":
+                    continue
+                for depth in layer.get("depths", []):
+                    mean = (depth.get("values") or {}).get("mean")
+                    if mean is not None:
+                        # SoilGrids stores pH multiplied by 10 (78 means 7.8).
+                        return float(mean) / 10.0
+            return None
+        except requests.Timeout:
+            continue
+        except (requests.RequestException, ValueError, KeyError, TypeError):
+            return None
     return None
 
 
@@ -336,9 +371,10 @@ def fetch_soil_ph(latitude: float, longitude: float):
 
     If the point itself has no value (for example in a city centre), four
     points around it are checked, first at about 11 km, then 28 km, then
-    55 km. The median of the first ring that has data is used. If nothing is
-    found, a neutral pH of 7.0 is returned with the source "default", so that
-    it is clear the value was not measured.
+    55 km. The four points of a ring are requested at the same time to save
+    waiting. The median of the first ring that has data is used. If nothing
+    is found, a neutral pH of 7.0 is returned with the source "default", so
+    that it is clear the value was not measured.
 
     Returns:
         (pH, source)
@@ -348,11 +384,11 @@ def fetch_soil_ph(latitude: float, longitude: float):
         return round(value, 2), "soilgrids"
 
     for radius in SOIL_SEARCH_RINGS:
-        found = []
-        for d_lat, d_lon in ((radius, 0), (-radius, 0), (0, radius), (0, -radius)):
-            value = _query_soil_ph(latitude + d_lat, longitude + d_lon)
-            if value is not None:
-                found.append(value)
+        points = [(latitude + d_lat, longitude + d_lon)
+                  for d_lat, d_lon in ((radius, 0), (-radius, 0), (0, radius), (0, -radius))]
+        with ThreadPoolExecutor(max_workers=len(points)) as pool:
+            results = list(pool.map(lambda point: _query_soil_ph(*point), points))
+        found = [value for value in results if value is not None]
         if found:
             found.sort()
             middle = len(found) // 2
@@ -376,14 +412,19 @@ def _refresh_annual(profile: ClimateProfile) -> None:
     profile.annual_temp_max_c = round(max(m.temp_high_c for m in profile.monthly), 1)
 
 
-def lookup(latitude: float, longitude: float, use_cache: bool = True) -> ClimateProfile:
+def lookup(latitude: float, longitude: float, use_cache: bool = True,
+           cache=None) -> ClimateProfile:
     """
     Return the climate profile of a location.
 
     The location is rounded to the centre of its ~11 km area first (see the
     note at the top of this file). The cache is used when possible.
-    Otherwise the data is fetched from the three services, corrected for
-    elevation and saved in the cache.
+    Otherwise the three services are called at the same time, the
+    temperatures are corrected for elevation, and the result is saved in
+    the cache.
+
+    Parameters:
+        cache  where profiles are saved; a FileCache by default.
 
     Raises:
         ValueError if the latitude or longitude is out of range.
@@ -393,9 +434,10 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True) -> Climate
     if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
         raise ValueError(f"invalid location: {latitude}, {longitude}")
     latitude, longitude = area_centre(latitude, longitude)
+    cache = cache if cache is not None else FileCache()
 
     if use_cache:
-        cached = _read_cache(latitude, longitude)
+        cached = _read_cache(cache, latitude, longitude)
         if cached is not None:
             # A default pH or a missing elevation means that a service failed
             # last time. We try again instead of keeping the placeholder for
@@ -415,18 +457,24 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True) -> Climate
                     _refresh_annual(cached)
                     changed = True
             if changed:
-                _write_cache(cached)
+                _write_cache(cache, cached)
             return cached
 
-    monthly, grid_elevation = fetch_nasa_power(latitude, longitude)
+    # The three services do not depend on each other, so they are called at
+    # the same time. The total wait is the time of the slowest one.
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        nasa_job = pool.submit(fetch_nasa_power, latitude, longitude)
+        elevation_job = pool.submit(fetch_elevation, latitude, longitude)
+        soil_job = pool.submit(fetch_soil_ph, latitude, longitude)
+        monthly, grid_elevation = nasa_job.result()
+        elevation = elevation_job.result()
+        soil_ph, ph_source = soil_job.result()
+
     if monthly is None:
         raise RuntimeError(
             f"NASA POWER returned no usable climate data for {latitude}, {longitude}"
         )
-
-    elevation = fetch_elevation(latitude, longitude)
     temp_adjust = apply_elevation_correction(monthly, grid_elevation, elevation)
-    soil_ph, ph_source = fetch_soil_ph(latitude, longitude)
 
     profile = ClimateProfile(
         latitude=latitude,
@@ -443,7 +491,7 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True) -> Climate
         fetched_at=datetime.now().isoformat(timespec="seconds"),
     )
     _refresh_annual(profile)
-    _write_cache(profile)
+    _write_cache(cache, profile)
     return profile
 
 
