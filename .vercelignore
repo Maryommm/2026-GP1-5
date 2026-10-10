@@ -1,0 +1,8 @@
+# Files Vercel does not need to build the API (api/index.py).
+ethmar/
+functions/
+data/raw/
+data/external/
+data/processed/ethmar_reference.csv
+.venv/
+venv/
