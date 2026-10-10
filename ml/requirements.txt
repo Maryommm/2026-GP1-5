@@ -1,0 +1,5 @@
+# Python libraries for the data pipeline (ml/scripts/clean_dataset.py and
+# ml/scripts/load_check.py). The API itself does not need pandas.
+# Install with: pip install -r ml/requirements.txt
+pandas==3.0.6
+requests==2.34.2

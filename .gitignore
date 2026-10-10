@@ -25,3 +25,9 @@ functions/venv/
 functions/ethmar_model/
 .firebase/
 *-debug.log
+
+# Vercel and Firebase secrets - never commit a service account key
+.vercel/
+*service-account*.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json

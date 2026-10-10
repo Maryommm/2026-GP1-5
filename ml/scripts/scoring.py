@@ -38,12 +38,11 @@ Usage:
 from __future__ import annotations
 
 import copy
+import csv
 import json
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-
-import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 TABLE_PATH = ROOT / "data" / "processed" / "ethmar_recommendable.csv"
@@ -190,22 +189,28 @@ def load_config(path: Path = CONFIG_PATH) -> dict:
 _TABLE_CACHE: dict = {}
 
 
-def load_table(path: Path = TABLE_PATH) -> pd.DataFrame:
-    """Read the crop table only once, and reuse it for later requests."""
+def load_table(path: Path = TABLE_PATH) -> list:
+    """
+    Read the crop table as a list of rows (one dict per crop), only once,
+    and reuse it for later requests.
+
+    We use Python's csv module instead of pandas, so the server does not
+    need to install pandas. Every cell is read as text, and the helper
+    functions below convert it to a number when needed.
+    """
     key = str(path)
     if key not in _TABLE_CACHE:
-        _TABLE_CACHE[key] = pd.read_csv(path)
+        with open(path, encoding="utf-8-sig", newline="") as handle:
+            _TABLE_CACHE[key] = list(csv.DictReader(handle))
     return _TABLE_CACHE[key]
 
 
 def _value(row, column):
     """Read a cell, and return None if it is empty or missing."""
-    if column not in row:
-        return None
-    value = row[column]
+    value = row.get(column)
     if value is None:
         return None
-    if isinstance(value, float) and pd.isna(value):
+    if isinstance(value, float) and math.isnan(value):
         return None
     if isinstance(value, str) and not value.strip():
         return None
@@ -218,9 +223,10 @@ def _number(row, column):
     if value is None:
         return None
     try:
-        return float(value)
+        number = float(value)
     except (TypeError, ValueError):
         return None
+    return None if math.isnan(number) else number
 
 
 def _text(row, column):
@@ -820,7 +826,7 @@ def score_species(row, climate, month: int, site: Site, config: dict):
 
 
 def recommend(climate, month: int, site: Site | None = None, preferences=None,
-              limit: int | None = None, table: pd.DataFrame | None = None,
+              limit: int | None = None, table: list | None = None,
               config: dict | None = None):
     """
     Return every crop that can be grown at the location.
@@ -835,7 +841,8 @@ def recommend(climate, month: int, site: Site | None = None, preferences=None,
         site         the user's growing setup (default: Site())
         preferences  optional filters
         limit        return only the first `limit` crops (default: all)
-        table, config  only needed for testing; loaded from files otherwise
+        table        rows from load_table(); loaded from the default file if None
+        config       settings from load_config(); loaded from the default file if None
     """
     if not 1 <= month <= 12:
         raise ValueError(f"month must be 1-12, got {month}")
@@ -844,7 +851,7 @@ def recommend(climate, month: int, site: Site | None = None, preferences=None,
     table = load_table() if table is None else table
 
     results = []
-    for _, row in table.iterrows():
+    for row in table:
         if not matches_preferences(row, preferences):
             continue
         scored = score_species(row, climate, month, site, config)
