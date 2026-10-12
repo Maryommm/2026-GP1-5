@@ -46,6 +46,7 @@ PROCESSED_DIR = ROOT / "data" / "processed"
 RECOMMENDABLE_PATH = PROCESSED_DIR / "ethmar_recommendable.csv"
 REFERENCE_PATH = PROCESSED_DIR / "ethmar_reference.csv"
 COMMON_CROPS_PATH = ROOT / "ml" / "artifacts" / "common_crops.csv"
+CROP_NAMES_PATH = ROOT / "ml" / "artifacts" / "crop_names.csv"
 
 # --------------------------------------------------------------------------- #
 # Column groups
@@ -590,15 +591,23 @@ def add_crop_groups(df: pd.DataFrame) -> pd.DataFrame:
     """
     Add four columns: crop_group, is_common, name_ar and home_garden.
 
-    For the crops in ml/artifacts/common_crops.csv, the reviewed group,
-    English name and Arabic name replace the automatic ones, and is_common
-    is set to 1. The model uses is_common to rank common crops (such as
-    tomato) above wild plants that need a similar climate.
+    Every crop gets its English and Arabic display names from
+    ml/artifacts/crop_names.csv. For the crops in ml/artifacts/common_crops.csv,
+    the reviewed group, English name and Arabic name replace these, and
+    is_common is set to 1. The model uses is_common to rank common crops
+    (such as tomato) above wild plants that need a similar climate.
     """
     df = df.copy()
     df["crop_group"] = df.apply(rule_crop_group, axis=1)
     df["is_common"] = 0
     df["name_ar"] = None
+
+    if CROP_NAMES_PATH.exists():
+        names = pd.read_csv(CROP_NAMES_PATH, comment="#").set_index("canonical_binomial")
+        match = df["canonical_binomial"].isin(names.index)
+        keys = df.loc[match, "canonical_binomial"]
+        df.loc[match, "name_ar"] = keys.map(names["name_ar"]).values
+        df.loc[match, "common_name"] = keys.map(names["name_en"]).values
 
     common = _load_common_crops()
     if common is not None:

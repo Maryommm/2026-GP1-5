@@ -1,0 +1,715 @@
+# English and Arabic display names for every recommendable crop. Read by
+# ml/scripts/clean_dataset.py. Crops in common_crops.csv use the names there
+# instead. The names were drafted with help from an AI tool and should be
+# reviewed by a native Arabic speaker; edit a row and re-run clean_dataset.py.
+canonical_binomial,name_en,name_ar
+morus rubra,Red mulberry,توت أحمر
+prunus avium,Sweet cherry,كرز حلو
+helianthus tuberosus,Jerusalem artichoke,طرطوفة
+fagus sylvatica,European beech,زان أوروبي
+robinia pseudoacacia,Black locust,روبينيا (أكاسيا كاذبة)
+juglans nigra,Black walnut,جوز أسود
+castanea mollissima,Chinese chestnut,كستناء صيني
+juglans regia,Walnut,جوز
+gleditsia triacanthos,Honey locust,جليديشيا (خرنوب العسل)
+pinus ponderosa,Ponderosa pine,صنوبر بونديروزا
+prunus cerasus,Sour cherry,كرز حامض (وشنة)
+pinus pinea,Stone pine,صنوبر ثمري
+acer saccharum,Sugar maple,قيقب سكري
+castanea sativa,Sweet chestnut,كستناء
+ailanthus altissima,Tree of heaven,شجرة السماء (ألانتس)
+asimina triloba,Pawpaw,أسيمينا (باوباو)
+atriplex canescens,Four-wing saltbush,قطف رمادي
+caragana arborescens,Siberian pea shrub,كاراجانا سيبيرية
+corylus avellana,Hazelnut,بندق
+diospyros kaki,Persimmon,كاكا (خرما)
+diospyros virginiana,American persimmon,كاكا أمريكي
+elaeagnus angustifolia,Russian olive,زيتون بري (غبيراء)
+acca sellowiana,Feijoa,فيجوا
+hibiscus syriacus,Rose of Sharon,ختمية سورية
+hippophae rhamnoides,Sea buckthorn,نبق البحر
+hyssopus officinalis,Hyssop,زوفا
+laurus nobilis,Bay laurel,غار (ورق الغار)
+lavandula angustifolia,Lavender,خزامى (لافندر)
+lycium chinense,Goji berry,غوجي (عوسج صيني)
+malus domestica,Apple,تفاح
+morus nigra,Black mulberry,توت أسود
+myrtus communis,Myrtle,آس (ريحان القبور)
+phormium tenax,New Zealand flax,كتان نيوزيلندي
+prunus armeniaca,Apricot,مشمش
+prunus domestica,Plum,برقوق
+prunus dulcis,Almond,لوز
+ribes nigrum,Black currant,كشمش أسود
+ribes rubrum,Red currant,كشمش أحمر
+ribes uva-crispa,Gooseberry,عنب الثعلب
+rubus idaeus,Raspberry,توت العليق (فرامبواز)
+rubus occidentalis,Black raspberry,توت العليق الأسود
+sambucus nigra,Elderberry,بيلسان
+vaccinium corymbosum,Blueberry,توت أزرق
+ziziphus jujuba,Jujube,عناب
+armoracia rusticana,Horseradish,فجل حار
+allium schoenoprasum,Chives,ثوم معمر (شيف)
+calendula officinalis,Pot marigold,أذريون (كالندولا)
+melissa officinalis,Lemon balm,مليسة (ترنجان)
+sinapis alba,White mustard,خردل أبيض
+asparagus officinalis,Asparagus,هليون
+phaseolus coccineus,Runner bean,فاصوليا مدادة
+borago officinalis,Borage,لسان الثور
+helianthus annuus,Sunflower,دوار الشمس
+origanum majorana,Marjoram,بردقوش (مردقوش)
+brassica juncea,Mustard greens,خردل هندي (أوراق الخردل)
+amelanchier alnifolia,Saskatoon berry,توت ساسكاتون
+actinidia arguta,Hardy kiwi,كيوي صغير
+cyperus esculentus,Tiger nut,حب العزيز
+chenopodium quinoa,Quinoa,كينوا
+foeniculum vulgare,Fennel,شمر (شبت حلو)
+ruta graveolens,Rue,سذاب (فيجن)
+pastinaca sativa,Parsnip,جزر أبيض (جزر بري)
+allium ampeloprasum,Leek,كراث
+anthriscus cerefolium,Chervil,مقدونس إفرنجي (كرفيل)
+mentha pulegium,Pennyroyal,فليو (نعناع بري)
+satureja hortensis,Summer savory,صعتر صيفي
+satureja montana,Winter savory,صعتر جبلي
+urtica dioica,Stinging nettle,قراص
+capsicum pubescens,Rocoto pepper,فلفل روكوتو
+capsicum chinense,Habanero pepper,فلفل هابانيرو
+passiflora edulis,Passion fruit,فاكهة العاطفة (باشن فروت)
+triticum aestivum,Wheat,قمح
+trifolium pratense,Red clover,برسيم أحمر
+artemisia dracunculus,Tarragon,طرخون
+fagopyrum esculentum,Buckwheat,حنطة سوداء
+origanum vulgare,Oregano,أوريجانو (زعتر بري)
+carum carvi,Caraway,كراوية
+lupinus albus,White lupin,ترمس
+pimpinella anisum,Anise,يانسون
+solanum nigrum,Black nightshade,عنب الذيب
+solanum muricatum,Pepino melon,بيبينو
+solanum quitoense,Naranjilla,نارانخيا
+simarouba glauca,Paradise tree,سيماروبا
+sapium sebiferum,Chinese tallow tree,شجرة الشحم الصينية
+solanum torvum,Turkey berry,باذنجان بري (توركي بيري)
+santalum acuminatum,Quandong,كواندونغ (صندل أسترالي)
+salvia sclarea,Clary sage,مريمية مسكية
+solanum aethiopicum,Ethiopian eggplant,باذنجان أفريقي
+trichosanthes cucumerina,Snake gourd,قرع الثعبان
+acacia holosericea,Candelabra wattle,أكاسيا الشمعدان
+acacia dealbata,Silver wattle,أكاسيا فضية (ميموزا)
+acacia mearnsii,Black wattle,أكاسيا سوداء
+acacia leucophloea,White-bark acacia,أكاسيا بيضاء اللحاء
+acacia decurrens,Green wattle,أكاسيا خضراء
+adansonia digitata,Baobab,باوباب (التبلدي)
+anacardium occidentale,Cashew,كاجو
+albizia procera,White siris,ألبيزيا بيضاء
+acrocomia aculeata,Macaw palm,نخيل الماكاو
+acacia murrayana,Sandhill wattle,أكاسيا الكثبان
+acacia saligna,Orange wattle,أكاسيا صفصافية (سليجنا)
+acacia melanoxylon,Australian blackwood,أكاسيا الخشب الأسود
+acacia pycnantha,Golden wattle,أكاسيا ذهبية
+acacia podalyriifolia,Queensland silver wattle,أكاسيا كوينزلاند الفضية
+adenanthera pavonina,Red sandalwood tree,عين الطاووس (صندل أحمر)
+amaranthus tricolor,Chinese spinach,سبانخ صيني (قطيفة ملونة)
+celosia argentea,Celosia,عرف الديك
+amaranthus viridis,Green amaranth,قطيفة خضراء (بربير)
+aloe ferox,Bitter aloe,صبار مر (ألوفيرا فيروكس)
+trifolium hybridum,Alsike clover,برسيم هجين
+trifolium incarnatum,Crimson clover,برسيم قرمزي
+trifolium subterraneum,Subterranean clover,برسيم تحت أرضي
+trifolium variegatum,White-tip clover,برسيم أبيض الأطراف
+theobroma cacao,Cacao,كاكاو
+terminalia catappa,Indian almond,لوز هندي
+terminalia chebula,Black myrobalan,إهليلج أسود
+telfairia occidentalis,Fluted pumpkin,قرع أفريقي مضلع
+prosopis juliflora,Mesquite,غاف بحري (مسكيت)
+elaeis oleifera,American oil palm,نخيل الزيت الأمريكي
+amaranthus hybridus,Smooth amaranth,قطيفة ملساء
+amaranthus hypochondriacus,Prince's feather amaranth,قطيفة الحبوب
+alnus rubra,Red alder,جار الماء الأحمر
+tragopogon porrifolius,Salsify,لحية التيس
+trapa natans,Water caltrop,كستناء الماء
+solanum americanum,American nightshade,عنب الذيب الأمريكي
+sorghum bicolor,Sorghum,ذرة رفيعة
+sparganium erectum,Branched bur-reed,بردي شوكي
+allium tuberosum,Garlic chives,ثوم صيني (كراث صيني)
+colocasia esculenta,Taro,قلقاس
+panax ginseng,Ginseng,جينسنغ
+araucaria angustifolia,Parana pine,أروكاريا برازيلية
+araucaria bidwillii,Bunya pine,أروكاريا بونيا
+aloe arborescens,Candelabra aloe,صبار شجري
+arachis hypogaea,Peanut,فول سوداني
+alocasia macrorrhizos,Giant taro,قلقاس عملاق (أذن الفيل)
+aquilegia canadensis,Wild columbine,عصفور الجنة الكندي (أكويليجيا)
+allium chinense,Chinese onion,بصل صيني (راكيو)
+aleurites fordii,Tung tree,شجرة التونغ
+amaranthus caudatus,Love-lies-bleeding amaranth,قطيفة ذيل الثعلب
+amaranthus cruentus,Purple amaranth,قطيفة أرجوانية
+amaranthus dubius,Spleen amaranth,قطيفة السبانخ
+allium fistulosum,Welsh onion,بصل أخضر (بصل ويلزي)
+cucumis anguria,West Indian gherkin,خيار شوكي (خيار الهند الغربية)
+cucurbita foetidissima,Buffalo gourd,قرع الجاموس
+cucurbita ficifolia,Fig-leaf gourd,قرع ورق التين
+polymnia edulis,Yacon,ياكون
+citrus aurantium,Bitter orange,نارنج
+citrus reticulata,Mandarin,يوسفي (مندرين)
+citrullus colocynthis,Colocynth,حنظل
+vaccinium macrocarpon,Cranberry,توت بري (كرانبيري)
+pachyrhizus tuberosus,Amazonian yam bean,جيكاما الأمازون
+papaver somniferum,Poppy,خشخاش
+picea abies,Norway spruce,تنوب نرويجي
+phytolacca acinosa,Indian pokeweed,فيتولاكا هندية
+phytolacca esculenta,Edible pokeweed,فيتولاكا صالحة للأكل
+phytolacca dioica,Ombu tree,شجرة الأومبو
+phragmites australis,Common reed,قصب (غاب)
+prosopis cineraria,Ghaf tree,غاف
+melilotus officinalis,Yellow sweet clover,حندقوق أصفر
+melilotus suaveolens,Sweet clover,حندقوق عطري
+nuphar lutea,Yellow water lily,نيلوفر أصفر
+nuphar advena,Spatterdock,نيلوفر أمريكي
+parinari curatellifolia,Mobola plum,برقوق موبولا
+nigella sativa,Black seed,حبة البركة (حبة سوداء)
+cichorium intybus,Chicory,هندباء (شيكوريا)
+chrysanthemum coronarium,Garland chrysanthemum,أقحوان التاج (شونغيكو)
+erythrina fusca,Coral bean,مرجان الماء (إريثرينا)
+cuminum cyminum,Cumin,كمون
+crocus sativus,Saffron,زعفران
+crotalaria juncea,Sunn hemp,قنب هندي (كروتالاريا)
+cryptotaenia japonica,Mitsuba,بقدونس ياباني (ميتسوبا)
+cryptotaenia canadensis,Honewort,بقدونس كندي
+tectona grandis,Teak,ساج
+indigofera arrecta,Bengal indigo,نيلة بنغالية
+cordeauxia edulis,Yeheb nut,جوز اليهب
+dacryodes edulis,African plum,برقوق أفريقي (سافو)
+canarium indicum,Canarium nut,جوز الكناري
+canna indica,Indian shot,كنا هندية
+vangueria infausta,African medlar,زعرور أفريقي
+jatropha curcas,Physic nut,جاتروفا (حب الملوك)
+casuarina glauca,Swamp oak,كازورينا المستنقعات
+chamaedorea tepejilote,Pacaya palm,نخيل الباكايا
+cananga odorata,Ylang-ylang,يلانغ يلانغ
+canna edulis,Achira,أتشيرا (كنا صالحة للأكل)
+canavalia gladiata,Sword bean,فاصوليا السيف
+carthamus tinctorius,Safflower,عصفر (قرطم)
+raphia hookeri,Raffia palm,نخيل الرافيا
+rheum rhaponticum,Rhubarb,راوند (ريباس)
+cannabis sativa,Hemp,قنب
+capsicum frutescens,Tabasco pepper,فلفل تاباسكو
+capsicum baccatum,Aji pepper,فلفل آجي
+senna siamea,Siamese senna,سنا سيامي
+cornus canadensis,Bunchberry,قرانيا كندية
+chamaerops humilis,Dwarf fan palm,نخيل الدوم القزم (شاميروبس)
+casimiroa edulis,White sapote,سابوتا بيضاء
+caryota urens,Fishtail palm,نخيل ذيل السمكة
+caryodendron orinocense,Inchi nut,جوز إنشي
+caryocar nuciferum,Souari nut,جوز السواري
+senna alata,Candle bush,سنا الشمعدان
+ceratonia siliqua,Carob,خروب
+sechium edule,Chayote,شايوت (كوسا مكسيكية)
+hyphaene thebaica,Doum palm,دوم
+silybum marianum,Milk thistle,شوك الجمل (شوك مريم)
+canarium ovatum,Pili nut,جوز البيلي
+capparis spinosa,Caper,كبر (قبار)
+casuarina equisetifolia,Australian pine,كازورينا (شجرة الأثل الأسترالي)
+castanospermum australe,Moreton Bay chestnut,كستناء خليج موريتون
+castilla elastica,Panama rubber tree,شجرة مطاط بنما
+prunus serotina,Black cherry,كرز أسود بري
+carludovica palmata,Panama hat palm,نخلة قبعة بنما
+pyrus communis,Pear,كمثرى (إجاص)
+mentha arvensis,Field mint,نعناع بري (نعناع الحقول)
+linum usitatissimum,Flax,كتان
+malva moschata,Musk mallow,خبيزة مسكية
+malva alcea,Vervain mallow,خبيزة وردية
+marsilea quadrifolia,Water clover,برسيم الماء (مارسيليا)
+oxalis tuberosa,Oca,أوكا (حميض درني)
+physalis peruviana,Cape gooseberry,حرنكش (فيزاليس)
+physalis philadelphica,Tomatillo,طماطم خضراء (توماتيلو)
+echinacea purpurea,Echinacea,إشنسا (القنفذية)
+serenoa repens,Saw palmetto,نخيل المنشار
+urochloa mosambicensis,Sabi grass,عشب سابي
+panicum obtusum,Vine mesquite grass,ثيل المسكيت
+brachychiton populneus,Kurrajong,براكيكيتون (شجرة الزجاجة)
+limnanthes alba,Meadowfoam,زبد المروج (ليمنانثس)
+medicago sativa,Alfalfa,برسيم حجازي (قت)
+medicago polymorpha,Bur clover,نفل شوكي
+mirabilis expansa,Mauka,ماوكا
+nicotiana tabacum,Tobacco,تبغ (دخان)
+panicum maximum,Guinea grass,عشب غينيا
+panicum turgidum,Desert grass,ثمام
+panicum miliaceum,Proso millet,دخن عادي
+pandanus julianettii,Karuka nut,جوز الكاروكا (كادي)
+panicum antidotale,Blue panic grass,ثيل أزرق
+persea americana,Avocado,أفوكادو
+mammea americana,Mammee apple,تفاح الماميه
+mentha piperita,Peppermint,نعناع فلفلي
+melilotus albus,White sweet clover,حندقوق أبيض
+melicoccus bijugatus,Spanish lime,ليمون إسباني (مامونسيو)
+pterocarpus dalbergioides,Andaman padauk,بادوك أندامان
+bambusa tulda,Bengal bamboo,خيزران بنغالي
+baphia nitida,Camwood,خشب الكام
+banksia integrifolia,Coast banksia,بانكسيا ساحلية
+basella alba,Malabar spinach,سبانخ مالابار
+melocanna baccifera,Berry bamboo,خيزران التوت
+thyrsostachys siamensis,Monastery bamboo,خيزران الأديرة
+vigna angularis,Adzuki bean,فاصوليا أدزوكي
+irvingia gabonensis,African bush mango,مانجو أفريقي بري
+ipomoea aquatica,Water spinach,سبانخ مائية
+lathyrus sativus,Grass pea,جلبان
+lepidium meyenii,Maca,ماكا
+pistacia lentiscus,Mastic tree,مستكة (ضرو)
+metroxylon sagu,Sago palm,نخيل الساغو
+pentaclethra macrophylla,African oil bean,فول الزيت الأفريقي
+prosopis tamarugo,Tamarugo,تاماروغو
+elaeis guineensis,African oil palm,نخيل الزيت
+eleocharis dulcis,Chinese water chestnut,كستناء الماء الصينية
+elymus canadensis,Canada wild rye,شيلم بري كندي
+genista tinctoria,Dyer's greenweed,وزال الصباغين
+eleusine coracana,Finger millet,دخن إصبعي (تيلابون)
+eleusine indica,Goosegrass,نجيل هندي
+betula pubescens,Downy birch,بتولا زغبية
+acacia angustissima,Prairie acacia,أكاسيا البراري
+acacia aneura,Mulga,أكاسيا مولغا
+agave sisalana,Sisal,سيزال
+agave cantala,Cantala agave,صبار الأغاف (كانتالا)
+pachyrhizus erosus,Jicama,جيكاما
+emilia sonchifolia,Lilac tassel flower,إيميليا (شرابة القرمز)
+balanites aegyptiaca,Desert date,هجليج (لالوب)
+sonneratia caseolaris,Mangrove apple,تفاح المانجروف
+murraya koenigii,Curry tree,ورق الكاري
+trichanthera gigantea,Trichanthera,تريكانثيرا
+caltha palustris,Marsh marigold,قطيفة المستنقعات
+cocos nucifera,Coconut palm,نخيل جوز الهند
+mesua ferrea,Ceylon ironwood,خشب الحديد السيلاني (ناجكيسار)
+camellia sinensis,Tea plant,شاي
+campanula rapunculus,Rampion,جريسية (شنيبرة)
+cinnamomum camphora,Camphor tree,كافور
+bursera simaruba,Gumbo-limbo,بورسيرا (شجرة الصمغ)
+butomus umbellatus,Flowering rush,أسل مزهر
+lansium domesticum,Langsat,لانغسات
+aesculus indica,Indian horse chestnut,كستناء الحصان الهندي
+sesbania grandiflora,Vegetable hummingbird,سيسبان كبير الأزهار (أغاتي)
+sesbania sesban,Sesban,سيسبان
+simmondsia chinensis,Jojoba,جوجوبا
+theobroma grandiflorum,Cupuacu,كوبواسو
+malpighia glabra,Acerola,أسيرولا (كرز باربادوس)
+calamus caesius,Rattan,روطان (خيزران)
+calathea allouia,Guinea arrowroot,أرارووت غينيا
+quercus semecarpifolia,Brown oak,بلوط بني
+quercus alba,White oak,بلوط أبيض
+quercus bicolor,Swamp white oak,بلوط المستنقعات الأبيض
+quercus ilex,Holm oak,سنديان (بلوط دائم الخضرة)
+quercus lamellosa,Bull oak,بلوط هيمالايا
+quercus lineata,Lined oak,بلوط مخطط
+pyrus pyrifolia,Asian pear,كمثرى آسيوية (ناشي)
+quercus robur,English oak,بلوط إنجليزي
+pueraria phaseoloides,Tropical kudzu,كودزو استوائي
+andrographis paniculata,Green chiretta,أندروغرافيس (ملك المرارة)
+cymbopogon citratus,Lemongrass,عشبة الليمون
+ananas comosus,Pineapple,أناناس
+indigofera tinctoria,Indigo,نيلة
+areca catechu,Areca palm,نخيل الفوفل (التنبول)
+arenga pinnata,Sugar palm,نخيل السكر
+prunus mume,Japanese apricot,مشمش ياباني
+quercus chrysolepis,Canyon live oak,بلوط الوادي
+quercus suber,Cork oak,بلوط الفلين
+cedrela odorata,Spanish cedar,أرز إسباني (سيدريلا)
+toona ciliata,Red cedar,أرز أحمر (تونا)
+ricinus communis,Castor bean,خروع
+trema orientalis,Charcoal tree,شجرة الفحم (تريما)
+nepeta cataria,Catnip,نعناع القطط
+euterpe oleracea,Acai palm,نخيل الأساي
+pterocarpus erinaceus,African rosewood,ورد الخشب الأفريقي
+pterocarpus indicus,Amboyna,بادوك هندي (أمبوينا)
+quercus agrifolia,Coast live oak,بلوط ساحلي
+pontederia cordata,Pickerelweed,بونتيديريا
+quercus virginiana,Southern live oak,بلوط فرجينيا
+eucalyptus tereticornis,Forest red gum,كافور أحمر
+eucalyptus viminalis,Manna gum,كافور المن
+eugenia uniflora,Surinam cherry,كرز سورينام (بيتانغا)
+santalum spicatum,Australian sandalwood,صندل أسترالي
+eugenia brasiliensis,Grumichama,غروميشاما (كرز برازيلي)
+syzygium cumini,Java plum,جامبولان (برقوق جاوة)
+euterpe edulis,Jucara palm,نخيل الجوسارا
+eragrostis tef,Teff,تيف (حب الحبشة)
+eragrostis curvula,Weeping lovegrass,عشب الحب الباكي
+eragrostis pilosa,Soft lovegrass,عشب الحب الناعم
+glyceria fluitans,Floating sweet grass,عشب المن العائم
+glycyrrhiza glabra,Licorice,عرق السوس
+glycine max,Soybean,فول الصويا
+glycyrrhiza lepidota,American licorice,عرق السوس الأمريكي
+gossypium herbaceum,Levant cotton,قطن عشبي
+gossypium barbadense,Egyptian cotton,قطن مصري
+gossypium hirsutum,Upland cotton,قطن أمريكي
+gossypium arboreum,Tree cotton,قطن شجري
+cinnamomum verum,Cinnamon,قرفة
+cinchona pubescens,Quinine tree,شجرة الكينا
+cinchona officinalis,Loja bark,كينا طبية
+cinchona calisaya,Yellow cinchona,كينا صفراء
+phyllanthus emblica,Indian gooseberry,أملج (عنب الثعلب الهندي)
+citrus paradisi,Grapefruit,جريب فروت
+fortunella japonica,Round kumquat,كمكوات مستدير
+vanilla planifolia,Vanilla,فانيليا
+ensete ventricosum,Ethiopian banana,موز حبشي (إنسيت)
+stevia rebaudiana,Stevia,ستيفيا
+euonymus japonicus,Japanese spindle,شجرة المغزل اليابانية
+flemingia macrophylla,Flemingia,فليمنجيا
+palaquium gutta,Gutta-percha tree,شجرة الكوتابركا
+asclepias incarnata,Swamp milkweed,صقلاب المستنقعات
+arracacia xanthorrhiza,Arracacha,أراكاتشا (جزر أبيض بيروفي)
+bactris gasipaes,Peach palm,نخيل الخوخ (بيخيباي)
+baikiaea plurijuga,Zambezi teak,ساج زامبيزي
+antidesma bunius,Bignay,بيغناي
+brassica carinata,Ethiopian mustard,خردل حبشي
+brassica nigra,Black mustard,خردل أسود
+brassica napus,Rapeseed,لفت الزيت (كانولا)
+bambusa bambos,Giant thorny bamboo,خيزران شوكي عملاق
+bambusa vulgaris,Common bamboo,خيزران عادي (بامبو)
+bambusa polymorpha,Burmese bamboo,خيزران بورمي
+dendrocalamus asper,Giant bamboo,خيزران عملاق
+dendrocalamus strictus,Male bamboo,خيزران كالكوتا
+bambusa nutans,Nodding bamboo,خيزران مائل
+dendrocalamus hamiltonii,Tama bamboo,خيزران تاما
+ricinodendron heudelotii,Njangsa,جوز النجانسا
+vitellaria paradoxa,Shea tree,شجرة الشيا (الكريتي)
+tylosema esculentum,Marama bean,فول المراما
+vigna radiata,Mung bean,ماش
+vigna mungo,Black gram,ماش أسود (أورد)
+avena nuda,Naked oat,شوفان عاري
+apios americana,American groundnut,بطاطا الفول الأمريكية (أبيوس)
+chamaemelum nobile,Roman chamomile,بابونج روماني
+aponogeton distachyos,Water hawthorn,زعرور الماء
+arachis glabrata,Perennial peanut,فول سوداني معمر
+artocarpus camansi,Breadnut,جوز الخبز
+artocarpus integer,Cempedak,شمبيداك
+bambusa blumeana,Spiny bamboo,خيزران شوكي
+cassia fistula,Golden shower tree,خيار شنبر
+bertholletia excelsa,Brazil nut,جوز البرازيل
+dendrocalamus giganteus,Dragon bamboo,خيزران التنين العملاق
+bauhinia variegata,Orchid tree,خف الجمل (بوهينيا)
+ribes hirtellum,American gooseberry,عنب الثعلب الأمريكي
+moringa oleifera,Moringa,مورينجا (شجرة اليسر)
+gmelina arborea,Gmelina,جميلينا
+grevillea robusta,Silky oak,جريفيليا (البلوط الحريري)
+azadirachta indica,Neem,نيم
+apocynum cannabinum,Indian hemp dogbane,قنب هندي أمريكي (أبوسينوم)
+saccharum officinarum,Sugarcane,قصب السكر
+pinus ayacahuite,Mexican white pine,صنوبر مكسيكي أبيض
+pinus caribaea,Caribbean pine,صنوبر الكاريبي
+parkinsonia aculeata,Jerusalem thorn,شوك القدس (باركنسونيا)
+setaria italica,Foxtail millet,دخن ذيل الثعلب
+sanguisorba minor,Salad burnet,زوبعة صغيرة (عشبة السلطة)
+populus deltoides,Eastern cottonwood,حور قطني
+populus simonii,Simon poplar,حور سيمون
+lathyrus ochrus,Cyprus vetch,جلبان قبرصي
+lepidium sativum,Garden cress,رشاد (حب الرشاد)
+lespedeza cuneata,Chinese lespedeza,ليسبيديزا صينية
+lolium perenne,Perennial ryegrass,زوان معمر
+lemna minor,Duckweed,عدس الماء
+ocimum tenuiflorum,Holy basil,ريحان مقدس (تولسي)
+guizotia abyssinica,Niger seed,نيجر (نوك)
+gunnera tinctoria,Chilean rhubarb,راوند تشيلي (غونيرا)
+shorea robusta,Sal tree,شجرة السال
+juglans hindsii,Northern California black walnut,جوز كاليفورنيا الأسود
+manihot esculenta,Cassava,كسافا (منيهوت)
+oenocarpus bataua,Pataua palm,نخيل الباتاوا
+parkia biglobosa,African locust bean,فول الخروب الأفريقي (نيري)
+phaseolus lunatus,Lima bean,فاصوليا ليما
+phoenix reclinata,Senegal date palm,نخيل سنغالي
+phalaris canariensis,Canary grass,حب الكناري (فلارس)
+livistona australis,Cabbage palm,نخيل الملفوف (ليفيستونا)
+maranta arundinacea,Arrowroot,أرارووت
+mauritia flexuosa,Moriche palm,نخيل البوريتي
+spondias mombin,Yellow mombin,برقوق أصفر (مومبين)
+medicago lupulina,Black medick,نفل أسود (حندقوق)
+mimosa pudica,Sensitive plant,ميموزا حساسة (المستحية)
+actinidia chinensis,Kiwi,كيوي
+acorus calamus,Sweet flag,وج (عود الوج)
+aegle marmelos,Bael,سفرجل هندي (بيل)
+acacia cowleana,Halls Creek wattle,أكاسيا هولز كريك
+acacia auriculiformis,Earleaf acacia,أكاسيا الأذن
+acacia catechu,Cutch tree,سنط الكاتشو
+acacia coriacea,Wiry wattle,أكاسيا جلدية
+albizia lebbeck,Siris tree,لبخ (ألبيزيا)
+acacia victoriae,Bramble wattle,أكاسيا فيكتوريا
+acanthosicyos horridus,Nara melon,بطيخ نارا
+triticum turgidum,Durum wheat,قمح قاسي (دوروم)
+salix babylonica,Weeping willow,صفصاف بابلي
+triplochiton scleroxylon,Obeche,أوبيتشي (أيوس)
+brosimum alicastrum,Maya nut,جوز المايا
+alisma plantago-aquatica,Water plantain,لسان الماء (أليسما)
+borojoa patinoi,Borojo,بوروخو
+samolus valerandi,Brookweed,عشبة الجداول
+solanum juzepczukii,Bitter potato,بطاطس مرة (روكي)
+tilia cordata,Small-leaved lime,زيزفون صغير الأوراق
+zizania latifolia,Manchurian wild rice,أرز بري منشوري
+zostera marina,Eelgrass,عشب البحر (زوستيرا)
+tripsacum dactyloides,Eastern gamagrass,عشب الغاما
+trifolium repens,White clover,برسيم أبيض (نفل أبيض)
+boehmeria nivea,Ramie,رامي
+bombax ceiba,Red silk cotton tree,شجرة القطن الحريري الأحمر
+borassus aethiopum,African fan palm,نخيل المروحة الأفريقي (دليب)
+borassus flabellifer,Palmyra palm,نخيل البالميرا
+atriplex confertifolia,Shadscale,قطف شوكي
+atriplex halimus,Mediterranean saltbush,قطف ملحي
+atriplex hortensis,Garden orache,قطف (سرمق)
+atriplex nummularia,Old man saltbush,قطف أسترالي
+atriplex lentiformis,Quail bush,قطف السمان
+attalea funifera,Bahia piassava palm,نخيل البياسافا
+asclepias speciosa,Showy milkweed,صقلاب جميل
+symphyotrichum cordifolium,Blue wood aster,نجمية زرقاء
+astragalus sinicus,Chinese milk vetch,قتاد صيني
+astrocaryum vulgare,Tucuma palm,نخيل التوكوما
+astrebla squarrosa,Bull Mitchell grass,عشب ميتشل
+corchorus capsularis,Jute,جوت (ملوخية الجوت)
+citrofortunella microcarpa,Calamansi,كالامانسي
+calotropis procera,Sodom apple,عشار (عُشر)
+argania spinosa,Argan tree,أركان
+cajanus cajan,Pigeon pea,بازلاء الحمام
+dichrostachys cinerea,Sickle bush,ديكروستاكس (شجرة الشوك المزهر)
+chrysophyllum cainito,Star apple,تفاح النجمة (كاييميتو)
+annona muricata,Soursop,جوانابانا (القشطة الشائكة)
+annona squamosa,Sugar apple,قشطة (تفاح السكر)
+annona cherimola,Cherimoya,شيريمويا
+annona atemoya,Atemoya,أتيمويا
+zingiber officinale,Ginger,زنجبيل
+amorphophallus paeoniifolius,Elephant foot yam,يام قدم الفيل
+ammophila arenaria,Marram grass,عشب الكثبان (مارام)
+catharanthus roseus,Madagascar periwinkle,عناقية (ونكة مدغشقر)
+angelica archangelica,Angelica,حشيشة الملاك
+angelica atropurpurea,Purplestem angelica,حشيشة الملاك الأرجوانية
+blighia sapida,Ackee,أكي
+amelanchier pallida,Pale serviceberry,توت الخدمة الشاحب
+afzelia africana,African mahogany,ماهوجني أفريقي (أفزيليا)
+sesbania bispinosa,Prickly sesban,سيسبان شوكي
+enterolobium cyclocarpum,Guanacaste tree,شجرة الأذن (غواناكاستي)
+archidendron jiringa,Jengkol,جنكول
+pennisetum purpureum,Napier grass,عشب الفيل (نابير)
+ceiba pentandra,Kapok tree,شجرة الكابوك (السيبة)
+bixa orellana,Annatto,أناتو (شجرة أحمر الشفاه)
+bidens pilosa,Spanish needles,ثنائية الأسنان (إبر إسبانية)
+passiflora laurifolia,Water lemon,ليمون الماء (باشن فروت أصفر)
+guazuma ulmifolia,West Indian elm,دردار الهند الغربية
+asclepias lanceolata,Fewflower milkweed,صقلاب قليل الأزهار
+bromus carinatus,California brome,شوفان بري كاليفورني
+bromus marginatus,Mountain brome,شوفان بري جبلي
+broussonetia papyrifera,Paper mulberry,توت الورق
+artocarpus heterophyllus,Jackfruit,جاك فروت (الكاكايا)
+avena byzantina,Red oat,شوفان أحمر
+avena sativa,Oats,شوفان
+averrhoa carambola,Star fruit,فاكهة النجمة (كارامبولا)
+benincasa hispida,Wax gourd,قرع شمعي
+avena sterilis,Sterile oat,شوفان عقيم (خافور)
+beckmannia eruciformis,Slough grass,عشب المستنقعات
+lotus corniculatus,Bird's-foot trefoil,قرن الغزال
+lotus halophilus,Greater bird's-foot trefoil,قرن الغزال الملحي
+lotus edulis,Edible lotus,قرن الغزال الصالح للأكل
+girardinia diversifolia,Himalayan nettle,قراص الهيمالايا
+lathyrus cicera,Chickling vetch,جلبان أحمر
+thymus serpyllum,Wild thyme,زعتر بري
+vateria indica,White dammar,دمار أبيض
+tetragonia tetragonioides,New Zealand spinach,سبانخ نيوزيلندية
+dioscorea trifida,Cush-cush yam,يام كوش كوش
+erythrina edulis,Andean tree bean,فاصوليا الإنديز الشجرية (بالو)
+milicia excelsa,Iroko,إيروكو (ساج أفريقي)
+cyperus rotundus,Nut grass,سعد (حب العزيز البري)
+cyperus longus,Galingale,سعد طويل
+cyphomandra betacea,Tamarillo,طماطم شجرية (تاماريلو)
+coronilla varia,Crown vetch,تاجية متغيرة
+prosopis africana,African mesquite,غاف أفريقي
+dipteryx odorata,Tonka bean,حبة التونكا
+coula edulis,African walnut,جوز أفريقي
+cyamopsis tetragonoloba,Guar,غوار (فول العنقود)
+erythrina poeppigiana,Mountain immortelle,إريثرينا جبلية
+chlorogalum pomeridianum,Soap plant,نبات الصابون
+crambe maritima,Sea kale,كرنب البحر
+crambe abyssinica,Abyssinian crambe,كرامبي حبشي
+crambe cordifolia,Greater sea kale,كرنب البحر الكبير
+erythroxylum coca,Coca,كوكا
+sclerocarya birrea,Marula,مارولا
+cnicus benedictus,Blessed thistle,شوك مبارك
+sauropus androgynus,Katuk,كاتوك (الورقة الحلوة)
+nypa fruticans,Nipa palm,نخيل النيبا
+schleichera oleosa,Ceylon oak,شجرة الكسوم (لاك)
+luffa aegyptiaca,Loofah,لوف (ليفة)
+lablab purpureus,Hyacinth bean,لوبيا عفن (لبلاب)
+pinus strobus,Eastern white pine,صنوبر أبيض شرقي
+syzygium aromaticum,Clove,قرنفل
+castanea dentata,American chestnut,كستناء أمريكي
+castanea pumila,Chinquapin,كستناء قزم
+castanea crenata,Japanese chestnut,كستناء ياباني
+cynara cardunculus,Artichoke,خرشوف (أرضي شوكي)
+diospyros mespiliformis,African ebony,أبنوس أفريقي (الجغان)
+duboisia myoporoides,Corkwood,دوبويسيا (خشب الفلين)
+hordeum vulgare,Barley,شعير
+macadamia ternifolia,Gympie nut,ماكاديميا صغيرة
+hordeum bulbosum,Bulbous barley,شعير بصلي
+garcinia mangostana,Mangosteen,مانجوستين
+hibiscus sabdariffa,Roselle,كركديه
+hibiscus cannabinus,Kenaf,تيل (كناف)
+hibiscus mutabilis,Cotton rose,وردة القطن (ختمية متغيرة)
+hymenaea courbaril,West Indian locust,جاتوبا (خروب الهند الغربية)
+fraxinus excelsior,European ash,دردار أوروبي (مران)
+lupinus mutabilis,Andean lupin,ترمس الإنديز
+lupinus angustifolius,Blue lupin,ترمس أزرق
+lupinus luteus,Yellow lupin,ترمس أصفر
+lupinus hirsutus,Hairy lupin,ترمس مشعر
+monstera deliciosa,Monstera,مونستيرا (فاكهة السلطة)
+khaya senegalensis,Senegal mahogany,ماهوجني سنغالي (خايا)
+rumex crispus,Curly dock,حماض مجعد
+imperata cylindrica,Cogongrass,حلفا (إمبيراتا)
+fagus grandifolia,American beech,زان أمريكي
+fagopyrum tataricum,Tartary buckwheat,حنطة سوداء تترية
+fortunella margarita,Oval kumquat,كمكوات بيضاوي
+sorghum halepense,Johnson grass,سفرندي (حشيشة حلب)
+garcinia xanthochymus,Gamboge,غامبوج (جارسينيا صفراء)
+humulus lupulus,Hops,حشيشة الدينار
+macadamia integrifolia,Macadamia,ماكاديميا
+dioscorea bulbifera,Air potato,يام هوائي (بطاطا الهواء)
+dioscorea alata,Water yam,يام مائي
+dioscorea esculenta,Lesser yam,يام صغير
+eichhornia crassipes,Water hyacinth,ياسنت الماء (ورد النيل)
+warburgia salutaris,Pepperbark tree,شجرة لحاء الفلفل
+sorbus domestica,Service tree,غبيراء (سوربوس)
+cordia alliodora,Ecuador laurel,غار الإكوادور (كورديا)
+chenopodium ambrosioides,Epazote,إيبازوتي (زربيح)
+chenopodium album,Lamb's quarters,زربيح أبيض (رجل الإوزة)
+chenopodium pallidicaule,Canihua,كانيوا
+gliricidia sepium,Gliricidia,غليريسيديا
+inga edulis,Ice cream bean,فول الآيس كريم (إنغا)
+inga vera,River koko,إنغا النهر
+telfairia pedata,Oyster nut,جوز المحار
+festuca ovina,Sheep's fescue,قبا الغنم (فستوكا)
+levisticum officinale,Lovage,كرفس الجبل (ليفيستيكوم)
+eucalyptus gummifera,Red bloodwood,كافور خشب الدم
+eucalyptus largiflorens,Black box,كافور الصندوق الأسود
+cola acuminata,Kola nut,جوز الكولا
+colophospermum mopane,Mopane,موبان
+corylus colurna,Turkish hazel,بندق تركي
+nasturtium officinale,Watercress,جرجير الماء (قرة العين)
+pouteria campechiana,Canistel,كانيستل (فاكهة البيض)
+lupinus tauris,Tauri lupin,ترمس تاوري
+morinda citrifolia,Noni,نوني
+lactuca indica,Indian lettuce,خس هندي
+corylus maxima,Filbert,بندق كبير (فلبرت)
+litchi chinensis,Lychee,ليتشي
+dimocarpus longan,Longan,لونجان (عين التنين)
+durio zibethinus,Durian,دوريان
+macadamia tetraphylla,Rough-shell macadamia,ماكاديميا خشنة القشرة
+larix decidua,European larch,أرزية أوروبية (لاركس)
+myrsine africana,Cape myrtle,آس الكيب
+cydonia oblonga,Quince,سفرجل
+dodonaea viscosa,Hopbush,شث (دودونيا)
+eucalyptus camaldulensis,River red gum,كافور (كينا)
+eucalyptus citriodora,Lemon-scented gum,كافور ليموني
+eucalyptus dumosa,White mallee,كافور المالي
+lagenaria siceraria,Bottle gourd,قرع العسلي (يقطين القناني)
+lamium album,White dead-nettle,قراص أبيض ميت
+poa fendleriana,Mutton grass,عشب الضأن
+muntingia calabura,Jamaica cherry,كرز جامايكا (كالابورا)
+opuntia ficus-indica,Prickly pear,تين شوكي (صبار)
+passiflora ligularis,Sweet granadilla,غرانادية حلوة
+cola nitida,Kola nut,جوز الكولا
+clitoria ternatea,Butterfly pea,بازلاء الفراشة
+couma utilis,Sorva,سورفا
+diospyros digyna,Black sapote,سابوتا سوداء (شوكولاتة الفاكهة)
+onobrychis viciifolia,Sainfoin,عرف الديك (سانفوان)
+peltandra sagittifolia,White arrow arum,لوف سهمي أبيض
+peltandra virginica,Green arrow arum,لوف سهمي أخضر
+pinus elliottii,Slash pine,صنوبر إليوت
+pinus gerardiana,Chilgoza pine,صنوبر شلغوزة
+nelumbo nucifera,Sacred lotus,لوتس (نيلوفر هندي)
+fragaria virginiana,Virginia strawberry,فراولة فرجينيا
+fragaria vesca,Wild strawberry,فراولة برية
+hippophae salicifolia,Willow-leaved sea buckthorn,نبق البحر الصفصافي
+hevea brasiliensis,Rubber tree,شجرة المطاط
+vicia monantha,Hard vetch,بيقية أحادية الزهرة
+moringa stenopetala,African moringa,مورينجا أفريقية
+pachyrhizus ahipa,Ahipa,أهيبا
+sphenostylis stenocarpa,African yam bean,فاصوليا اليام الأفريقية
+thaumatococcus daniellii,Katemfe,كاتيمفي (نبات الصلاة الحلو)
+echinochloa crus-galli,Barnyard millet,دنيبة (أبو ركبة)
+echinochloa frumentacea,Japanese millet,دخن ياباني
+echinochloa colona,Jungle rice,أرز الغابة (دنيبة)
+eucalyptus punctata,Grey gum,كافور رمادي
+ficus elastica,Rubber plant,تين مطاطي
+eriobotrya japonica,Loquat,أكي دنيا (بشملة)
+fragaria chiloensis,Beach strawberry,فراولة تشيلية
+hierochloe odorata,Sweetgrass,عشب الفانيليا
+thespesia populneoides,Portia tree,شجرة البورتيا
+terminalia bellirica,Beleric myrobalan,إهليلج بليلج
+pycnanthus angolensis,African nutmeg,جوزة الطيب الأفريقية
+octomeles sumatrana,Binuang,بينوانغ
+vicia ervilia,Bitter vetch,كرسنة
+vicia narbonensis,Narbon vetch,بيقية ناربونية
+tropaeolum tuberosum,Mashua,ماشوا
+stachys affinis,Chinese artichoke,خرشوف صيني (ستاكيس)
+vaccinium myrtillus,Bilberry,عنبية (توت العليق الأزرق)
+ribes sativum,Redcurrant,كشمش أحمر
+schinus molle,Peruvian pepper tree,فلفل كاذب (شينس)
+secale cereale,Rye,شيلم (جاودار)
+rungia klossii,Mushroom plant,نبات الفطر (رونجيا)
+typha latifolia,Broadleaf cattail,بردي عريض الأوراق (حلفاء)
+typha domingensis,Southern cattail,بردي جنوبي (ديس)
+psophocarpus tetragonolobus,Winged bean,فاصوليا مجنحة
+psidium cattleianum,Strawberry guava,جوافة الفراولة
+rhodiola rosea,Roseroot,روديولا (الجذر الذهبي)
+salacca zalacca,Snake fruit,فاكهة الأفعى (سالاك)
+prosopis alba,White mesquite,غاف أبيض
+prunus salicina,Japanese plum,برقوق ياباني
+prosopis glandulosa,Honey mesquite,غاف العسل
+podocarpus elatus,Illawarra plum,برقوق إيلاوارا
+oryza sativa,Rice,أرز
+oenanthe javanica,Water dropwort,كرفس الماء الصيني
+pennisetum glaucum,Pearl millet,دخن لؤلؤي
+pinus sylvestris,Scots pine,صنوبر اسكتلندي
+pinus roxburghii,Chir pine,صنوبر شير
+pistacia vera,Pistachio,فستق حلبي
+musanga cecropioides,African corkwood,خشب الفلين الأفريقي (موسانغا)
+origanum onites,Pot marjoram,بردقوش تركي (زعتر إزمير)
+perilla frutescens,Perilla (shiso),بيريلا (شيسو)
+paulownia tomentosa,Princess tree,باولونيا
+terminalia arjuna,Arjuna,أرجونا
+paullinia cupana,Guarana,غوارانا
+pinus pinaster,Maritime pine,صنوبر بحري
+piper nigrum,Black pepper,فلفل أسود
+poa pratensis,Kentucky bluegrass,عشب كنتاكي الأزرق
+vaccinium constablaei,Hillside blueberry,توت أزرق جبلي
+vaccinium brittonii,Lowbush blueberry,توت أزرق قصير
+sporobolus airoides,Alkali sacaton,عشب الملح القلوي
+taraxacum officinale,Dandelion,هندباء برية (طرخشقون)
+tarchonanthus camphoratus,Camphor bush,شجيرة الكافور (المكرة)
+sesamum indicum,Sesame,سمسم
+spondias purpurea,Red mombin,برقوق أحمر (مومبين)
+passiflora quadrangularis,Giant granadilla,غرانادية عملاقة
+nephelium lappaceum,Rambutan,رامبوتان
+musa acuminata,Dwarf banana,موز قزم
+musa balbisiana,Plantain,موز الطبخ (بلانتين)
+typha angustifolia,Narrowleaf cattail,بردي ضيق الأوراق
+schinziophyton rautanenii,Mongongo nut,جوز المونغونغو
+sagittaria sagittifolia,Arrowhead,سهمية (رجل السهم)
+scirpus lacustris,Bulrush,سمار البحيرات
+valeriana officinalis,Valerian,ناردين (حشيشة الهر)
+ullucus tuberosus,Ulluco,أولوكو
+uapaca kirkiana,Wild loquat,أكي دنيا بري (أوباكا)
+tamarindus indica,Tamarind,تمر هندي
+tamarix aphylla,Athel tamarisk,أثل
+vaccinium angustifolium,Wild blueberry,توت أزرق بري
+vitex doniana,Black plum,برقوق أسود أفريقي (فيتكس)
+vitex keniensis,Meru oak,بلوط ميرو (فيتكس كيني)
+vitis rotundifolia,Muscadine grape,عنب المسكادين
+vitis labrusca,Fox grape,عنب الثعلب الأمريكي (لابروسكا)
+vicia sativa,Common vetch,بيقية
+vicia villosa,Hairy vetch,بيقية مشعرة
+rumex obtusifolius,Broad-leaved dock,حماض عريض الأوراق
+abies balsamea,Balsam fir,شوح بلسمي
+abies amabilis,Pacific silver fir,شوح فضي
+abelmoschus manihot,Aibika,أيبيكا (بامية ورقية)
+abelmoschus moschatus,Musk okra,بامية مسكية (عنبر الشجرة)
+leucaena leucocephala,Leucaena,لوسينا
+pithecellobium dulce,Manila tamarind,تمر هندي مانيلا
+samanea saman,Rain tree,شجرة المطر
+prosopis pallida,Kiawe,غاف شاحب (كياوي)
+prosopis chilensis,Chilean mesquite,غاف تشيلي
+manilkara zapota,Sapodilla,سابوديلا (شيكو)
+abutilon theophrasti,Velvetleaf,أبوتيلون (جوت صيني)
+faidherbia albida,Winter thorn,حراز (أكاسيا بيضاء)
+pouteria sapota,Mamey sapote,سابوتا ماميه
+elettaria cardamomum,Cardamom,هيل (حبهان)
+coccoloba uvifera,Sea grape,عنب البحر

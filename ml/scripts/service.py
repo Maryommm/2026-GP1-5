@@ -20,7 +20,8 @@ Request fields:
     offset        how many crops to skip, for paging (default 0)
 
 Response fields:
-    month, location (centre of the ~11 km area), soil_ph,
+    month, location (centre of the ~11 km area),
+    climate (this month's average temp_high_c, temp_low_c and rain_mm), soil_ph,
     total (number of crops that can be grown), total_now,
     offset, results (list of crops, see scoring.Recommendation.to_dict)
 """
@@ -157,9 +158,15 @@ def recommend_crops(data, cache, model_dir: Path | None = None) -> dict:
                                 preferences=scoring.Preferences(groups=groups),
                                 table=table, config=config)
 
+    this_month = profile.monthly[month - 1]
     return {
         "month": month,
         "location": {"latitude": profile.latitude, "longitude": profile.longitude},
+        "climate": {
+            "temp_high_c": round(this_month.temp_high_c, 1),
+            "temp_low_c": round(this_month.temp_low_c, 1),
+            "rain_mm": round(this_month.rain_mm, 1),
+        },
         "soil_ph": profile.soil_ph,
         "total": len(results),
         "total_now": sum(1 for r in results if r.status == "now"),

@@ -17,6 +17,9 @@ dependencies:
   google_fonts: ">=6.2.1 <9.0.0"
   cloud_firestore: ^6.10.0
   camera: ^0.12.1
+  http: ^1.6.0
+  geolocator: ^14.1.1
+  geocoding: ^5.0.0
 
 dev_dependencies:
   flutter_test:

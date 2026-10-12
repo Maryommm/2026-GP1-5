@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../models/crop_recommendation.dart' show MatchBand, ModelNote;
+
 class AppStrings {
   AppStrings._();
 
@@ -82,17 +84,84 @@ class AppStrings {
     'homeFriend': 'friend',
     'logOut': 'Log Out',
     'cropTitle': 'Crops picked\nfor you',
-    'cropAccent': 'based on your weather today',
+    'cropAccent': "based on your area's climate this month",
     'cropLoading1': 'Finding where you are…',
-    'cropLoading2': 'Checking today\'s weather…',
+    'cropLoading2': "Checking your area's climate…",
     'cropLoading3': 'Picking your perfect crops…',
-    'cropHumidity': 'humidity',
-    'cropTempRange': 'Temperature',
-    'cropIrrigation': 'Watering',
-    'cropSeason': 'Season',
+    'cropYourArea': 'Your area',
+    'cropTempRange': 'Best temperature',
+    'cropWaterNeed': 'Water need',
+    'cropBestTime': 'Best time to plant',
     'cropHarvest': 'Harvest in',
+    'cropGrowsTo': 'Grows to',
     'cropDays': 'days',
+    'cropMeters': 'm',
+    'cropAllYear': 'All year',
+    'cropPlantNow': 'Plant now',
+    'cropPlantIn': 'Plant in {month}',
+    'cropYouEat': 'You eat',
+    'cropBand_excellent': 'Great match',
+    'cropBand_good': 'Good match',
+    'cropBand_fair': 'Fair match',
+    'cropWater_low': 'Low',
+    'cropWater_medium': 'Medium',
+    'cropWater_high': 'High',
+    'cropNoCrops': 'No crops suit your area this month. Check again next month',
     'cropError': "We couldn't get your recommendations. Please try again",
+    'cropErrorSignIn': 'Please log in again to see your recommendations',
+    'cropErrorClimate':
+        "We couldn't reach the climate service. Please try again later",
+    'month1': 'Jan',
+    'month2': 'Feb',
+    'month3': 'Mar',
+    'month4': 'Apr',
+    'month5': 'May',
+    'month6': 'Jun',
+    'month7': 'Jul',
+    'month8': 'Aug',
+    'month9': 'Sep',
+    'month10': 'Oct',
+    'month11': 'Nov',
+    'month12': 'Dec',
+    'listJoin': ', ',
+    'part_seed': 'seeds',
+    'part_leaves': 'leaves',
+    'part_fruit': 'fruit',
+    'part_flowers': 'flowers',
+    'part_root': 'roots',
+    'part_shoots': 'shoots',
+    'part_seedpod': 'pods',
+    'part_stem': 'stems',
+    'part_inner bark': 'inner bark',
+    'part_sap': 'sap',
+    'part_milk': 'milky sap',
+    'part_apical bud': 'buds',
+    'part_pollen': 'pollen',
+    'part_nectar': 'nectar',
+    // Reasons and warnings from the model (codes in ml/scripts/scoring.py).
+    'note_temp_ok': 'Your weather suits it all season',
+    'note_rain_ok': 'Rain in your area covers its needs',
+    'note_ph_ok': 'Your soil suits it',
+    'note_light_ok': 'Happy with your sunlight',
+    'note_water_ok': 'Its water needs fit your routine',
+    'note_plant_next_month': 'Best planted next month, in {month}',
+    'note_plant_later': 'Best planted in {month}',
+    'note_needs_shade':
+        'Shade it in {months}: use shade cloth or move the pot inside',
+    'note_needs_cover':
+        'Cover it on cold nights in {months}, or bring the pot inside',
+    'note_too_cool': 'Grows slower in {months}, when it is cooler',
+    'note_too_hot': 'Give it afternoon shade in {months}',
+    'note_too_wet': 'Too much rain here: use raised beds or pots that drain',
+    'note_too_dry': 'Your area is dry, so water it regularly',
+    'note_needs_watering': 'Water it between rains',
+    'note_needs_acidic_soil':
+        'Needs acidic soil: grow it in a pot with potting mix',
+    'note_prefers_more_acidic': 'Likes slightly more acidic soil than yours',
+    'note_needs_alkaline_soil': 'Needs more alkaline soil than yours',
+    'note_prefers_more_alkaline': 'Likes slightly more alkaline soil than yours',
+    'note_light_mismatch': 'Prefers a different amount of sun than you have',
+    'note_soil_texture_mismatch': 'Your soil type is not ideal for it',
     'cropPrev': 'Previous crop',
     'cropNext': 'Next crop',
     'cropSwipeHint': 'Swipe sideways for other crop types',
@@ -335,17 +404,80 @@ class AppStrings {
     'homeFriend': 'يا صديقي',
     'logOut': 'تسجيل الخروج',
     'cropTitle': 'محاصيل\nاخترناها لك',
-    'cropAccent': 'حسب طقسك اليوم',
+    'cropAccent': 'حسب مناخ منطقتك هذا الشهر',
     'cropLoading1': 'نحدد موقعك…',
-    'cropLoading2': 'نشيّك على طقس اليوم…',
+    'cropLoading2': 'نشيّك على مناخ منطقتك…',
     'cropLoading3': 'نختار لك أنسب المحاصيل…',
-    'cropHumidity': 'رطوبة',
-    'cropTempRange': 'درجة الحرارة',
-    'cropIrrigation': 'الري',
-    'cropSeason': 'الموسم',
+    'cropYourArea': 'منطقتك',
+    'cropTempRange': 'أفضل حرارة',
+    'cropWaterNeed': 'حاجته للماء',
+    'cropBestTime': 'أفضل وقت للزراعة',
     'cropHarvest': 'الحصاد بعد',
+    'cropGrowsTo': 'يكبر حتى',
     'cropDays': 'يوم',
+    'cropMeters': 'م',
+    'cropAllYear': 'طوال السنة',
+    'cropPlantNow': 'ازرعه الآن',
+    'cropPlantIn': 'ازرعه في {month}',
+    'cropYouEat': 'يؤكل منه',
+    'cropBand_excellent': 'مناسب جدًا',
+    'cropBand_good': 'مناسب',
+    'cropBand_fair': 'مناسب نوعًا ما',
+    'cropWater_low': 'قليلة',
+    'cropWater_medium': 'متوسطة',
+    'cropWater_high': 'عالية',
+    'cropNoCrops': 'ما فيه محاصيل تناسب منطقتك هذا الشهر. شيّك الشهر الجاي',
     'cropError': 'تعذّر جلب الاقتراحات. حاول مرة أخرى',
+    'cropErrorSignIn': 'سجّل دخولك مرة ثانية عشان تشوف الاقتراحات',
+    'cropErrorClimate': 'تعذّر الوصول لبيانات المناخ. حاول مرة ثانية بعدين',
+    'month1': 'يناير',
+    'month2': 'فبراير',
+    'month3': 'مارس',
+    'month4': 'أبريل',
+    'month5': 'مايو',
+    'month6': 'يونيو',
+    'month7': 'يوليو',
+    'month8': 'أغسطس',
+    'month9': 'سبتمبر',
+    'month10': 'أكتوبر',
+    'month11': 'نوفمبر',
+    'month12': 'ديسمبر',
+    'listJoin': '، ',
+    'part_seed': 'البذور',
+    'part_leaves': 'الأوراق',
+    'part_fruit': 'الثمار',
+    'part_flowers': 'الأزهار',
+    'part_root': 'الجذور',
+    'part_shoots': 'البراعم',
+    'part_seedpod': 'القرون',
+    'part_stem': 'السيقان',
+    'part_inner bark': 'اللحاء الداخلي',
+    'part_sap': 'العصارة',
+    'part_milk': 'العصارة اللبنية',
+    'part_apical bud': 'البراعم الطرفية',
+    'part_pollen': 'حبوب اللقاح',
+    'part_nectar': 'الرحيق',
+    'note_temp_ok': 'جوّك يناسبه طول الموسم',
+    'note_rain_ok': 'أمطار منطقتك تكفيه',
+    'note_ph_ok': 'تربتك تناسبه',
+    'note_light_ok': 'يرتاح مع كمية الشمس عندك',
+    'note_water_ok': 'احتياجه للماء يناسبك',
+    'note_plant_next_month': 'الأفضل تزرعه الشهر الجاي، في {month}',
+    'note_plant_later': 'الأفضل تزرعه في {month}',
+    'note_needs_shade': 'ظلّله في {months} بقماش تظليل أو دخّل الأصيص',
+    'note_needs_cover': 'غطّه في الليالي الباردة في {months} أو دخّل الأصيص',
+    'note_too_cool': 'ينمو أبطأ في {months} لأن الجو أبرد',
+    'note_too_hot': 'وفّر له ظل العصر في {months}',
+    'note_too_wet':
+        'المطر عندك كثير عليه، ازرعه في حوض مرتفع أو أصيص يصرّف الماء',
+    'note_too_dry': 'منطقتك جافة، اسقه بانتظام',
+    'note_needs_watering': 'اسقه بين الأمطار',
+    'note_needs_acidic_soil': 'يحتاج تربة حمضية، ازرعه في أصيص بتربة زراعية',
+    'note_prefers_more_acidic': 'يفضّل تربة أحمض شوي من تربتك',
+    'note_needs_alkaline_soil': 'يحتاج تربة قلوية أكثر من تربتك',
+    'note_prefers_more_alkaline': 'يفضّل تربة قلوية أكثر شوي من تربتك',
+    'note_light_mismatch': 'يفضّل كمية شمس غير اللي عندك',
+    'note_soil_texture_mismatch': 'نوع تربتك مو مثالي له',
     'cropPrev': 'المحصول السابق',
     'cropNext': 'المحصول التالي',
     'cropSwipeHint': 'اسحب يمين ويسار لباقي الأنواع',
@@ -597,13 +729,76 @@ class S {
     t('cropLoading2'),
     t('cropLoading3'),
   ];
-  String get cropHumidity => t('cropHumidity');
+  String get cropYourArea => t('cropYourArea');
   String get cropTempRange => t('cropTempRange');
-  String get cropIrrigation => t('cropIrrigation');
-  String get cropSeason => t('cropSeason');
+  String get cropWaterNeed => t('cropWaterNeed');
+  String get cropBestTime => t('cropBestTime');
   String get cropHarvest => t('cropHarvest');
+  String get cropGrowsTo => t('cropGrowsTo');
   String get cropDays => t('cropDays');
+  String get cropMeters => t('cropMeters');
+  String get cropPlantNow => t('cropPlantNow');
+  String cropPlantIn(int month) =>
+      t('cropPlantIn').replaceAll('{month}', monthName(month));
+  String get cropYouEat => t('cropYouEat');
+  String get cropNoCrops => t('cropNoCrops');
   String get cropError => t('cropError');
+  String get cropErrorSignIn => t('cropErrorSignIn');
+  String get cropErrorClimate => t('cropErrorClimate');
+
+  /// Month 1-12 by name, e.g. "Oct" / "أكتوبر".
+  String monthName(int month) => t('month$month');
+
+  /// Months as ranges, e.g. [10, 11, 12, 1, 2] -> "Oct–Feb"; a full year
+  /// gives "All year". The year wraps, so Dec and Jan count as next to each
+  /// other.
+  String monthRanges(List<int> months) {
+    final set = months.where((m) => m >= 1 && m <= 12).toSet();
+    if (set.length == 12) return t('cropAllYear');
+    if (set.isEmpty) return '';
+    // Start each run at a month whose previous month is not in the set.
+    final runs = <String>[];
+    for (var m = 1; m <= 12; m++) {
+      final previous = m == 1 ? 12 : m - 1;
+      if (!set.contains(m) || set.contains(previous)) continue;
+      var end = m;
+      while (set.contains(end % 12 + 1)) {
+        end = end % 12 + 1;
+      }
+      runs.add(end == m ? monthName(m) : '${monthName(m)}–${monthName(end)}');
+    }
+    return runs.join(t('listJoin'));
+  }
+
+  String cropBand(MatchBand band) => t('cropBand_${band.name}');
+
+  /// Water need such as ["low", "medium"] -> "Low–Medium".
+  String cropWater(List<String> levels) {
+    final known = [
+      for (final level in const ['low', 'medium', 'high'])
+        if (levels.contains(level)) t('cropWater_$level'),
+    ];
+    if (known.isEmpty) return '';
+    return known.length == 1 ? known.first : '${known.first}–${known.last}';
+  }
+
+  /// Edible parts such as ["leaves", "seed"] -> "leaves, seeds".
+  String cropParts(List<String> parts) => [
+        for (final p in parts)
+          if (_map.containsKey('part_$p')) t('part_$p'),
+      ].join(t('listJoin'));
+
+  /// The sentence for a reason or warning from the model. A code the app
+  /// doesn't know yet falls back to the model's English text.
+  String cropNote(ModelNote note) {
+    final key = 'note_${note.code}';
+    if (!_map.containsKey(key)) return note.text;
+    final month = note.month;
+    return t(key)
+        .replaceAll('{month}', month == null ? '' : monthName(month))
+        .replaceAll('{months}', monthRanges(note.months));
+  }
+
   String get cropPrev => t('cropPrev');
   String get cropNext => t('cropNext');
   String get cropSwipeHint => t('cropSwipeHint');

@@ -14,7 +14,11 @@ import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 
 class CropRecommendationScreen extends StatefulWidget {
-  const CropRecommendationScreen({super.key});
+  const CropRecommendationScreen({super.key, this.load});
+
+  /// Loads the recommendations; the real API when null. Previews pass
+  /// sample data here.
+  final Future<CropRecommendationResult> Function()? load;
 
   @override
   State<CropRecommendationScreen> createState() =>
@@ -22,10 +26,10 @@ class CropRecommendationScreen extends StatefulWidget {
 }
 
 class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
-  final _service = CropRecommendationService();
-  late Future<CropRecommendationResult> _future = _service.recommend();
+  late final _load = widget.load ?? CropRecommendationService().recommend;
+  late Future<CropRecommendationResult> _future = _load();
 
-  void _retry() => setState(() => _future = _service.recommend());
+  void _retry() => setState(() => _future = _load());
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +42,9 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
             if (snap.connectionState != ConnectionState.done) {
               child = const _LoadingView();
             } else if (snap.hasError || snap.data == null) {
-              child = _ErrorView(onRetry: _retry);
+              child = _ErrorView(error: snap.error, onRetry: _retry);
+            } else if (snap.data!.crops.isEmpty) {
+              child = _ErrorView(onRetry: _retry, empty: true);
             } else {
               child = _ResultsView(result: snap.data!);
             }
@@ -152,12 +158,31 @@ class _LoadingViewState extends State<_LoadingView> {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.onRetry});
+  const _ErrorView({required this.onRetry, this.error, this.empty = false});
   final VoidCallback onRetry;
+  final Object? error;
+
+  /// The request worked but no crop suits the area this month.
+  final bool empty;
+
+  String _message(S s) {
+    if (empty) return s.cropNoCrops;
+    final e = error;
+    if (e is CropRecommendationException) {
+      switch (e.status) {
+        case 'UNAUTHENTICATED':
+          return s.cropErrorSignIn;
+        case 'UNAVAILABLE':
+          return s.cropErrorClimate;
+      }
+    }
+    return s.cropError;
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+    if (error != null) debugPrint('crop recommendations failed: $error');
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,7 +203,7 @@ class _ErrorView extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    s.cropError,
+                    _message(s),
                     textAlign: TextAlign.center,
                     style: AppText.body(context),
                   ),
@@ -198,16 +223,13 @@ class _ErrorView extends StatelessWidget {
 // Results: one seed packet per crop. Sideways = category, up/down = crop.
 // ---------------------------------------------------------------------------
 
-/// The weather character that matches today's sky (same art as Home).
-String _weatherCharacter(GrowingConditions c) =>
-    switch (c.sky.en.toLowerCase()) {
-      'sunny' => 'ethmar_sunny_day_character',
-      'cloudy' => 'ethmar_cloudy_day_character',
-      'rainy' => 'ethmar_rainy_day_character',
-      'windy' => 'ethmar_windy_day_character',
-      'cold' => 'ethmar_cold_day_character',
-      _ => 'ethmar_buddy_watering',
-    };
+/// The weather character for this month's climate (same art as Home).
+String _weatherCharacter(GrowingConditions c) {
+  if (c.rainMm > 50) return 'ethmar_rainy_day_character';
+  if (c.tempLow <= 8) return 'ethmar_cold_day_character';
+  if (c.tempHigh >= 30) return 'ethmar_sunny_day_character';
+  return 'ethmar_cloudy_day_character';
+}
 
 /// The crops of one category, in the order the recommendation gave them.
 class _CategoryGroup {
@@ -740,7 +762,8 @@ class _CompactHeader extends StatelessWidget {
   }
 }
 
-/// Today's conditions on one quiet turquoise strip.
+/// The area and this month's average temperatures on one quiet turquoise
+/// strip.
 class _ConditionsStrip extends StatelessWidget {
   const _ConditionsStrip({required this.conditions});
   final GrowingConditions conditions;
@@ -749,6 +772,9 @@ class _ConditionsStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final c = conditions;
+    // Isolate keeps "21–35°C" in reading order inside Arabic text.
+    final temps = '${String.fromCharCode(0x2066)}${c.tempLow}–${c.tempHigh}°C'
+        '${String.fromCharCode(0x2069)}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: const BoxDecoration(
@@ -761,12 +787,8 @@ class _ConditionsStrip extends StatelessWidget {
         children: [
           _Condition(icon: Icons.place_rounded, text: c.city.of(context)),
           _Condition(
-            icon: Icons.wb_sunny_rounded,
-            text: '${c.temperature}°C · ${c.sky.of(context)}',
-          ),
-          _Condition(
-            icon: Icons.water_drop_rounded,
-            text: '${c.humidity}% ${s.cropHumidity}',
+            icon: Icons.thermostat_rounded,
+            text: '${s.monthName(c.month)} · $temps',
           ),
         ],
       ),
@@ -890,7 +912,9 @@ class _PacketFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final cat = crop.category;
+    final reason = crop.reason;
     return ColoredBox(
       color: cat.tint,
       child: Stack(
@@ -922,22 +946,46 @@ class _PacketFace extends StatelessWidget {
           Padding(
             padding: const EdgeInsetsDirectional.fromSTEB(
               22,
-              _PacketClipper.crimp + 64,
+              _PacketClipper.crimp + 22,
               22,
               18,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _Badge(
+                      icon: crop.plantNow
+                          ? Icons.eco_rounded
+                          : Icons.event_rounded,
+                      text: crop.plantNow
+                          ? s.cropPlantNow
+                          : s.cropPlantIn(crop.plantMonth),
+                      color: crop.plantNow ? cat.dark : AppColors.textSecondary,
+                      background: AppColors.surface,
+                    ),
+                    _Badge(
+                      text: s.cropBand(crop.band),
+                      color: cat.dark,
+                      background: cat.color.withValues(alpha: 0.18),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 Text(
                   crop.name.of(context),
                   style: AppText.display(context).copyWith(fontSize: 32),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  crop.reason.of(context),
-                  style: AppText.accent(context, color: cat.dark, size: 18),
-                ),
+                if (reason != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    s.cropNote(reason),
+                    style: AppText.accent(context, color: cat.dark, size: 18),
+                  ),
+                ],
               ],
             ),
           ),
@@ -957,54 +1005,177 @@ class _Fact {
   final bool ltr;
 }
 
-/// The four care facts in two columns, like the back of a seed packet.
+/// The care facts in two columns, like the back of a seed packet, then the
+/// care tip and what you eat. Facts the data doesn't have are left out.
 class _CareFacts extends StatelessWidget {
   const _CareFacts({required this.crop});
   final CropRecommendation crop;
+
+  /// "40–100 days", or one number when both ends are the same.
+  static String _range(int min, int max) => min == max ? '$min' : '$min–$max';
+
+  static String _meters(double m) =>
+      m >= 10 ? m.round().toString() : m.toStringAsFixed(1).replaceAll('.0', '');
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
     final cat = crop.category;
+    final minTemp = crop.minTemp, maxTemp = crop.maxTemp;
+    final water = s.cropWater(crop.waterNeed);
+    final bestTime = s.monthRanges(crop.bestMonths);
+    final harvest = crop.harvestDays;
+    final height = crop.heightM;
+    final parts = s.cropParts(crop.edibleParts);
+    final tip = crop.tip;
+
     final facts = [
-      _Fact(
-        Icons.thermostat_rounded,
-        s.cropTempRange,
-        '${crop.minTemp}–${crop.maxTemp}°C',
-        ltr: true,
-      ),
-      _Fact(
-        Icons.water_drop_rounded,
-        s.cropIrrigation,
-        crop.irrigation.of(context),
-      ),
-      _Fact(
-        Icons.calendar_month_rounded,
-        s.cropSeason,
-        crop.season.of(context),
-      ),
-      _Fact(
-        Icons.agriculture_rounded,
-        s.cropHarvest,
-        '${crop.daysToHarvest} ${s.cropDays}',
-      ),
+      if (minTemp != null && maxTemp != null)
+        _Fact(
+          Icons.thermostat_rounded,
+          s.cropTempRange,
+          '${_range(minTemp, maxTemp)}°C',
+          ltr: true,
+        ),
+      if (water.isNotEmpty)
+        _Fact(Icons.water_drop_rounded, s.cropWaterNeed, water),
+      if (bestTime.isNotEmpty)
+        _Fact(Icons.calendar_month_rounded, s.cropBestTime, bestTime),
+      // A tree's growing cycle is its fruiting season, not the time until
+      // its first harvest, so trees show their size instead.
+      if (harvest != null && crop.category != CropCategory.fruit)
+        _Fact(
+          Icons.agriculture_rounded,
+          s.cropHarvest,
+          '${_range(harvest.min, harvest.max)} ${s.cropDays}',
+        )
+      else if (height != null && height > 0)
+        _Fact(
+          Icons.height_rounded,
+          s.cropGrowsTo,
+          '${_meters(height)} ${s.cropMeters}',
+        ),
     ];
+
     // Plain rows (not LayoutBuilder): the packet measures its intrinsic
     // height, which LayoutBuilder can't report.
-    Widget pair(_Fact a, _Fact b) => Row(
+    Widget pair(_Fact a, _Fact? b) => Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: _FactTile(fact: a, category: cat)),
             const SizedBox(width: 14),
-            Expanded(child: _FactTile(fact: b, category: cat)),
+            Expanded(
+              child: b == null
+                  ? const SizedBox.shrink()
+                  : _FactTile(fact: b, category: cat),
+            ),
           ],
         );
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        pair(facts[0], facts[1]),
-        const SizedBox(height: 16),
-        pair(facts[2], facts[3]),
+        for (var i = 0; i < facts.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: 16),
+          pair(facts[i], i + 1 < facts.length ? facts[i + 1] : null),
+        ],
+        if (tip != null) ...[
+          const SizedBox(height: 16),
+          _NoteLine(
+            icon: Icons.lightbulb_rounded,
+            text: s.cropNote(tip),
+            color: AppColors.warning,
+            background: AppColors.warningTint,
+          ),
+        ],
+        if (parts.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _NoteLine(
+            icon: Icons.restaurant_rounded,
+            text: '${s.cropYouEat}: $parts',
+            color: cat.dark,
+            background: cat.tint,
+          ),
+        ],
       ],
+    );
+  }
+}
+
+/// A small pill on the packet face, e.g. "Plant now" or "Great match".
+class _Badge extends StatelessWidget {
+  const _Badge({
+    required this.text,
+    required this.color,
+    required this.background,
+    this.icon,
+  });
+  final String text;
+  final Color color;
+  final Color background;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = this.icon;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            text,
+            style: AppText.small(context, color: color)
+                .copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One line of advice under the care facts.
+class _NoteLine extends StatelessWidget {
+  const _NoteLine({
+    required this.icon,
+    required this.text,
+    required this.color,
+    required this.background,
+  });
+  final IconData icon;
+  final String text;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: AppText.small(context, color: AppColors.forest)
+                  .copyWith(fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

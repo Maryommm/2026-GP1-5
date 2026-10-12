@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Crop recommendations: call the API and read the user's area.
+         Coarse location is enough, the server rounds it to ~11 km. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="ethmar"
         android:name="${applicationName}"

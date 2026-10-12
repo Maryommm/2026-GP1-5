@@ -190,6 +190,13 @@ def check_common_crops(df: pd.DataFrame, record) -> None:
     else:
         record(PASS, "arabic names", f"{len(flagged)} common crops named")
 
+    # The app shows every recommended crop in Arabic too (crop_names.csv).
+    unnamed = int(df["name_ar"].isna().sum())
+    if unnamed:
+        record(WARN, "arabic names (all)", f"{unnamed} crops have no Arabic name")
+    else:
+        record(PASS, "arabic names (all)", f"all {len(df)} crops named")
+
 
 def check_tolerance_profile(df: pd.DataFrame, record) -> None:
     """How many crops can stand a hot, dry, alkaline climate such as Riyadh."""

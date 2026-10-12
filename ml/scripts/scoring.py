@@ -650,6 +650,7 @@ def crop_details(row) -> dict:
                                          ("medium", "water_moist"),
                                          ("high", "water_wet"))
              if _number(row, column) == 1]
+    parts = _text(row, "edible_parts_raw") or ""
     return {
         "temp_optimal_c": [_number(row, "ecocrop_temp_opt_min_c"),
                            _number(row, "ecocrop_temp_opt_max_c")],
@@ -661,6 +662,13 @@ def crop_details(row) -> dict:
         "water_need": water,                          # e.g. ["low", "medium"]
         "life_cycle": _text(row, "ecocrop_lifespan") or _text(row, "life_cycle_raw"),
         "height_m": _number(row, "height_m"),
+        # Days from planting to harvest (ECOCROP growing cycle). 0 in the
+        # data means "unknown". For trees this is the fruiting season, not
+        # the years until the first harvest.
+        "harvest_days": [_number(row, "ecocrop_gmin") or None,
+                         _number(row, "ecocrop_gmax") or None],
+        # Lower case, e.g. ["fruit", "leaves"], so the app can translate them.
+        "edible_parts": [p.strip() for p in parts.split(",") if p.strip()],
     }
 
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/crop_recommendation_screen.dart';
+import 'services/crop_recommendation_service.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -16,6 +17,8 @@ void main() {
       GlobalWidgetsLocalizations.delegate,
       GlobalCupertinoLocalizations.delegate,
     ],
-    home: const CropRecommendationScreen(),
+    home: CropRecommendationScreen(
+      load: () async => CropRecommendationService.sample,
+    ),
   ));
 }
