@@ -65,7 +65,7 @@ DEFAULT_CONFIG = {
     # marks as grown in home gardens, and all other crops.
     "popularity": {"common": 1.0, "home_garden": 0.7, "other": 0.4},
     "season": {
-        "default_annual_days": 120,  # growing days when the data has none
+        "default_annual_days": 120,  # growing days when the data has none (see season_length)
         "best_month_ratio": 0.85,    # a "best" month scores at least 85% of the top month
         "best_month_floor": 0.6,
         "plant_now_months": 2,       # 2 = "now" means this month or next month
@@ -291,6 +291,14 @@ def season_length(row, config: dict) -> int:
     """
     Number of months from planting to the first harvest (1 to 12).
     It uses the shortest growing cycle in ECOCROP (ecocrop_gmin, in days).
+
+    About 1 in 8 seasonal crops (47 of 370) have no growing cycle in the
+    data, mostly wild and water plants, and watermelon among the common
+    crops. For these we use config["season"]["default_annual_days"] = 120.
+    This value comes from the data itself: the seasonal crops that do have
+    a growing cycle (323 crops) take 121 days on average (median 100,
+    middle half 70-150). Both 100 and 120 days round up to the same
+    4 months, so the choice between them does not change any result.
     """
     if stays_in_ground(row):
         return 12
