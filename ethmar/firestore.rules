@@ -38,6 +38,27 @@ service cloud.firestore {
           data.email == request.auth.token.email;
     }
 
+    function validProfileImage(uid, data) {
+      return data.keys().hasAll(
+              ['publicId', 'version', 'format', 'width', 'height', 'bytes', 'updatedAt']) &&
+          data.keys().hasOnly(
+              ['publicId', 'version', 'format', 'width', 'height', 'bytes', 'updatedAt']) &&
+          data.publicId == 'ethmar/profile-images/' + uid + '/profile' &&
+          data.version is int &&
+          data.version > 0 &&
+          data.format == 'webp' &&
+          data.width is int &&
+          data.width > 0 &&
+          data.width <= 4096 &&
+          data.height is int &&
+          data.height > 0 &&
+          data.height <= 4096 &&
+          data.bytes is int &&
+          data.bytes > 0 &&
+          data.bytes <= 5 * 1024 * 1024 &&
+          data.updatedAt == request.time;
+    }
+
     match /users/{uid} {
       allow read: if ownsProfile(uid) && hasVerifiedEmail();
 
@@ -67,6 +88,18 @@ service cloud.firestore {
           );
 
       allow delete: if false;
+
+      match /media/{mediaId} {
+        allow get: if mediaId == 'profile' && ownsProfile(uid);
+        allow list: if false;
+
+        allow create, update: if mediaId == 'profile' &&
+            ownsProfile(uid) &&
+            exists(/databases/$(database)/documents/users/$(uid)) &&
+            validProfileImage(uid, request.resource.data);
+
+        allow delete: if mediaId == 'profile' && ownsProfile(uid);
+      }
     }
 
     match /usernames/{normalizedUsername} {

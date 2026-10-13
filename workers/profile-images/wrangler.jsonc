@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ethmar-profile-images",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-12",
+  "keep_vars": true,
+  "vars": {
+    "CLOUDINARY_CLOUD_NAME": "k7otdsln",
+    "FIREBASE_PROJECT_ID": "ethmar-95aaf"
+  },
+  "ratelimits": [
+    {
+      "name": "PROFILE_IMAGE_RATE_LIMITER",
+      "namespace_id": "9500501",
+      "simple": {
+        "limit": 6,
+        "period": 60
+      }
+    }
+  ]
+}

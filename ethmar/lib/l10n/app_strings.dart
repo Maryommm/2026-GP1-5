@@ -190,6 +190,21 @@ class AppStrings {
     'editProfileAccent': 'keep it fresh',
     'takePhoto': 'Take Photo',
     'chooseFromGallery': 'Choose from Gallery',
+    'deletePhoto': 'Delete Photo',
+    'profilePhotoUploaded': 'Profile photo uploaded.',
+    'profilePhotoDeleted': 'Profile photo deleted.',
+    'errProfilePhotoAuth': 'Your session expired. Sign in again and retry.',
+    'errProfilePhotoVerification':
+        'Verify your email before changing your photo.',
+    'errProfilePhotoType': 'Choose a valid JPEG or PNG image.',
+    'errProfilePhotoSize': 'The image must be 5 MB or smaller.',
+    'errProfilePhotoRateLimit':
+        'Too many photo requests. Wait a minute and retry.',
+    'errProfilePhotoServer':
+        'The image service is unavailable. Try again later.',
+    'errProfilePhotoSave':
+        'The photo changed, but your profile could not be updated. Try again.',
+    'errProfilePhotoPick': "We couldn't open that image. Try another one.",
     'save': 'Save',
     'cancel': 'Cancel',
     'profileUpdated': 'Profile updated successfully.',
@@ -506,6 +521,19 @@ class AppStrings {
     'editProfileAccent': 'خلّه دايم جديد',
     'takePhoto': 'التقط صورة',
     'chooseFromGallery': 'اختر من المعرض',
+    'deletePhoto': 'حذف الصورة',
+    'profilePhotoUploaded': 'تم رفع صورة الملف الشخصي.',
+    'profilePhotoDeleted': 'تم حذف صورة الملف الشخصي.',
+    'errProfilePhotoAuth': 'انتهت جلستك. سجّل الدخول مجددًا ثم حاول مرة أخرى.',
+    'errProfilePhotoVerification': 'تحقق من بريدك قبل تغيير صورتك.',
+    'errProfilePhotoType': 'اختر صورة JPEG أو PNG صالحة.',
+    'errProfilePhotoSize': 'يجب ألا يتجاوز حجم الصورة 5 ميجابايت.',
+    'errProfilePhotoRateLimit':
+        'طلبات صور كثيرة. انتظر دقيقة ثم حاول مرة أخرى.',
+    'errProfilePhotoServer': 'خدمة الصور غير متاحة حاليًا. حاول لاحقًا.',
+    'errProfilePhotoSave':
+        'تغيّرت الصورة، لكن تعذّر تحديث ملفك. حاول مرة أخرى.',
+    'errProfilePhotoPick': 'تعذّر فتح هذه الصورة. اختر صورة أخرى.',
     'save': 'حفظ',
     'cancel': 'إلغاء',
     'profileUpdated': 'تم تحديث الملف الشخصي بنجاح.',
@@ -827,6 +855,17 @@ class S {
   String get editProfileAccent => t('editProfileAccent');
   String get takePhoto => t('takePhoto');
   String get chooseFromGallery => t('chooseFromGallery');
+  String get deletePhoto => t('deletePhoto');
+  String get profilePhotoUploaded => t('profilePhotoUploaded');
+  String get profilePhotoDeleted => t('profilePhotoDeleted');
+  String get errProfilePhotoAuth => t('errProfilePhotoAuth');
+  String get errProfilePhotoVerification => t('errProfilePhotoVerification');
+  String get errProfilePhotoType => t('errProfilePhotoType');
+  String get errProfilePhotoSize => t('errProfilePhotoSize');
+  String get errProfilePhotoRateLimit => t('errProfilePhotoRateLimit');
+  String get errProfilePhotoServer => t('errProfilePhotoServer');
+  String get errProfilePhotoSave => t('errProfilePhotoSave');
+  String get errProfilePhotoPick => t('errProfilePhotoPick');
   String get save => t('save');
   String get cancel => t('cancel');
   String get profileUpdated => t('profileUpdated');

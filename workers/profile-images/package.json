@@ -1,0 +1,22 @@
+{
+  "name": "ethmar-profile-images",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm test",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "jose": "6.2.12"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.0",
+    "typescript": "7.0.2",
+    "vitest": "^4.1.11",
+    "wrangler": "4.149.0"
+  }
+}

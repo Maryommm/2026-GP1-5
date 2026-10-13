@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../l10n/app_strings.dart';
+import '../services/profile_image_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -24,19 +28,42 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _form = GlobalKey<FormState>();
   final _userService = UserService();
+  final _profileImageService = ProfileImageService();
+  final _imagePicker = ImagePicker();
   late final _username = TextEditingController(text: widget.username);
+  StreamSubscription<UploadedProfileImage?>? _profileImageSubscription;
+  UploadedProfileImage? _uploadedProfileImage;
   bool _saving = false;
+  bool _photoBusy = false;
 
   bool get _hasChanges => _username.text.trim() != widget.username;
 
   @override
+  void initState() {
+    super.initState();
+    _profileImageSubscription = _profileImageService
+        .watchCurrentProfileImage()
+        .listen(
+          (image) {
+            if (mounted) setState(() => _uploadedProfileImage = image);
+          },
+          onError: (Object _, StackTrace __) {
+            // Keep the initial fallback if Firestore is temporarily unavailable.
+            if (mounted) setState(() => _uploadedProfileImage = null);
+          },
+        );
+  }
+
+  @override
   void dispose() {
+    _profileImageSubscription?.cancel();
+    _profileImageService.close();
     _username.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    if (_saving) return;
+    if (_saving || _photoBusy) return;
     FocusScope.of(context).unfocus();
     if (!(_form.currentState?.validate() ?? false)) return;
 
@@ -77,9 +104,74 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     showEthmarToast(context, message, icon: Icons.error_outline_rounded);
   }
 
+  Future<void> _chooseAndUploadPhoto(ImageSource source) async {
+    if (_saving || _photoBusy) return;
+    setState(() => _photoBusy = true);
+    try {
+      final image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 4096,
+        maxHeight: 4096,
+        requestFullMetadata: false,
+      );
+      if (image == null) return;
+
+      final uploaded = await _profileImageService.upload(image);
+      if (!mounted) return;
+      setState(() => _uploadedProfileImage = uploaded);
+      showEthmarToast(context, S.of(context).profilePhotoUploaded);
+    } on ProfileImageException catch (error) {
+      if (!mounted) return;
+      _showError(_profilePhotoError(S.of(context), error));
+    } catch (_) {
+      if (!mounted) return;
+      _showError(S.of(context).errProfilePhotoPick);
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
+  }
+
+  Future<void> _deletePhoto() async {
+    if (_uploadedProfileImage == null || _saving || _photoBusy) {
+      return;
+    }
+    setState(() => _photoBusy = true);
+    try {
+      await _profileImageService.delete();
+      if (!mounted) return;
+      setState(() => _uploadedProfileImage = null);
+      showEthmarToast(context, S.of(context).profilePhotoDeleted);
+    } on ProfileImageException catch (error) {
+      if (!mounted) return;
+      _showError(_profilePhotoError(S.of(context), error));
+    } catch (_) {
+      if (!mounted) return;
+      _showError(S.of(context).errProfilePhotoServer);
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
+  }
+
+  String _profilePhotoError(S s, ProfileImageException error) {
+    final message = switch (error.code) {
+      ProfileImageErrorCode.unauthenticated ||
+      ProfileImageErrorCode.unauthorized => s.errProfilePhotoAuth,
+      ProfileImageErrorCode.emailNotVerified => s.errProfilePhotoVerification,
+      ProfileImageErrorCode.unsupportedImage => s.errProfilePhotoType,
+      ProfileImageErrorCode.imageTooLarge => s.errProfilePhotoSize,
+      ProfileImageErrorCode.network => s.errNetwork,
+      ProfileImageErrorCode.rateLimited => s.errProfilePhotoRateLimit,
+      ProfileImageErrorCode.metadata => s.errProfilePhotoSave,
+      ProfileImageErrorCode.server ||
+      ProfileImageErrorCode.invalidResponse => s.errProfilePhotoServer,
+    };
+    final diagnostic = error.safeDiagnostic;
+    return diagnostic == null ? message : '$message\n[$diagnostic]';
+  }
+
   /// Cancel, the back arrow and the system back all come here.
   Future<void> _leave() async {
-    if (_saving) return;
+    if (_saving || _photoBusy) return;
     if (!_hasChanges) {
       Navigator.of(context).pop();
       return;
@@ -156,30 +248,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       key: _form,
                       child: Column(
                         children: [
-                          _PhotoArea(username: widget.username),
+                          _PhotoArea(
+                            username: widget.username,
+                            imageUrl: _uploadedProfileImage?.secureUrl,
+                            loading: _photoBusy,
+                            onTakePhoto: () =>
+                                _chooseAndUploadPhoto(ImageSource.camera),
+                            onChooseFromGallery: () =>
+                                _chooseAndUploadPhoto(ImageSource.gallery),
+                            onDelete: _uploadedProfileImage != null
+                                ? _deletePhoto
+                                : null,
+                          ),
                           const SizedBox(height: 28),
                           EthmarTextField(
                             label: s.username,
                             hint: s.usernameHint,
-                            enabled: !_saving,
+                            enabled: !_saving && !_photoBusy,
                             controller: _username,
                             forceLtr: true,
                             keyboardType: TextInputType.text,
                             textInputAction: TextInputAction.done,
                             validator: (v) => Validators.username(v, s),
-                            onSubmitted: _saving ? null : (_) => _save(),
+                            onSubmitted: _saving || _photoBusy
+                                ? null
+                                : (_) => _save(),
                           ),
                           const SizedBox(height: 28),
                           EthmarButton(
                             label: s.save,
                             loading: _saving,
-                            onPressed: _saving ? null : _save,
+                            onPressed: _saving || _photoBusy ? null : _save,
                           ),
                           const SizedBox(height: 12),
                           EthmarButton(
                             label: s.cancel,
                             outlined: true,
-                            onPressed: _saving ? null : _leave,
+                            onPressed: _saving || _photoBusy ? null : _leave,
                           ),
                         ],
                       ),
@@ -196,24 +301,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Profile photo area: avatar with a camera badge, and the Take Photo /
-// Choose from Gallery pills. Placeholders for now: tapping does nothing.
-//
-// TODO(profile-photo): connect these placeholders to real camera
-//   (Take Photo) and gallery (Choose from Gallery) picking,
-//   e.g. the image_picker package.
-// TODO(profile-photo): upload the picked image to Firebase Storage
-//   (e.g. users/{uid}/profile.jpg).
-// TODO(profile-photo): save the image reference (URL/path) in the user
-//   document — needs a new field + Firestore rules + UserService
-//   validation update (the profile currently allows exactly 4 fields).
-// TODO(profile-photo): replace or remove the old stored image when the
-//   user picks a new one or removes it.
+// Profile photo controls. Metadata lives in users/{uid}/media/profile, so the
+// four-field users/{uid} profile remains unchanged.
 // ---------------------------------------------------------------------------
 
 class _PhotoArea extends StatelessWidget {
-  const _PhotoArea({required this.username});
+  const _PhotoArea({
+    required this.username,
+    required this.imageUrl,
+    required this.loading,
+    required this.onTakePhoto,
+    required this.onChooseFromGallery,
+    required this.onDelete,
+  });
+
   final String username;
+  final String? imageUrl;
+  final bool loading;
+  final VoidCallback onTakePhoto;
+  final VoidCallback? onChooseFromGallery;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +330,22 @@ class _PhotoArea extends StatelessWidget {
         Stack(
           clipBehavior: Clip.none,
           children: [
-            UserAvatar(username: username, size: 96),
+            UserAvatar(username: username, size: 96, imageUrl: imageUrl),
+            if (loading)
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Color(0x66000000),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.surface,
+                      strokeWidth: 3,
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               right: 0,
               bottom: 0,
@@ -234,7 +356,7 @@ class _PhotoArea extends StatelessWidget {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
-                  onTap: () {},
+                  onTap: loading ? null : onTakePhoto,
                   child: const Padding(
                     padding: EdgeInsets.all(8),
                     child: Icon(
@@ -254,11 +376,22 @@ class _PhotoArea extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _PhotoPill(icon: Icons.photo_camera_outlined, label: s.takePhoto),
+            _PhotoPill(
+              icon: Icons.photo_camera_outlined,
+              label: s.takePhoto,
+              onTap: loading ? null : onTakePhoto,
+            ),
             _PhotoPill(
               icon: Icons.photo_library_outlined,
               label: s.chooseFromGallery,
+              onTap: loading ? null : onChooseFromGallery,
             ),
+            if (onDelete != null)
+              _PhotoPill(
+                icon: Icons.delete_outline_rounded,
+                label: s.deletePhoto,
+                onTap: loading ? null : onDelete,
+              ),
           ],
         ),
       ],
@@ -268,9 +401,11 @@ class _PhotoArea extends StatelessWidget {
 
 /// Small tinted pill, the same colours as the outlined [EthmarButton].
 class _PhotoPill extends StatelessWidget {
-  const _PhotoPill({required this.icon, required this.label});
+  const _PhotoPill({required this.icon, required this.label, this.onTap});
+
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -279,7 +414,7 @@ class _PhotoPill extends StatelessWidget {
       shape: const StadiumBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {},
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Row(
