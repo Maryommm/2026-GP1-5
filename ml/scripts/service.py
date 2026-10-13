@@ -3,10 +3,9 @@ Ethmar - request handling for the recommendation API.
 
 This module checks a request from the mobile app, runs the climate lookup
 and the recommendation model, and builds the response. It does not depend on
-any hosting platform, so the same code is used by:
-
-    api/index.py         the server on Vercel (used now)
-    functions/main.py    a Firebase Cloud Function (if the Blaze plan is enabled)
+any hosting platform. It is used by api/index.py (the server on Vercel), and
+could be called the same way from another host, such as a Firebase Cloud
+Function, without changes.
 
 Request fields:
     latitude      number, required
