@@ -138,7 +138,7 @@ class AppStrings {
     'part_apical bud': 'buds',
     'part_pollen': 'pollen',
     'part_nectar': 'nectar',
-    // Reasons and warnings from the model (codes in ml/scripts/scoring.py).
+    // Reasons and warnings from the model (codes in recommender/scripts/scoring.py).
     'note_temp_ok': 'Your weather suits it all season',
     'note_rain_ok': 'Rain in your area covers its needs',
     'note_ph_ok': 'Your soil suits it',

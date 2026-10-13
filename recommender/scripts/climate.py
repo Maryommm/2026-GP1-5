@@ -20,8 +20,8 @@ data is fetched for the centre of that area. This has two benefits:
 Climate averages change very slowly, so each result is reused for 30 days.
 
 Usage:
-    python ml/scripts/climate.py                # Riyadh
-    python ml/scripts/climate.py 29.37 47.98    # any latitude and longitude
+    python recommender/scripts/climate.py                # Riyadh
+    python recommender/scripts/climate.py 29.37 47.98    # any latitude and longitude
 """
 
 from __future__ import annotations

@@ -144,7 +144,7 @@ class CropRecommendation {
     this.tip,
   });
 
-  /// One item of the API's `results` list (see ml/scripts/scoring.py).
+  /// One item of the API's `results` list (see recommender/scripts/scoring.py).
   factory CropRecommendation.fromJson(Map<String, dynamic> json) {
     final details = (json['details'] as Map?)?.cast<String, dynamic>() ?? {};
     final optimal = _numbers(details['temp_optimal_c']);

@@ -25,7 +25,7 @@ The raw file is never changed. Run the script again after any change to the
 rules and both tables are built again from the beginning.
 
 Usage:
-    python ml/scripts/clean_dataset.py
+    python recommender/scripts/clean_dataset.py
 """
 
 from __future__ import annotations
@@ -45,8 +45,8 @@ RAW_PATH = ROOT / "data" / "raw" / "ethmar_master_dataset.csv"
 PROCESSED_DIR = ROOT / "data" / "processed"
 RECOMMENDABLE_PATH = PROCESSED_DIR / "ethmar_recommendable.csv"
 REFERENCE_PATH = PROCESSED_DIR / "ethmar_reference.csv"
-COMMON_CROPS_PATH = ROOT / "ml" / "knowledge" / "common_crops.csv"
-CROP_NAMES_PATH = ROOT / "ml" / "knowledge" / "crop_names.csv"
+COMMON_CROPS_PATH = ROOT / "recommender" / "knowledge" / "common_crops.csv"
+CROP_NAMES_PATH = ROOT / "recommender" / "knowledge" / "crop_names.csv"
 
 # --------------------------------------------------------------------------- #
 # Column groups
@@ -592,7 +592,7 @@ def add_crop_groups(df: pd.DataFrame) -> pd.DataFrame:
     Add four columns: crop_group, is_common, name_ar and home_garden.
 
     Every crop gets its English and Arabic display names from
-    ml/knowledge/crop_names.csv. For the crops in ml/knowledge/common_crops.csv,
+    recommender/knowledge/crop_names.csv. For the crops in recommender/knowledge/common_crops.csv,
     the reviewed group, English name and Arabic name replace these, and
     is_common is set to 1. The model uses is_common to rank common crops
     (such as tomato) above wild plants that need a similar climate.

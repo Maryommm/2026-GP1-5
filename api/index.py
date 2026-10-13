@@ -2,7 +2,7 @@
 Ethmar - recommendation API on Vercel.
 
 The Flutter app sends a POST request to /api/recommend with a JSON body
-(see ml/scripts/service.py for the fields) and the user's Firebase ID token:
+(see recommender/scripts/service.py for the fields) and the user's Firebase ID token:
 
     POST /api/recommend
     Authorization: Bearer <Firebase ID token>
@@ -39,7 +39,7 @@ from flask import Flask, jsonify, request
 from werkzeug.exceptions import HTTPException
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "ml" / "scripts"))
+sys.path.insert(0, str(ROOT / "recommender" / "scripts"))
 
 import service  # noqa: E402  (imported after the path is set)
 

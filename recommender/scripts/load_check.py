@@ -7,7 +7,7 @@ PASS, WARN or FAIL for each check. The script ends with exit code 1 if any
 check fails, so it can also be used in an automatic test.
 
 Usage:
-    python ml/scripts/load_check.py
+    python recommender/scripts/load_check.py
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = ROOT / "data" / "processed"
 RECOMMENDABLE_PATH = PROCESSED_DIR / "ethmar_recommendable.csv"
 REFERENCE_PATH = PROCESSED_DIR / "ethmar_reference.csv"
-COMMON_CROPS_PATH = ROOT / "ml" / "knowledge" / "common_crops.csv"
+COMMON_CROPS_PATH = ROOT / "recommender" / "knowledge" / "common_crops.csv"
 
 # Columns that scoring.py reads. Each one is checked for missing values.
 MODEL_COLUMNS = [
@@ -237,7 +237,7 @@ def summary() -> int:
 def main() -> int:
     if not RECOMMENDABLE_PATH.exists():
         print(f"ERROR: {RECOMMENDABLE_PATH} not found.", file=sys.stderr)
-        print("Run ml/scripts/clean_dataset.py first.", file=sys.stderr)
+        print("Run recommender/scripts/clean_dataset.py first.", file=sys.stderr)
         return 1
 
     df = pd.read_csv(RECOMMENDABLE_PATH)

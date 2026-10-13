@@ -7,7 +7,7 @@ there. For each crop it also returns the best months to plant it, a score,
 and the reasons and warnings behind that score.
 
 The module does not call any web service. The climate comes from
-ml/scripts/climate.py, so this file can be tested on its own and later be
+recommender/scripts/climate.py, so this file can be tested on its own and later be
 called from a Firebase Cloud Function.
 
 How the model works
@@ -24,15 +24,15 @@ How the model works
    because one bad month is enough to lose the crop.
 3. Other factors (soil pH, rainfall, sunlight, watering and how common the
    crop is in home gardens) are added as a weighted sum. The weights are in
-   ml/knowledge/scoring_config.json.
+   recommender/knowledge/scoring_config.json.
 4. Home growers can water their plants, so low rainfall only gives a
    watering warning. Too much rain cannot be removed, so it lowers the score.
 5. The table and the rules are the same for every country. The difference
    between locations comes only from their climate data.
 
 Usage:
-    python ml/scripts/scoring.py                 # Riyadh, current month
-    python ml/scripts/scoring.py 51.51 -0.13 4   # London, April
+    python recommender/scripts/scoring.py                 # Riyadh, current month
+    python recommender/scripts/scoring.py 51.51 -0.13 4   # London, April
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TABLE_PATH = ROOT / "data" / "processed" / "ethmar_recommendable.csv"
-CONFIG_PATH = ROOT / "ml" / "knowledge" / "scoring_config.json"
+CONFIG_PATH = ROOT / "recommender" / "knowledge" / "scoring_config.json"
 
 # Default settings. Any value in scoring_config.json replaces the one here.
 DEFAULT_CONFIG = {

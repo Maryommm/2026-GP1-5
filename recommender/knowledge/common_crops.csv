@@ -1,4 +1,4 @@
-# Reviewed list of crops beginners grow most. Read by ml/scripts/clean_dataset.py.
+# Reviewed list of crops beginners grow most. Read by recommender/scripts/clean_dataset.py.
 # crop_group overrides the rule-based group; listed crops are flagged is_common
 # so the recommender prefers them over wild plants with a similar climate need.
 # crop_group: leafy_herb | fruiting | root | legume | fruit_tree | other

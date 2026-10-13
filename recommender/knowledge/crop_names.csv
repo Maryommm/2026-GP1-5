@@ -1,5 +1,5 @@
 # English and Arabic display names for every recommendable crop. Read by
-# ml/scripts/clean_dataset.py. Crops in common_crops.csv use the names there
+# recommender/scripts/clean_dataset.py. Crops in common_crops.csv use the names there
 # instead. The names were drafted with help from an AI tool and should be
 # reviewed by a native Arabic speaker; edit a row and re-run clean_dataset.py.
 canonical_binomial,name_en,name_ar

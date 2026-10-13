@@ -2,7 +2,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
-      "includeFiles": "{ml/scripts/**,ml/knowledge/**,data/processed/ethmar_recommendable.csv}"
+      "includeFiles": "{recommender/scripts/**,recommender/knowledge/**,data/processed/ethmar_recommendable.csv}"
     }
   },
   "rewrites": [
