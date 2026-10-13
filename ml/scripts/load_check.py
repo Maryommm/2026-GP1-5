@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = ROOT / "data" / "processed"
 RECOMMENDABLE_PATH = PROCESSED_DIR / "ethmar_recommendable.csv"
 REFERENCE_PATH = PROCESSED_DIR / "ethmar_reference.csv"
-COMMON_CROPS_PATH = ROOT / "ml" / "artifacts" / "common_crops.csv"
+COMMON_CROPS_PATH = ROOT / "ml" / "knowledge" / "common_crops.csv"
 
 # Columns that scoring.py reads. Each one is checked for missing values.
 MODEL_COLUMNS = [

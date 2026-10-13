@@ -24,7 +24,7 @@ How the model works
    because one bad month is enough to lose the crop.
 3. Other factors (soil pH, rainfall, sunlight, watering and how common the
    crop is in home gardens) are added as a weighted sum. The weights are in
-   ml/artifacts/scoring_config.json.
+   ml/knowledge/scoring_config.json.
 4. Home growers can water their plants, so low rainfall only gives a
    watering warning. Too much rain cannot be removed, so it lowers the score.
 5. The table and the rules are the same for every country. The difference
@@ -46,7 +46,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TABLE_PATH = ROOT / "data" / "processed" / "ethmar_recommendable.csv"
-CONFIG_PATH = ROOT / "ml" / "artifacts" / "scoring_config.json"
+CONFIG_PATH = ROOT / "ml" / "knowledge" / "scoring_config.json"
 
 # Default settings. Any value in scoring_config.json replaces the one here.
 DEFAULT_CONFIG = {
