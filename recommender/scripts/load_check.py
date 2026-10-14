@@ -1,13 +1,9 @@
 """
 Ethmar - quality checks for the cleaned recommendation table.
 
-Run this script after clean_dataset.py. It checks that the table in
-data/processed/ is safe for the recommendation model to use, and prints
+It checks that the table in data/processed/ is safe for the recommendation model to use, and prints
 PASS, WARN or FAIL for each check. The script ends with exit code 1 if any
-check fails, so it can also be used in an automatic test.
-
-Usage:
-    python recommender/scripts/load_check.py
+check fails.
 """
 
 from __future__ import annotations
@@ -37,6 +33,10 @@ MODEL_COLUMNS = [
     "soil_light_sandy", "soil_medium", "soil_heavy_clay",
     "crop_group", "is_common", "home_garden", "edible",
 ]
+
+# Columns where ECOCROP writes 0 to mean "unknown". A growing cycle of
+# 0 days is not a real value, so it counts as missing in the coverage check.
+ZERO_MEANS_MISSING = {"ecocrop_gmin"}
 
 # Ranges that must have min <= max.
 ORDERED_PAIRS = [
@@ -112,7 +112,10 @@ def check_missing(df: pd.DataFrame, record) -> None:
         if column not in df.columns:
             record(FAIL, "missing column", f"{column} is not in the table")
             continue
-        coverage = 100 - df[column].isna().mean() * 100
+        missing = df[column].isna()
+        if column in ZERO_MEANS_MISSING:
+            missing = missing | (df[column] == 0)
+        coverage = 100 - missing.mean() * 100
         if coverage == 100:
             record(PASS, f"coverage {column}", "100%")
         elif coverage > 80:
@@ -198,18 +201,37 @@ def check_common_crops(df: pd.DataFrame, record) -> None:
         record(PASS, "arabic names (all)", f"all {len(df)} crops named")
 
 
-def check_tolerance_profile(df: pd.DataFrame, record) -> None:
-    """How many crops can stand a hot, dry, alkaline climate such as Riyadh."""
-    heat = df["ecocrop_temp_abs_max_c"] >= 40
-    arid = df["ecocrop_rain_abs_min_mm"] <= 250
-    alkaline = df["ecocrop_ph_abs_max"] >= 8.0
-    all_three = heat & arid & alkaline
+# A climate type with fewer crops than this gives users too little choice.
+MIN_CROPS_PER_CLIMATE = 15
 
-    record(PASS, "tolerates >= 40C", f"{int(heat.sum())} species")
-    record(PASS, "tolerates <= 250mm rain", f"{int(arid.sum())} species")
-    record(PASS, "tolerates pH >= 8.0", f"{int(alkaline.sum())} species")
-    level = PASS if int(all_three.sum()) >= 25 else WARN
-    record(level, "all three (arid/hot/alkaline)", f"{int(all_three.sum())} species")
+
+def check_world_coverage(df: pd.DataFrame, record) -> None:
+    """
+    How many crops suit each main type of climate and soil in the world.
+
+    The model works for any location, so the table should offer real choice
+    in every kind of place, not only in hot and dry ones. Each type needs at
+    least MIN_CROPS_PER_CLIMATE crops, or a warning is shown. The examples
+    in brackets are places with that climate.
+    """
+    hot = df["ecocrop_temp_abs_max_c"] >= 40
+    dry = df["ecocrop_rain_abs_min_mm"] <= 250
+    wet = df["ecocrop_rain_abs_max_mm"] >= 3000
+    alkaline = df["ecocrop_ph_abs_max"] >= 8.0
+    acidic = df["ecocrop_ph_abs_min"] <= 5.0
+
+    climates = {
+        "desert: hot, dry, alkaline (Riyadh)": hot & dry & alkaline,
+        "wet tropics: >= 35C and wet (Mumbai)": (df["ecocrop_temp_abs_max_c"] >= 35) & wet,
+        "cool season: optimum <= 10C (London)": df["ecocrop_temp_opt_min_c"] <= 10,
+        "hard frost: survives <= -5C (Moscow)": df["ecocrop_ktmp"] <= -5,
+        "acidic soil: pH <= 5.0": acidic,
+        "alkaline soil: pH >= 8.0": alkaline,
+    }
+    for name, suited in climates.items():
+        count = int(suited.sum())
+        level = PASS if count >= MIN_CROPS_PER_CLIMATE else WARN
+        record(level, name, f"{count} species")
 
 
 def summary() -> int:
@@ -249,7 +271,7 @@ def main() -> int:
     run_section("MODEL COLUMN COVERAGE", df, check_missing)
     run_section("RANGE INTEGRITY", df, check_envelopes, check_ranges)
     run_section("CLASSIFICATION", df, check_classification, check_common_crops)
-    run_section("CLIMATE TOLERANCE PROFILE", df, check_tolerance_profile)
+    run_section("WORLDWIDE CLIMATE COVERAGE", df, check_world_coverage)
 
     if REFERENCE_PATH.exists():
         ref = pd.read_csv(REFERENCE_PATH, low_memory=False)
