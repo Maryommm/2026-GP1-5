@@ -9,7 +9,7 @@ it, and writes two tables:
         table used by the recommendation model (scoring.py).
 
     data/processed/ethmar_reference.csv
-        All other plants. They are kept for reference (for example for the
+        All other plants. They are kept for reference (for the
         chatbot), but they are never recommended.
 
 Steps:
@@ -24,8 +24,6 @@ Steps:
 The raw file is never changed. Run the script again after any change to the
 rules and both tables are built again from the beginning.
 
-Usage:
-    python recommender/scripts/clean_dataset.py
 """
 
 from __future__ import annotations
@@ -85,7 +83,7 @@ BOOLEAN_COLUMNS = [
     "soil_light_sandy", "soil_medium", "soil_heavy_clay",
 ]
 
-# ECOCROP category text -> Ethmar category, checked in this order.
+# ECOCROP category -> Ethmar category, checked in this order.
 FOOD_CATEGORY_MAP = [
     (re.compile(r"vegetables", re.I), "vegetable"),
     (re.compile(r"roots/tubers", re.I), "root_crop"),
@@ -113,16 +111,12 @@ CONFIDENCE_RANK = {"high": 3, "low": 2, "none": 1}
 
 
 # --------------------------------------------------------------------------- #
-# Type helpers
+# helpers
 # --------------------------------------------------------------------------- #
 
 def _to_null(value):
     """
     Turn every way of writing "missing" into None, and strip the text.
-
-    pandas reads an empty CSV cell as float('nan'). Text functions such as
-    .lower() fail on NaN, so every cell is passed through this function
-    before it is used as text.
     """
     if value is None:
         return None
@@ -196,13 +190,8 @@ def load_and_normalize(raw_path: Path) -> pd.DataFrame:
 def edible_evidence(row: pd.Series) -> str | None:
     """
     Return the strongest proof that a plant is eaten, or None.
-
     The proofs are checked from strongest to weakest: the edible flag, then
     the list of edible parts, then the "uses" texts.
-
-    This check is needed because many ECOCROP-only records have a food
-    category but no proof of edibility. Treating the category alone as proof
-    added 389 unconfirmed plants to the recommendation table.
     """
     if row["_edible_raw"]:
         return "edible_flag"
@@ -329,12 +318,6 @@ def synonym_map(df: pd.DataFrame) -> dict:
     Build a map {Permapeople name: ECOCROP name} for plants that the two
     sources record under different scientific names.
 
-    Example: Permapeople lists tomato as Solanum lycopersicum, while ECOCROP
-    lists it as Lycopersicon esculentum, with Solanum lycopersicum as a
-    synonym. Before this step, the Permapeople record had no climate data
-    and the ECOCROP record had no edible flag, so tomato was missing from
-    the recommendation table.
-
     Two rules keep different plants apart:
       * a synonym that is also an accepted ECOCROP name is skipped
         (ECOCROP lists Cucurbita maxima under C. moschata, but both are
@@ -408,9 +391,7 @@ def _merge_group(group: pd.DataFrame) -> pd.Series:
     that the main plant row is missing.
 
     The edible flag is combined with OR: if any row says the plant is
-    edible, the species is edible. Taking only the first value was wrong,
-    because the first row often had an empty edible field, and peach, fig
-    and walnut lost their edible flag that way.
+    edible, the species is edible.
     """
     merged = {}
     for column in group.columns:
@@ -499,11 +480,6 @@ def repair_envelopes(df: pd.DataFrame) -> pd.DataFrame:
     """
     Swap any (min, max) pair where the minimum is larger than the maximum,
     and write what was changed in the "repairs_applied" column.
-
-    For example, a record with rain_opt_min = 7000 and rain_opt_max = 2000
-    would give wrong results for every location. One real case is Acorus
-    calamus. The fix is done in code, not by hand, so it can be seen and
-    repeated.
     """
     df = df.copy()
     df["repairs_applied"] = ""
@@ -538,16 +514,6 @@ def _parts(row) -> set:
 def rule_crop_group(row) -> str:
     """
     Decide the crop group from the main reason the plant is grown.
-
-    These are the groups used by the app filter, and the same groups we
-    asked about in the questionnaire: leafy greens and herbs, fruiting
-    vegetables, roots, legumes and fruit trees.
-
-    We do not use ethmar_category for this, because it calls a plant a root
-    crop whenever "Root" is anywhere in its edible parts, which is wrong for
-    okra, pumpkin and celery. Here the fruit is checked first, then
-    ECOCROP's roots/tubers label, and a root only counts when no leaves are
-    listed.
     """
     category = _to_null(row.get("ethmar_category")) or ""
     ecocrop = (_to_null(row.get("ecocrop_category")) or "").lower()
