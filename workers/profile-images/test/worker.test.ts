@@ -226,6 +226,43 @@ describe("profile image Worker", () => {
     expect(mocks.deleteProfileImage).toHaveBeenCalledWith(env, "user-a");
   });
 
+  it("accepts a zero-byte DELETE body stream", async () => {
+    const mocks = defaultMocks();
+    const request = new Request("https://worker.test/v1/profile-image", {
+      method: "DELETE",
+      headers: { authorization: "Bearer valid-token" },
+      body: new Uint8Array(0),
+    });
+
+    expect(request.body).not.toBeNull();
+    const response = await createWorker(mocks).fetch(request, env);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ deleted: true, status: "deleted" });
+    expect(mocks.deleteProfileImage).toHaveBeenCalledWith(env, "user-a");
+  });
+
+  it("rejects a DELETE request containing body bytes", async () => {
+    const mocks = defaultMocks();
+    const response = await createWorker(mocks).fetch(
+      new Request("https://worker.test/v1/profile-image", {
+        method: "DELETE",
+        headers: { authorization: "Bearer valid-token" },
+        body: "unexpected",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "UNEXPECTED_BODY",
+        message: "The delete request must not contain a body.",
+      },
+    });
+    expect(mocks.deleteProfileImage).not.toHaveBeenCalled();
+  });
+
   it("treats deletion of a missing image as a successful no-op", async () => {
     const mocks = defaultMocks();
     mocks.deleteProfileImage.mockResolvedValueOnce({

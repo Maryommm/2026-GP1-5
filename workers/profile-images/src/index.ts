@@ -14,6 +14,24 @@ import type { Env, WorkerDependencies } from "./types";
 
 const PROFILE_IMAGE_PATH = "/v1/profile-image";
 
+// Treat transport-level empty streams as bodyless requests.
+async function hasBodyBytes(request: Request): Promise<boolean> {
+  const body = request.body;
+  if (body === null) return false;
+
+  const reader = body.getReader();
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) return false;
+      if (chunk.value.byteLength > 0) return true;
+    }
+  } finally {
+    await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+}
+
 // Set the default authentication and image service dependencies.
 const defaultDependencies: WorkerDependencies = {
   verifyToken: verifyFirebaseIdToken,
@@ -65,8 +83,8 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
           return jsonResponse({ image: uploaded });
         }
 
-        // Reject delete requests that contain a request body.
-        if (request.body !== null) {
+        // Reject delete requests that contain actual body bytes.
+        if (await hasBodyBytes(request)) {
           return errorResponse(
             400,
             "UNEXPECTED_BODY",
