@@ -8,8 +8,10 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 
+// Define a custom provider for Firebase sessions.
 typedef ProfileImageSessionProvider = Future<ProfileImageSession> Function();
 
+// Store the user ID and Firebase ID token.
 class ProfileImageSession {
   const ProfileImageSession({required this.uid, required this.idToken});
 
@@ -17,6 +19,7 @@ class ProfileImageSession {
   final String idToken;
 }
 
+// List possible profile image errors.
 enum ProfileImageErrorCode {
   unauthenticated,
   emailNotVerified,
@@ -30,6 +33,7 @@ enum ProfileImageErrorCode {
   invalidResponse,
 }
 
+// Represent a profile image error with safe details.
 class ProfileImageException implements Exception {
   const ProfileImageException(
     this.code, {
@@ -43,8 +47,7 @@ class ProfileImageException implements Exception {
   final int? retryAfterSeconds;
   final String? diagnosticCode;
 
-  /// Contains only an HTTP status and a strictly filtered machine-readable
-  /// code. Response messages and bodies are deliberately never exposed.
+  /// Shows only safe error details, without response messages or bodies.
   String? get safeDiagnostic {
     final parts = <String>[
       if (statusCode != null) 'HTTP $statusCode',
@@ -54,6 +57,7 @@ class ProfileImageException implements Exception {
   }
 }
 
+// Store information about an uploaded profile image.
 class UploadedProfileImage {
   const UploadedProfileImage({
     required this.publicId,
@@ -73,10 +77,13 @@ class UploadedProfileImage {
   final int height;
   final int bytes;
 
+  // Identify the Cloudinary account.
   static const _cloudName = 'k7otdsln';
 
+  // Build a unique image ID for each user.
   static String publicIdFor(String uid) => 'ethmar/profile-images/$uid/profile';
 
+  // Build the image delivery URL.
   static String deliveryUrlFor({
     required String publicId,
     required int version,
@@ -84,6 +91,7 @@ class UploadedProfileImage {
       'https://res.cloudinary.com/$_cloudName/image/upload/'
       'v$version/$publicId.webp';
 
+  // Convert image details into Firestore fields.
   Map<String, Object> toFirestore() => {
     'publicId': publicId,
     'version': version,
@@ -94,6 +102,7 @@ class UploadedProfileImage {
     'updatedAt': FieldValue.serverTimestamp(),
   };
 
+  // Validate saved image details before using them.
   static UploadedProfileImage? fromFirestore(
     String uid,
     Map<String, dynamic>? data,
@@ -131,6 +140,7 @@ class UploadedProfileImage {
   }
 }
 
+// Store the result of a photo deletion.
 class DeletedProfileImage {
   const DeletedProfileImage({required this.deleted, required this.notFound});
 
@@ -138,20 +148,26 @@ class DeletedProfileImage {
   final bool notFound;
 }
 
+// Define how image details are saved and read.
 abstract interface class ProfileImageMetadataStore {
+  // Save uploaded image details.
   Future<void> save(String uid, UploadedProfileImage image);
 
+  // Delete saved image details.
   Future<void> delete(String uid);
 
+  // Listen for changes to image details.
   Stream<UploadedProfileImage?> watch(String uid);
 }
 
+// Store profile image details in Firestore.
 class FirestoreProfileImageMetadataStore implements ProfileImageMetadataStore {
   FirestoreProfileImageMetadataStore({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
+  // Locate the user profile image document.
   DocumentReference<Map<String, dynamic>> _document(String uid) => _firestore
       .collection('users')
       .doc(uid)
@@ -159,13 +175,16 @@ class FirestoreProfileImageMetadataStore implements ProfileImageMetadataStore {
       .doc('profile');
 
   @override
+  // Save uploaded image details.
   Future<void> save(String uid, UploadedProfileImage image) =>
       _document(uid).set(image.toFirestore());
 
   @override
+  // Delete saved image details.
   Future<void> delete(String uid) => _document(uid).delete();
 
   @override
+  // Listen for changes to image details.
   Stream<UploadedProfileImage?> watch(String uid) => _document(uid)
       .snapshots()
       .map(
@@ -173,9 +192,11 @@ class FirestoreProfileImageMetadataStore implements ProfileImageMetadataStore {
       );
 }
 
+// Use Firestore as the default metadata store.
 final ProfileImageMetadataStore profileImageMetadataStore =
     FirestoreProfileImageMetadataStore();
 
+// Handle profile image uploads, deletion, and validation.
 class ProfileImageService {
   ProfileImageService({
     FirebaseAuth? auth,
@@ -187,9 +208,12 @@ class ProfileImageService {
        _sessionProvider = sessionProvider,
        _metadataStore = metadataStore ?? profileImageMetadataStore;
 
+  // Cloudflare Worker endpoint for image requests.
   static final Uri _endpoint = Uri.parse(
     'https://ethmar-profile-images.fanyeol-23.workers.dev/v1/profile-image',
   );
+
+  // Limit images to 5 MB.
   static const maxImageBytes = 5 * 1024 * 1024;
   static const _timeout = Duration(seconds: 60);
   static final _safeDiagnosticCode = RegExp(r'^[A-Z][A-Z0-9_]{1,63}$');
@@ -199,6 +223,7 @@ class ProfileImageService {
   final ProfileImageSessionProvider? _sessionProvider;
   final ProfileImageMetadataStore _metadataStore;
 
+  // Watch the verified user's current profile image.
   Stream<UploadedProfileImage?> watchCurrentProfileImage() {
     final user = (_auth ?? FirebaseAuth.instance).currentUser;
     if (user == null || !user.emailVerified) {
@@ -207,7 +232,9 @@ class ProfileImageService {
     return _metadataStore.watch(user.uid);
   }
 
+  // Validate and upload a selected profile image.
   Future<UploadedProfileImage> upload(XFile image) async {
+    // Check the file size before reading it.
     final length = await image.length();
     if (length <= 0) {
       throw const ProfileImageException(ProfileImageErrorCode.unsupportedImage);
@@ -216,15 +243,19 @@ class ProfileImageService {
       throw const ProfileImageException(ProfileImageErrorCode.imageTooLarge);
     }
 
+    // Read the file and check its actual size.
     final imageBytes = await image.readAsBytes();
     if (imageBytes.length > maxImageBytes) {
       throw const ProfileImageException(ProfileImageErrorCode.imageTooLarge);
     }
+
+    // Identify the image format using its file bytes.
     final mediaType = _detectMediaType(imageBytes);
     if (mediaType == null) {
       throw const ProfileImageException(ProfileImageErrorCode.unsupportedImage);
     }
 
+    // Get a verified Firebase session before uploading.
     final session = await _getVerifiedSession();
     final request = http.MultipartRequest('POST', _endpoint)
       ..headers['Authorization'] = 'Bearer ${session.idToken}'
@@ -232,15 +263,17 @@ class ProfileImageService {
         http.MultipartFile.fromBytes(
           'file',
           imageBytes,
-          // Android cache names and extensions are not trusted. Both the
-          // filename and MIME type come from the detected file bytes.
+          // Detect the file type from its bytes instead of trusting its name.
           filename: 'profile.${_extensionFor(mediaType)}',
           contentType: mediaType,
         ),
       );
+
+    // Send the request and check the server response.
     final response = await _send(request);
     _throwForError(response);
 
+    // Read the server response as JSON.
     final body = _decodeObject(response);
     final imageJson = body['image'];
     if (imageJson is! Map<String, dynamic>) {
@@ -254,6 +287,8 @@ class ProfileImageService {
     final width = imageJson['width'];
     final height = imageJson['height'];
     final bytes = imageJson['bytes'];
+
+    // Verify the returned image belongs to this user.
     final expectedPublicId = UploadedProfileImage.publicIdFor(session.uid);
     if (publicId is! String ||
         publicId != expectedPublicId ||
@@ -278,10 +313,10 @@ class ProfileImageService {
       _throwInvalidSuccessResponse(response);
     }
 
+    // Create a validated image record.
     final uploaded = UploadedProfileImage(
       publicId: publicId,
-      // Use our canonical delivery URL after validating Cloudinary's URL.
-      // This accepts legitimate transformation segments without storing them.
+      // Build a trusted URL instead of storing Cloudinary's response.
       secureUrl: UploadedProfileImage.deliveryUrlFor(
         publicId: expectedPublicId,
         version: version,
@@ -292,31 +327,42 @@ class ProfileImageService {
       height: height,
       bytes: bytes,
     );
+
+    // Save image details in Firestore.
     await _saveMetadata(session.uid, uploaded);
     return uploaded;
   }
 
+  // Delete the image through the Cloudflare Worker.
   Future<DeletedProfileImage> delete() async {
+    // Get a verified Firebase session.
     final session = await _getVerifiedSession();
     final request = http.Request('DELETE', _endpoint)
       ..headers['Authorization'] = 'Bearer ${session.idToken}';
+
+    // Send the request and check the server response.
     final response = await _send(request);
     _throwForError(response);
 
+    // Read the server response as JSON.
     final body = _decodeObject(response);
     final deleted = body['deleted'];
     final status = body['status'];
     if (deleted is! bool || (status != 'deleted' && status != 'not_found')) {
       _throwInvalidSuccessResponse(response);
     }
+
     final result = DeletedProfileImage(
       deleted: deleted,
       notFound: status == 'not_found',
     );
+
+    // Remove the image details from Firestore.
     await _deleteMetadata(session.uid);
     return result;
   }
 
+  // Require a signed-in user with a verified email.
   Future<ProfileImageSession> _getVerifiedSession() async {
     final customProvider = _sessionProvider;
     if (customProvider != null) {
@@ -338,7 +384,7 @@ class ProfileImageService {
     }
 
     try {
-      // Keep the token in this request scope only; never log or persist it.
+      // Never log or store the Firebase token.
       final token = await user.getIdToken(true);
       if (token == null || token.isEmpty) {
         throw const ProfileImageException(
@@ -353,6 +399,7 @@ class ProfileImageService {
     }
   }
 
+  // Save metadata and handle Firestore errors.
   Future<void> _saveMetadata(String uid, UploadedProfileImage image) async {
     try {
       await _metadataStore.save(uid, image);
@@ -366,6 +413,7 @@ class ProfileImageService {
     }
   }
 
+  // Delete metadata and handle Firestore errors.
   Future<void> _deleteMetadata(String uid) async {
     try {
       await _metadataStore.delete(uid);
@@ -379,6 +427,7 @@ class ProfileImageService {
     }
   }
 
+  // Send HTTP requests with a timeout.
   Future<http.Response> _send(http.BaseRequest request) async {
     try {
       final streamed = await _client.send(request).timeout(_timeout);
@@ -390,6 +439,7 @@ class ProfileImageService {
     }
   }
 
+  // Convert HTTP status codes into app errors.
   void _throwForError(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) return;
     final diagnosticCode = _workerErrorCode(response);
@@ -436,22 +486,25 @@ class ProfileImageService {
     }
   }
 
+  // Require a valid JSON object from the server.
   Map<String, dynamic> _decodeObject(http.Response response) {
     final decoded = _tryDecodeObject(response);
     if (decoded != null) return decoded;
     _throwInvalidSuccessResponse(response);
   }
 
+  // Try to decode the server response safely.
   Map<String, dynamic>? _tryDecodeObject(http.Response response) {
     try {
       final decoded = jsonDecode(utf8.decode(response.bodyBytes));
       if (decoded is Map<String, dynamic>) return decoded;
     } on FormatException {
-      // Never expose an upstream response body through diagnostics.
+      // Never include the provider response in diagnostics.
     }
     return null;
   }
 
+  // Read only safe error codes from the Worker.
   String? _workerErrorCode(http.Response response) {
     final body = _tryDecodeObject(response);
     final error = body?['error'];
@@ -460,6 +513,7 @@ class ProfileImageService {
     return null;
   }
 
+  // Reject invalid success responses.
   Never _throwInvalidSuccessResponse(http.Response response) {
     throw ProfileImageException(
       ProfileImageErrorCode.invalidResponse,
@@ -468,6 +522,7 @@ class ProfileImageService {
     );
   }
 
+  // Check that the image URL matches the trusted Cloudinary path.
   bool _isExpectedCloudinaryUrl(
     String value, {
     required String publicId,
@@ -495,6 +550,7 @@ class ProfileImageService {
     return segments.sublist(versionIndex + 1).join('/') == '$publicId.webp';
   }
 
+  // Accept only PNG, JPEG, or WebP file signatures.
   MediaType? _detectMediaType(Uint8List bytes) {
     const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
     if (bytes.length >= pngSignature.length) {
@@ -527,6 +583,7 @@ class ProfileImageService {
     return null;
   }
 
+  // Choose the file extension from the detected format.
   String _extensionFor(MediaType mediaType) => switch (mediaType.subtype) {
     'jpeg' => 'jpg',
     'png' => 'png',
@@ -536,6 +593,7 @@ class ProfileImageService {
     ),
   };
 
+  // Compare file bytes with an expected signature.
   bool _matchesAscii(Uint8List bytes, int offset, String value) {
     if (offset + value.length > bytes.length) return false;
     for (var index = 0; index < value.length; index += 1) {
@@ -544,11 +602,13 @@ class ProfileImageService {
     return true;
   }
 
+  // Read a little-endian integer from image bytes.
   int _uint32le(Uint8List bytes, int offset) =>
       bytes[offset] |
       (bytes[offset + 1] << 8) |
       (bytes[offset + 2] << 16) |
       (bytes[offset + 3] << 24);
 
+  // Close the HTTP client when finished.
   void close() => _client.close();
 }

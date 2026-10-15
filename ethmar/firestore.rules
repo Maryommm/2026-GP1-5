@@ -2,16 +2,20 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Require an authenticated user with a verified email.
     function hasVerifiedEmail() {
       return request.auth != null &&
           request.auth.token.email_verified == true &&
           request.auth.token.email is string;
     }
 
+    // Allow users to access only their own profile.
     function ownsProfile(uid) {
       return hasVerifiedEmail() && request.auth.uid == uid;
     }
 
+    // Validate the username format and length.
     function validUsername(username) {
       return username is string &&
           username.size() >= 3 &&
@@ -19,6 +23,7 @@ service cloud.firestore {
           username.matches('^[a-zA-Z0-9_.]+$');
     }
 
+    // Validate the lowercase username used for reservations.
     function validNormalizedUsername(username) {
       return username is string &&
           username.size() >= 3 &&
@@ -26,6 +31,7 @@ service cloud.firestore {
           username.matches('^[a-z0-9_.]+$');
     }
 
+    // Allow only the expected profile fields and Firebase email.
     function validProfile(data) {
       return data.keys().hasAll(
               ['username', 'normalizedUsername', 'email', 'createdAt']) &&
@@ -38,6 +44,7 @@ service cloud.firestore {
           data.email == request.auth.token.email;
     }
 
+    // Validate profile-image metadata before storing it.
     function validProfileImage(uid, data) {
       return data.keys().hasAll(
               ['publicId', 'version', 'format', 'width', 'height', 'bytes', 'updatedAt']) &&
@@ -59,9 +66,13 @@ service cloud.firestore {
           data.updatedAt == request.time;
     }
 
+    // Protect each user's Firestore profile.
     match /users/{uid} {
+
+      // Only the verified profile owner can read the document.
       allow read: if ownsProfile(uid) && hasVerifiedEmail();
 
+      // Create the profile and reserve its username in the same transaction.
       allow create: if ownsProfile(uid) &&
           validProfile(request.resource.data) &&
           request.resource.data.createdAt == request.time &&
@@ -87,25 +98,37 @@ service cloud.firestore {
             )
           );
 
+      // Prevent users from deleting their profile.
       allow delete: if false;
 
+      // Store the user's profile-image metadata.
       match /media/{mediaId} {
+
+        // Only the owner can read the profile image metadata.
         allow get: if mediaId == 'profile' && ownsProfile(uid);
+
         allow list: if false;
 
+        // Allow valid image metadata only when the profile exists.
         allow create, update: if mediaId == 'profile' &&
             ownsProfile(uid) &&
             exists(/databases/$(database)/documents/users/$(uid)) &&
             validProfileImage(uid, request.resource.data);
 
+        // Only the owner can delete their profile image metadata.
         allow delete: if mediaId == 'profile' && ownsProfile(uid);
       }
     }
 
+    // Reserve unique usernames for verified users.
     match /usernames/{normalizedUsername} {
+
+      // Allow verified users to check username availability.
       allow get: if hasVerifiedEmail();
+
       allow list: if false;
 
+      // Reserve a username when creating a new profile.
       allow create: if hasVerifiedEmail() &&
           validNormalizedUsername(normalizedUsername) &&
           request.resource.data.keys().hasAll(['uid']) &&
@@ -129,6 +152,7 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.normalizedUsername != normalizedUsername &&
           getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.normalizedUsername == normalizedUsername;
 
+      // Prevent changes to an existing username reservation.
       allow update: if false;
 
       // Release an old name: only its owner, and only once their profile no
@@ -138,6 +162,7 @@ service cloud.firestore {
           getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.normalizedUsername != normalizedUsername;
     }
 
+    // Deny access to all other Firestore documents.
     match /{document=**} {
       allow read, write: if false;
     }

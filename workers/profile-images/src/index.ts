@@ -14,18 +14,22 @@ import type { Env, WorkerDependencies } from "./types";
 
 const PROFILE_IMAGE_PATH = "/v1/profile-image";
 
+// Set the default authentication and image service dependencies.
 const defaultDependencies: WorkerDependencies = {
   verifyToken: verifyFirebaseIdToken,
   uploadProfileImage,
   deleteProfileImage,
 };
 
+// Create the authenticated profile-image API handler.
 export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
   const dependencies: WorkerDependencies = { ...defaultDependencies, ...overrides };
 
   return {
     async fetch(request: Request, env: Env): Promise<Response> {
       const url = new URL(request.url);
+
+      // Accept requests only for the profile image endpoint.
       if (url.pathname !== PROFILE_IMAGE_PATH) {
         return errorResponse(404, "NOT_FOUND", "The requested endpoint does not exist.");
       }
@@ -38,9 +42,12 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
       }
 
       try {
+        // Authenticate the Firebase user before accessing image services.
         if (request.method === "POST") assertDeclaredRequestSize(request);
         const token = readBearerToken(request);
         const user = await dependencies.verifyToken(token, env);
+
+        // Limit image operations separately for each authenticated user.
         const rateLimit = await env.PROFILE_IMAGE_RATE_LIMITER.limit({ key: user.uid });
         if (!rateLimit.success) {
           return errorResponse(
@@ -51,12 +58,14 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
           );
         }
 
+        // Validate and upload the user's profile image.
         if (request.method === "POST") {
           const image = await parseProfileImageRequest(request);
           const uploaded = await dependencies.uploadProfileImage(env, user.uid, image);
           return jsonResponse({ image: uploaded });
         }
 
+        // Reject delete requests that contain a request body.
         if (request.body !== null) {
           return errorResponse(
             400,
@@ -64,12 +73,15 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
             "The delete request must not contain a body.",
           );
         }
+
+        // Delete the authenticated user's profile image.
         const deleted = await dependencies.deleteProfileImage(env, user.uid);
         return jsonResponse({
           deleted: deleted.deleted,
           status: deleted.notFound ? "not_found" : "deleted",
         });
       } catch (error) {
+        // Return safe error responses without exposing sensitive details.
         if (error instanceof AuthenticationError) {
           return errorResponse(error.status, error.code, error.publicMessage);
         }
@@ -77,8 +89,7 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
           return errorResponse(error.status, error.code, error.publicMessage);
         }
         if (error instanceof CloudinaryError) {
-          // Log only our fixed diagnostic category. Never log the provider
-          // response, signed parameters, Firebase token, UID, or image data.
+          // Log only safe error categories, never tokens, IDs, or image data.
           console.warn(
             "Profile image provider failure:",
             error.kind,

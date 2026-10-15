@@ -5,6 +5,7 @@ import type {
   ValidatedImage,
 } from "./types";
 
+// Define the possible Cloudinary error categories.
 export type CloudinaryFailureKind =
   | "CONFIGURATION"
   | "CLOUDINARY_NETWORK_ERROR"
@@ -24,6 +25,7 @@ export type CloudinaryFailureKind =
   | "CLOUDINARY_REQUEST_FAILED"
   | "CLOUDINARY_INVALID_RESPONSE";
 
+// Represent Cloudinary errors without exposing private credentials.
 export class CloudinaryError extends Error {
   constructor(
     readonly kind: CloudinaryFailureKind,
@@ -55,10 +57,12 @@ interface CloudinaryDestroyResponse {
   result?: unknown;
 }
 
+// Set the output format and image transformation.
 export const PROFILE_IMAGE_TRANSFORMATION = "c_limit,h_4096,w_4096/fl_force_strip";
 export const PROFILE_IMAGE_FORMAT = "webp";
 const MAX_CLOUDINARY_ERROR_BYTES = 8 * 1024;
 
+// Read and validate Cloudinary configuration from Worker bindings.
 function configFrom(env: Env): CloudinaryConfig {
   const cloudName = env.CLOUDINARY_CLOUD_NAME?.trim();
   const apiKey = env.CLOUDINARY_API_KEY?.trim();
@@ -76,6 +80,7 @@ function configFrom(env: Env): CloudinaryConfig {
   return { cloudName, apiKey, apiSecret };
 }
 
+// Reject credentials copied with quotes or variable names.
 function looksLikeWrappedCredential(value: string, variableName: string): boolean {
   const lower = value.toLowerCase();
   return lower.startsWith(variableName.toLowerCase() + "=")
@@ -84,11 +89,13 @@ function looksLikeWrappedCredential(value: string, variableName: string): boolea
     || (value.startsWith("'") && value.endsWith("'"));
 }
 
+// Generate the SHA-1 hash required by Cloudinary signatures.
 async function sha1Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+// Sign Cloudinary parameters without exposing the API secret.
 async function sign(parameters: Record<string, string>, apiSecret: string): Promise<string> {
   const canonical = Object.keys(parameters)
     .sort()
@@ -97,10 +104,12 @@ async function sign(parameters: Record<string, string>, apiSecret: string): Prom
   return sha1Hex(canonical + apiSecret);
 }
 
+// Create a fixed image ID for each Firebase user.
 export function profilePublicId(uid: string): string {
   return "ethmar/profile-images/" + uid + "/profile";
 }
 
+// Parse Cloudinary responses and reject invalid JSON.
 async function safeJson<T>(response: Response): Promise<T> {
   try {
     return await response.json() as T;
@@ -109,6 +118,7 @@ async function safeJson<T>(response: Response): Promise<T> {
   }
 }
 
+// Limit the amount of error data read from Cloudinary.
 async function readBoundedErrorText(response: Response): Promise<string> {
   if (response.body === null) return "";
 
@@ -139,6 +149,7 @@ async function readBoundedErrorText(response: Response): Promise<string> {
   return new TextDecoder().decode(bytes);
 }
 
+// Extract the error message from a Cloudinary JSON response.
 function messageFromErrorJson(text: string): string {
   try {
     const body = JSON.parse(text) as { error?: { message?: unknown } };
@@ -148,6 +159,7 @@ function messageFromErrorJson(text: string): string {
   }
 }
 
+// Classify Cloudinary failures using the response status and message.
 function classifyCloudinaryDiagnostic(
   status: number,
   diagnostic: string,
@@ -204,8 +216,7 @@ function classifyCloudinaryDiagnostic(
 }
 
 async function cloudinaryHttpError(response: Response): Promise<CloudinaryError> {
-  // Cloudinary documents X-Cld-Error for diagnostics. Its raw value and the
-  // response body may contain signed parameters, so they are classified only.
+  // Classify provider errors without logging signed or private data.
   const header = response.headers.get("x-cld-error") ?? "";
   const bodyText = await readBoundedErrorText(response);
   const jsonMessage = messageFromErrorJson(bodyText);
@@ -215,6 +226,7 @@ async function cloudinaryHttpError(response: Response): Promise<CloudinaryError>
   );
 }
 
+// Accept only the expected HTTPS Cloudinary asset URL.
 function isExpectedUploadUrl(
   value: string,
   cloudName: string,
@@ -250,6 +262,7 @@ function isExpectedUploadUrl(
     && segments.slice(versionIndex + 1).join("/") === publicId + "." + PROFILE_IMAGE_FORMAT;
 }
 
+// Upload and replace the authenticated user's sanitized image.
 export async function uploadProfileImage(
   env: Env,
   uid: string,
@@ -258,6 +271,8 @@ export async function uploadProfileImage(
   const config = configFrom(env);
   const publicId = profilePublicId(uid);
   const timestamp = Math.floor(Date.now() / 1000);
+
+  // Set the image format, transformation, and overwrite options.
   const signedParameters = {
     format: PROFILE_IMAGE_FORMAT,
     invalidate: "true",
@@ -268,6 +283,7 @@ export async function uploadProfileImage(
   };
   const signature = await sign(signedParameters, config.apiSecret);
 
+  // Prepare the authenticated Cloudinary upload request.
   const form = new FormData();
   const imageBuffer = Uint8Array.from(image.bytes).buffer;
   form.set("file", new Blob([imageBuffer], { type: image.mediaType }), "profile." + image.extension);
@@ -286,6 +302,7 @@ export async function uploadProfileImage(
   }
   if (!response.ok) throw await cloudinaryHttpError(response);
 
+  // Validate the uploaded image details returned by Cloudinary.
   const data = await safeJson<CloudinaryUploadResponse>(response);
   if (
     data.resource_type !== "image"
@@ -322,10 +339,13 @@ export async function uploadProfileImage(
   };
 }
 
+// Delete the authenticated user's fixed Cloudinary asset.
 export async function deleteProfileImage(env: Env, uid: string): Promise<DeletedProfileImage> {
   const config = configFrom(env);
   const publicId = profilePublicId(uid);
   const timestamp = Math.floor(Date.now() / 1000);
+
+  // Sign the parameters required to delete the image.
   const signedParameters = {
     invalidate: "true",
     public_id: publicId,
@@ -333,6 +353,7 @@ export async function deleteProfileImage(env: Env, uid: string): Promise<Deleted
   };
   const signature = await sign(signedParameters, config.apiSecret);
 
+  // Prepare the authenticated Cloudinary delete request.
   const form = new URLSearchParams();
   form.set("api_key", config.apiKey);
   for (const [name, value] of Object.entries(signedParameters)) form.set(name, value);
@@ -353,6 +374,7 @@ export async function deleteProfileImage(env: Env, uid: string): Promise<Deleted
   }
   if (!response.ok) throw await cloudinaryHttpError(response);
 
+  // Confirm whether Cloudinary deleted the image or could not find it.
   const data = await safeJson<CloudinaryDestroyResponse>(response);
   if (data.result === "ok") return { publicId, deleted: true, notFound: false };
   if (data.result === "not found" || data.result === "not_found") {

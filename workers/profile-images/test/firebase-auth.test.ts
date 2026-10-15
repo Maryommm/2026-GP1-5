@@ -4,8 +4,6 @@ import {
   generateKeyPair,
   SignJWT,
 } from "jose";
-import { beforeAll, describe, expect, it } from "vitest";
-
 import {
   AuthenticationError,
   verifyFirebaseIdToken,

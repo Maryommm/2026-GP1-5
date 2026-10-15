@@ -2,9 +2,13 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../services/startup_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
+import 'complete_registration_screen.dart';
+import 'home_screen.dart';
+import 'login_screen.dart';
 import 'welcome_screen.dart';
 
 /// 3-second animated splash, matching the approved video preview:
@@ -12,9 +16,11 @@ import 'welcome_screen.dart';
 ///  0.75–1.38s  plant-shaped Alif stem grows up from its base
 ///  1.22–1.82s  its two leaves unfold
 ///  1.60–2.26s  the three dots of ث fall like little leaves
-///  2.70–3.00s  gentle fade, then the Welcome screen
+///  2.70–3.00s  gentle fade, then session-aware startup routing
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.startupService});
+
+  final StartupService? startupService;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -27,20 +33,51 @@ class _SplashScreenState extends State<SplashScreen>
     duration: const Duration(milliseconds: 3000),
   );
 
+  // Use StartupService to check the saved Firebase session.
+  late final StartupService _startupService =
+      widget.startupService ?? StartupService();
+
+  bool _navigated = false;
+
   @override
   void initState() {
     super.initState();
     // Don't start the clock until the first frame is actually on screen.
     // Otherwise the engine's start-up time eats the beginning of the
     // animation and it appears to begin half-way through.
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Future<void>.delayed(const Duration(milliseconds: 250));
-      if (!mounted) return;
-      _c.forward().whenComplete(() {
-        if (!mounted) return;
-        Navigator.of(context).pushReplacement(fadeRoute(const WelcomeScreen()));
-      });
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _runStartup());
+  }
+
+  // Finish the animation before checking the saved user session.
+  Future<void> _runStartup() async {
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+    await _c.forward();
+    if (!mounted) return;
+
+    // Check Firebase authentication and the user's profile.
+    final decision = await _startupService.resolve();
+
+    // Prevent navigation if the screen is closed or already redirected.
+    if (!mounted || _navigated) return;
+    _navigated = true;
+    Navigator.of(context).pushReplacement(fadeRoute(_pageFor(decision)));
+  }
+
+  // Choose the next screen based on the startup result.
+  Widget _pageFor(StartupDecision decision) {
+    return switch (decision.destination) {
+      StartupDestination.welcome => const WelcomeScreen(),
+      StartupDestination.login => LoginScreen(
+        email: decision.email,
+        resumePersistedSession: decision.resumePersistedSession,
+        startupFailure: decision.failure,
+      ),
+      StartupDestination.home => HomeScreen(username: decision.username),
+      StartupDestination.completeRegistration => CompleteRegistrationScreen(
+        email: decision.email,
+      ),
+    };
   }
 
   @override

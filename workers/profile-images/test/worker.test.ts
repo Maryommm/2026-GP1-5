@@ -1,5 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import { CloudinaryError, profilePublicId } from "../src/cloudinary";
 import { AuthenticationError } from "../src/firebase-auth";
 import { createWorker } from "../src/index";

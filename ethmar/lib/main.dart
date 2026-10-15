@@ -11,7 +11,11 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase before building the app.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Configure the system status and navigation bars.
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Color(0x00000000),
@@ -21,6 +25,7 @@ Future<void> main() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
+
   runApp(const EthmarApp());
 }
 
@@ -29,6 +34,7 @@ class EthmarApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Rebuild the app when the selected language changes.
     return ValueListenableBuilder<Locale>(
       valueListenable: appLocale,
       builder: (context, locale, _) => MaterialApp(
@@ -42,6 +48,8 @@ class EthmarApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
+
+        // Start with the splash screen to restore the user session.
         home: const SplashScreen(),
       ),
     );

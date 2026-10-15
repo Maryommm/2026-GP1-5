@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
+
 import '../theme/app_colors.dart';
+
 import '../theme/app_theme.dart';
+
 import 'character.dart';
+
 import 'doodles.dart' show SquiggleUnderline;
+
 import 'entrance.dart';
+
 import 'ethmar_buttons.dart';
 
-/// Header used on Sign up and Log in: back arrow, title with the
-/// hand-written coral line (the screen's one accent), character at the end.
+/// Shared header for authentication and registration screens.
 class AuthHeader extends StatelessWidget {
   const AuthHeader({
     super.key,
@@ -26,6 +31,7 @@ class AuthHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final top = MediaQuery.paddingOf(context).top;
+
     return Padding(
       padding: EdgeInsetsDirectional.fromSTEB(12, top + 8, 24, 0),
       child: Column(
@@ -45,14 +51,20 @@ class AuthHeader extends StatelessWidget {
                       children: [
                         Text(title, style: AppText.title(context)),
                         const SizedBox(height: 6),
+
+                        // Display the accent text with an animated underline.
                         IntrinsicWidth(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(accent, style: AppText.accent(context, size: 19)),
+                              Text(
+                                accent,
+                                style: AppText.accent(context, size: 19),
+                              ),
                               DelayedProgress(
                                 delay: const Duration(milliseconds: 400),
-                                builder: (_, p) => SquiggleUnderline(progress: p, width: 40),
+                                builder: (_, p) =>
+                                    SquiggleUnderline(progress: p, width: 40),
                               ),
                             ],
                           ),
@@ -62,6 +74,8 @@ class AuthHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
+
+                // Show the selected character beside the title.
                 Entrance(
                   delay: const Duration(milliseconds: 120),
                   child: EthmarCharacter(name: character, height: 112),
@@ -75,9 +89,15 @@ class AuthHeader extends StatelessWidget {
   }
 }
 
-/// "Already have an account? Log in" style footer.
+/// Shared footer with a question and a navigation link.
 class AuthFooter extends StatelessWidget {
-  const AuthFooter({super.key, required this.question, required this.action, required this.onTap});
+  const AuthFooter({
+    super.key,
+    required this.question,
+    required this.action,
+    required this.onTap,
+  });
+
   final String question;
   final String action;
   final VoidCallback onTap;
@@ -88,7 +108,10 @@ class AuthFooter extends StatelessWidget {
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text(question, style: AppText.small(context).copyWith(fontSize: 14)),
+        Text(
+          question,
+          style: AppText.small(context).copyWith(fontSize: 14),
+        ),
         const SizedBox(width: 2),
         EthmarLink(label: action, onTap: onTap),
       ],
@@ -96,22 +119,35 @@ class AuthFooter extends StatelessWidget {
   }
 }
 
-/// Friendly floating message at the bottom of the screen.
-void showEthmarToast(BuildContext context, String message,
-    {IconData icon = Icons.check_circle_rounded, Color color = AppColors.forest}) {
+/// Show a floating message and replace any previous message.
+void showEthmarToast(
+  BuildContext context,
+  String message, {
+  IconData icon = Icons.check_circle_rounded,
+  Color color = AppColors.forest,
+}) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: color,
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      content: Row(
-        children: [
-          Icon(icon, color: AppColors.sun),
-          const SizedBox(width: 10),
-          Expanded(child: Text(message, style: AppText.label(context, color: Colors.white))),
-        ],
+    ..showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: color,
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        content: Row(
+          children: [
+            Icon(icon, color: AppColors.sun),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: AppText.label(context, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
 }

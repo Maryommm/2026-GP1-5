@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import {
   MAX_IMAGE_BYTES,
   MAX_REQUEST_BYTES,
@@ -12,8 +10,7 @@ const ONE_PIXEL_PNG = Uint8Array.from(
   (character) => character.charCodeAt(0),
 );
 
-// Encoded by a standard JPEG encoder. This caught a parser bug where the
-// final FFD9 marker was never visited.
+// Covers the final JPEG marker that caused an earlier parser bug.
 const ONE_PIXEL_JPEG = Uint8Array.from(
   atob(
     "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYI"

@@ -1,5 +1,3 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-
 import {
   deleteProfileImage,
   PROFILE_IMAGE_FORMAT,

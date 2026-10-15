@@ -15,6 +15,7 @@ import 'home_screen.dart';
 import 'login_screen.dart';
 import 'validators.dart';
 
+// Screen for creating a new user account.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -26,17 +27,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _form = GlobalKey<FormState>();
   final _authService = AuthService();
   final _userService = UserService();
+
+  // Store the information entered by the user.
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+
+  // Track registration and email verification.
   bool _loading = false;
   String? _verificationAccountId;
   String? _verificationAccountEmail;
   bool _verificationSent = false;
 
+  // Check if there is an account waiting for verification.
   bool get _hasVerificationAccount =>
       _verificationAccountId != null && _verificationAccountEmail != null;
 
+  // Clear the text controllers when the screen closes.
   @override
   void dispose() {
     _username.dispose();
@@ -45,10 +52,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  // Check that the same user is still signed in.
   bool _currentUserMatchesVerificationAccount() {
     final user = FirebaseAuth.instance.currentUser;
     final accountId = _verificationAccountId;
     final accountEmail = _verificationAccountEmail;
+
     if (user == null || accountId == null || accountEmail == null) {
       return false;
     }
@@ -57,6 +66,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         user.email?.trim().toLowerCase() == accountEmail.toLowerCase();
   }
 
+  // Show the correct message for Firebase Auth errors.
   String _authErrorMessage(FirebaseAuthException error, S s) {
     return switch (error.code) {
       'invalid-email' => s.errEmailInvalid,
@@ -68,6 +78,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     };
   }
 
+  // Show the correct message for Firestore errors.
   String _firestoreErrorMessage(FirebaseException error, S s) {
     return switch (error.code) {
       'unavailable' || 'deadline-exceeded' => s.errNetwork,
@@ -75,16 +86,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
     };
   }
 
+  // Show an error message on the screen.
   void _showError(String message) {
     showEthmarToast(context, message, icon: Icons.error_outline_rounded);
   }
 
-  /// Create account: creates the Firebase account (first tap only), sends
-  /// the verification email, then waits in a dialog until the link is
-  /// opened. Once verified, the profile is created and Home opens.
+  // Create a new account or continue an unfinished registration.
   Future<void> _submit() async {
     if (_loading) return;
+
     FocusScope.of(context).unfocus();
+
+    // Check the username, email, and password before continuing.
     if (!(_form.currentState?.validate() ?? false)) return;
 
     final email = _email.text.trim();
@@ -92,45 +105,61 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final username = _username.text.trim();
     final s = S.of(context);
 
+    // Show the loading state while registration is running.
     setState(() => _loading = true);
+
     try {
       final existingAccountEmail = _verificationAccountEmail;
+
+      // Create a new account if one was not created earlier.
       if (existingAccountEmail == null) {
         final credential = await _authService.createAccount(
           email: email,
           password: password,
         );
+
         final createdUser = credential.user;
         final createdEmail = createdUser?.email?.trim();
+
+        // Stop if Firebase did not return the new account.
         if (createdUser == null ||
             createdEmail == null ||
             createdEmail.isEmpty) {
           throw StateError('Firebase did not return the created account.');
         }
+
         if (!mounted) return;
+
+        // Save the account details for email verification.
         setState(() {
           _verificationAccountId = createdUser.uid;
           _verificationAccountEmail = createdEmail;
         });
+
       } else if (email.toLowerCase() != existingAccountEmail.toLowerCase()) {
+        // Do not switch email addresses during registration.
         _showError(s.errAuthSessionMismatch);
         return;
       }
 
+      // Make sure the current user matches the created account.
       if (!_currentUserMatchesVerificationAccount()) {
         _showError(s.errAuthSessionMismatch);
         return;
       }
 
-      // Skipped when an earlier attempt already got verified (e.g. the
-      // username was taken and the user picked a new one).
+      // Skip email verification if the user is already verified.
       if (!await _authService.isEmailVerified()) {
-        // Send automatically only once; the dialog has a resend button.
+
+        // Send the email once. The user can resend it from the dialog.
         if (!_verificationSent) {
           await _authService.sendEmailVerification();
           _verificationSent = true;
         }
+
         if (!mounted) return;
+
+        // Open the dialog and wait for email verification.
         final verified = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
@@ -139,6 +168,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             authService: _authService,
           ),
         );
+
+        // Return to Login if the user does not complete verification.
         if (verified != true) {
           try {
             await _authService.signOut();
@@ -147,50 +178,75 @@ class _SignUpScreenState extends State<SignUpScreen> {
             _showError(s.errLogout);
             return;
           }
+
           if (!mounted) return;
+
           Navigator.of(context)
               .pushReplacement(riseRoute(LoginScreen(email: email)));
+
           return;
         }
+
         if (!mounted) return;
       }
 
+      // Check the account again before saving the profile.
       if (!_currentUserMatchesVerificationAccount()) {
         _showError(s.errAuthSessionMismatch);
         return;
       }
 
+      // Save the user's profile in Firestore.
       await _userService.createCurrentUserProfile(username: username);
+
       if (!mounted) return;
+
+      // Make sure the account did not change while saving the profile.
       if (!_currentUserMatchesVerificationAccount()) {
         _showError(s.errAuthSessionMismatch);
         return;
       }
 
+      // Show a success message and open Home.
       showEthmarToast(context, s.accountCreated);
+
       Navigator.of(context).pushAndRemoveUntil(
         riseRoute(HomeScreen(username: username)),
         (_) => false,
       );
+
     } on FirebaseAuthException catch (error) {
+      // Handle Firebase Authentication errors.
       if (!mounted) return;
       _showError(_authErrorMessage(error, s));
+
     } on UsernameAlreadyTakenException {
+      // Tell the user if the username is already taken.
       if (!mounted) return;
       _showError(s.errUsernameTaken);
+
     } on UserProfileConflictException {
+      // Handle problems with the existing user profile.
       if (!mounted) return;
       _showError(s.errProfileConflict);
+
     } on FirebaseException catch (error) {
+      // Handle Firestore errors.
       if (!mounted) return;
       _showError(_firestoreErrorMessage(error, s));
+
     } on StateError {
+      // Handle problems with the current login session.
       if (!mounted) return;
       _showError(s.errAuthSessionMismatch);
+
     } catch (_) {
+      // Show a general message for unexpected errors.
       if (!mounted) return;
       _showError(s.errAuthGeneral);
+
     } finally {
+      // Stop loading when registration finishes or fails.
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -198,6 +254,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+
     return Scaffold(
       body: LeafPrintBackground(
         child: SingleChildScrollView(
@@ -222,6 +279,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: AutofillGroup(
                       child: Column(
                         children: [
+
+                          // Username input field.
                           EthmarTextField(
                             label: s.username,
                             hint: s.usernameHint,
@@ -232,7 +291,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             autofillHints: const [AutofillHints.newUsername],
                             validator: (v) => Validators.username(v, s),
                           ),
+
                           const SizedBox(height: 20),
+
+                          // Email input field.
                           EthmarTextField(
                             label: s.email,
                             hint: s.emailHint,
@@ -243,7 +305,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             autofillHints: const [AutofillHints.email],
                             validator: (v) => Validators.email(v, s),
                           ),
+
                           const SizedBox(height: 20),
+
+                          // Password input field.
                           EthmarTextField(
                             label: s.password,
                             hint: s.passwordHint,
@@ -256,14 +321,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             validator: (v) => Validators.password(v, s),
                             onSubmitted: _loading ? null : (_) => _submit(),
                           ),
+
                           const SizedBox(height: 36),
+
+                          // Create account button.
                           EthmarButton(
                             label: s.createButton,
                             showArrow: true,
                             loading: _loading,
                             onPressed: _loading ? null : _submit,
                           ),
+
                           const SizedBox(height: 12),
+
+                          // Link to the Login screen.
                           IgnorePointer(
                             ignoring: _loading,
                             child: AuthFooter(
@@ -271,6 +342,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               action: s.logInLink,
                               onTap: () {
                                 if (_loading) return;
+
                                 Navigator.of(context).pushReplacement(
                                   riseRoute(const LoginScreen()),
                                 );

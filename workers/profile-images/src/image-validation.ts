@@ -1,14 +1,17 @@
 import type { SupportedImageType, ValidatedImage } from "./types";
 
+// Set the maximum image and request sizes.
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_REQUEST_BYTES = 6 * 1024 * 1024;
 
+// Map supported image types to file extensions.
 const TYPE_TO_EXTENSION: Record<SupportedImageType, ValidatedImage["extension"]> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
 };
 
+// Define validation errors for invalid upload requests.
 export class RequestValidationError extends Error {
   constructor(
     readonly code:
@@ -35,6 +38,7 @@ function requestTooLarge(): RequestValidationError {
   );
 }
 
+// Check the declared request size before reading the body.
 export function assertDeclaredRequestSize(request: Request): void {
   const value = request.headers.get("content-length");
   if (value === null) return;
@@ -48,6 +52,7 @@ export function assertDeclaredRequestSize(request: Request): void {
   if (Number(value) > MAX_REQUEST_BYTES) throw requestTooLarge();
 }
 
+// Read the request body without exceeding the upload limit.
 async function readRequestBody(request: Request): Promise<Uint8Array> {
   assertDeclaredRequestSize(request);
   if (request.body === null) {
@@ -61,6 +66,8 @@ async function readRequestBody(request: Request): Promise<Uint8Array> {
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
+
+  // Stop reading if the request exceeds the allowed size.
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -70,13 +77,14 @@ async function readRequestBody(request: Request): Promise<Uint8Array> {
       try {
         await reader.cancel("Request body exceeds the configured size limit.");
       } catch {
-        // The request is rejected regardless of runtime-specific cancellation errors.
+        // Reject the request even if canceling the reader fails.
       }
       throw requestTooLarge();
     }
     chunks.push(value);
   }
 
+  // Combine the received chunks into one byte array.
   const result = new Uint8Array(total);
   let offset = 0;
   for (const chunk of chunks) {
@@ -86,6 +94,7 @@ async function readRequestBody(request: Request): Promise<Uint8Array> {
   return result;
 }
 
+// Read ASCII characters from image bytes.
 function ascii(bytes: Uint8Array, offset: number, length: number): string {
   let result = "";
   for (let i = offset; i < offset + length; i += 1) {
@@ -94,6 +103,7 @@ function ascii(bytes: Uint8Array, offset: number, length: number): string {
   return result;
 }
 
+// Read a 32-bit big-endian integer.
 function uint32be(bytes: Uint8Array, offset: number): number {
   return (
     bytes[offset] * 0x1000000
@@ -103,6 +113,7 @@ function uint32be(bytes: Uint8Array, offset: number): number {
   );
 }
 
+// Read a 32-bit little-endian integer.
 function uint32le(bytes: Uint8Array, offset: number): number {
   return (
     bytes[offset]
@@ -112,6 +123,7 @@ function uint32le(bytes: Uint8Array, offset: number): number {
   );
 }
 
+// Check the PNG signature, dimensions, chunks, and final marker.
 function isPng(bytes: Uint8Array): boolean {
   const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (bytes.length < 45 || !signature.every((byte, i) => bytes[i] === byte)) return false;
@@ -143,11 +155,13 @@ function isPng(bytes: Uint8Array): boolean {
   return foundIend;
 }
 
+// JPEG markers that contain image dimensions.
 const JPEG_SOF_MARKERS = new Set([
   0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,
   0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
 ]);
 
+// Check JPEG markers and require valid image dimensions.
 function isJpeg(bytes: Uint8Array): boolean {
   if (
     bytes.length < 14
@@ -160,8 +174,7 @@ function isJpeg(bytes: Uint8Array): boolean {
   let offset = 2;
   let foundSof = false;
   let foundSos = false;
-  // The EOI marker starts exactly two bytes before the end of a normal JPEG.
-  // Using `<` here skipped FFD9 and rejected every otherwise valid JPEG.
+  // Include the final EOI marker when checking the JPEG.
   while (offset <= bytes.length - 2) {
     if (bytes[offset] !== 0xff) {
       if (!foundSos) return false;
@@ -192,6 +205,7 @@ function isJpeg(bytes: Uint8Array): boolean {
   return false;
 }
 
+// Validate RIFF WebP data and its image chunk.
 function isWebp(bytes: Uint8Array): boolean {
   if (
     bytes.length < 26
@@ -248,6 +262,7 @@ function isWebp(bytes: Uint8Array): boolean {
   return foundImageChunk && offset === bytes.length;
 }
 
+// Detect the actual image type from its content.
 function actualType(bytes: Uint8Array): SupportedImageType | null {
   if (isJpeg(bytes)) return "image/jpeg";
   if (isPng(bytes)) return "image/png";
@@ -255,6 +270,7 @@ function actualType(bytes: Uint8Array): SupportedImageType | null {
   return null;
 }
 
+// Accept exactly one valid image from the multipart request.
 export async function parseProfileImageRequest(request: Request): Promise<ValidatedImage> {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().startsWith("multipart/form-data;")) {
@@ -265,6 +281,7 @@ export async function parseProfileImageRequest(request: Request): Promise<Valida
     );
   }
 
+  // Read and parse the multipart request.
   const body = await readRequestBody(request);
   let form: FormData;
   try {
@@ -283,6 +300,7 @@ export async function parseProfileImageRequest(request: Request): Promise<Valida
     entries.push([key, value]);
   });
 
+  // Reject unexpected fields and multiple files.
   if (entries.some(([key]) => key !== "file")) {
     throw new RequestValidationError(
       "UNEXPECTED_FIELD",
@@ -305,12 +323,15 @@ export async function parseProfileImageRequest(request: Request): Promise<Valida
       "Exactly one profile image is required.",
     );
   }
+
+  // Reject empty or oversized image files.
   const file = value;
   if (file.size === 0) {
     throw new RequestValidationError("EMPTY_FILE", 400, "The profile image is empty.");
   }
   if (file.size > MAX_IMAGE_BYTES) throw requestTooLarge();
 
+  // Validate the image using its bytes, not only its declared type.
   const bytes = new Uint8Array(await file.arrayBuffer());
   const detectedType = actualType(bytes);
   if (detectedType === null) {
@@ -329,6 +350,7 @@ export async function parseProfileImageRequest(request: Request): Promise<Valida
     );
   }
 
+  // Return the validated image data for uploading.
   return {
     bytes,
     mediaType: detectedType,

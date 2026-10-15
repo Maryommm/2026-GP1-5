@@ -17,6 +17,7 @@ import '../widgets/ethmar_text_field.dart';
 import '../widgets/user_avatar.dart';
 import 'validators.dart';
 
+// Allow users to edit their username and profile photo.
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key, required this.username});
   final String username;
@@ -30,25 +31,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _userService = UserService();
   final _profileImageService = ProfileImageService();
   final _imagePicker = ImagePicker();
+
+  // Store the username entered by the user.
   late final _username = TextEditingController(text: widget.username);
+
+  // Listen for changes to the profile photo.
   StreamSubscription<UploadedProfileImage?>? _profileImageSubscription;
+
+  // Store the current uploaded photo.
   UploadedProfileImage? _uploadedProfileImage;
+
+  // Track username saving and photo operations.
   bool _saving = false;
   bool _photoBusy = false;
 
+  // Check if the username has changed.
   bool get _hasChanges => _username.text.trim() != widget.username;
 
   @override
   void initState() {
     super.initState();
+
+    // Listen for profile photo updates from Firestore.
     _profileImageSubscription = _profileImageService
         .watchCurrentProfileImage()
         .listen(
           (image) {
+            // Update the displayed photo when it changes.
             if (mounted) setState(() => _uploadedProfileImage = image);
           },
           onError: (Object _, StackTrace __) {
-            // Keep the initial fallback if Firestore is temporarily unavailable.
+            // Use the default avatar if the photo cannot be loaded.
             if (mounted) setState(() => _uploadedProfileImage = null);
           },
         );
@@ -56,102 +69,160 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
+    // Stop listening and release resources.
     _profileImageSubscription?.cancel();
     _profileImageService.close();
     _username.dispose();
     super.dispose();
   }
 
+  // Save the updated username to Firestore.
   Future<void> _save() async {
+    // Prevent saving during another operation.
     if (_saving || _photoBusy) return;
+
     FocusScope.of(context).unfocus();
+
+    // Check that the username is valid.
     if (!(_form.currentState?.validate() ?? false)) return;
 
     final s = S.of(context);
     final newUsername = _username.text.trim();
 
-    // Nothing changed: no database write, just go back.
+    // Return without saving if the username has not changed.
     if (newUsername == widget.username) {
       Navigator.of(context).pop();
       return;
     }
 
+    // Show loading while saving.
     setState(() => _saving = true);
+
     try {
+      // Update the username and its reservation in Firestore.
       await _userService.updateCurrentUsername(newUsername);
+
       if (!mounted) return;
-      // Only shown once Firestore has actually saved the change.
+
+      // Show success only after saving.
       showEthmarToast(context, s.profileUpdated);
+
+      // Return to the Profile screen.
       Navigator.of(context).pop();
+
     } on UsernameAlreadyTakenException {
+      // Show an error if the username is already taken.
       if (!mounted) return;
       _showError(s.errUsernameInUse);
+
     } on FirebaseException catch (error) {
+      // Handle Firestore and network errors.
       if (!mounted) return;
       _showError(switch (error.code) {
         'unavailable' || 'deadline-exceeded' => s.errNetwork,
         _ => s.errProfileUpdate,
       });
+
     } catch (_) {
+      // Handle unexpected errors.
       if (!mounted) return;
       _showError(s.errProfileUpdate);
+
     } finally {
+      // Stop loading after saving finishes.
       if (mounted) setState(() => _saving = false);
     }
   }
 
+  // Show an error message to the user.
   void _showError(String message) {
     showEthmarToast(context, message, icon: Icons.error_outline_rounded);
   }
 
+  // Choose a photo and upload it.
   Future<void> _chooseAndUploadPhoto(ImageSource source) async {
+    // Prevent multiple operations at the same time.
     if (_saving || _photoBusy) return;
+
     setState(() => _photoBusy = true);
+
     try {
+      // Open the camera or gallery to select a photo.
       final image = await _imagePicker.pickImage(
         source: source,
         maxWidth: 4096,
         maxHeight: 4096,
         requestFullMetadata: false,
       );
+
+      // Stop if the user did not select a photo.
       if (image == null) return;
 
+      // Upload the selected photo.
       final uploaded = await _profileImageService.upload(image);
+
       if (!mounted) return;
+
+      // Update the displayed profile photo.
       setState(() => _uploadedProfileImage = uploaded);
+
+      // Show a success message.
       showEthmarToast(context, S.of(context).profilePhotoUploaded);
+
     } on ProfileImageException catch (error) {
+      // Show the correct profile photo error.
       if (!mounted) return;
       _showError(_profilePhotoError(S.of(context), error));
+
     } catch (_) {
+      // Handle errors while choosing or uploading the photo.
       if (!mounted) return;
       _showError(S.of(context).errProfilePhotoPick);
+
     } finally {
+      // Stop loading after the photo operation finishes.
       if (mounted) setState(() => _photoBusy = false);
     }
   }
 
+  // Delete the current profile photo.
   Future<void> _deletePhoto() async {
+    // Stop if there is no photo or another operation is running.
     if (_uploadedProfileImage == null || _saving || _photoBusy) {
       return;
     }
+
     setState(() => _photoBusy = true);
+
     try {
+      // Delete the uploaded photo.
       await _profileImageService.delete();
+
       if (!mounted) return;
+
+      // Return to the default avatar.
       setState(() => _uploadedProfileImage = null);
+
+      // Show a success message.
       showEthmarToast(context, S.of(context).profilePhotoDeleted);
+
     } on ProfileImageException catch (error) {
+      // Show the correct deletion error.
       if (!mounted) return;
       _showError(_profilePhotoError(S.of(context), error));
+
     } catch (_) {
+      // Handle unexpected deletion errors.
       if (!mounted) return;
       _showError(S.of(context).errProfilePhotoServer);
+
     } finally {
+      // Stop loading after deletion finishes.
       if (mounted) setState(() => _photoBusy = false);
     }
   }
 
+  // Convert photo errors into user-friendly messages.
   String _profilePhotoError(S s, ProfileImageException error) {
     final message = switch (error.code) {
       ProfileImageErrorCode.unauthenticated ||
@@ -165,23 +236,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ProfileImageErrorCode.server ||
       ProfileImageErrorCode.invalidResponse => s.errProfilePhotoServer,
     };
+
+    // Include safe error details if available.
     final diagnostic = error.safeDiagnostic;
     return diagnostic == null ? message : '$message\n[$diagnostic]';
   }
 
-  /// Cancel, the back arrow and the system back all come here.
+  // Handle leaving the screen.
   Future<void> _leave() async {
+    // Prevent leaving during an active operation.
     if (_saving || _photoBusy) return;
+
+    // Leave directly if there are no unsaved changes.
     if (!_hasChanges) {
       Navigator.of(context).pop();
       return;
     }
+
+    // Ask before discarding unsaved changes.
     final discard = await _confirmDiscard();
+
     if (discard == true && mounted) Navigator.of(context).pop();
   }
 
+  // Show a dialog to confirm discarding changes.
   Future<bool?> _confirmDiscard() {
     final s = S.of(context);
+
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -192,17 +273,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Show the discard confirmation title.
               Text(
                 s.discardChangesTitle,
                 textAlign: TextAlign.center,
                 style: AppText.title(context).copyWith(fontSize: 22),
               ),
+
               const SizedBox(height: 24),
+
+              // Continue editing without leaving.
               EthmarButton(
                 label: s.keepEditing,
                 onPressed: () => Navigator.of(dialogContext).pop(false),
               ),
+
               const SizedBox(height: 12),
+
+              // Discard changes and leave the screen.
               EthmarButton(
                 label: s.discard,
                 outlined: true,
@@ -218,8 +306,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    // Back (arrow or system gesture) never closes the screen directly, so
-    // unsaved changes can be confirmed first.
+
+    // Handle the back button without losing unsaved changes.
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -230,11 +318,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: SingleChildScrollView(
             child: Column(
               children: [
+                // Edit Profile screen header.
                 AuthHeader(
                   title: s.editProfileTitle,
                   accent: s.editProfileAccent,
                   character: 'ethmar_buddy_seedling',
                 ),
+
                 Padding(
                   padding: EdgeInsetsDirectional.fromSTEB(
                     24,
@@ -248,6 +338,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       key: _form,
                       child: Column(
                         children: [
+                          // Display the profile photo and photo options.
                           _PhotoArea(
                             username: widget.username,
                             imageUrl: _uploadedProfileImage?.secureUrl,
@@ -260,7 +351,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ? _deletePhoto
                                 : null,
                           ),
+
                           const SizedBox(height: 28),
+
+                          // Username input field.
                           EthmarTextField(
                             label: s.username,
                             hint: s.usernameHint,
@@ -274,13 +368,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ? null
                                 : (_) => _save(),
                           ),
+
                           const SizedBox(height: 28),
+
+                          // Button to save username changes.
                           EthmarButton(
                             label: s.save,
                             loading: _saving,
                             onPressed: _saving || _photoBusy ? null : _save,
                           ),
+
                           const SizedBox(height: 12),
+
+                          // Button to cancel editing.
                           EthmarButton(
                             label: s.cancel,
                             outlined: true,
@@ -300,11 +400,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Profile photo controls. Metadata lives in users/{uid}/media/profile, so the
-// four-field users/{uid} profile remains unchanged.
-// ---------------------------------------------------------------------------
-
+// Display the profile photo and photo action buttons.
 class _PhotoArea extends StatelessWidget {
   const _PhotoArea({
     required this.username,
@@ -325,12 +421,16 @@ class _PhotoArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+
     return Column(
       children: [
         Stack(
           clipBehavior: Clip.none,
           children: [
+            // Display the current photo or default avatar.
             UserAvatar(username: username, size: 96, imageUrl: imageUrl),
+
+            // Show loading over the avatar during photo operations.
             if (loading)
               const Positioned.fill(
                 child: DecoratedBox(
@@ -346,6 +446,8 @@ class _PhotoArea extends StatelessWidget {
                   ),
                 ),
               ),
+
+            // Camera button on the avatar.
             Positioned(
               right: 0,
               bottom: 0,
@@ -370,22 +472,30 @@ class _PhotoArea extends StatelessWidget {
             ),
           ],
         ),
+
         const SizedBox(height: 16),
+
+        // Display camera, gallery, and delete options.
         Wrap(
           alignment: WrapAlignment.center,
           spacing: 8,
           runSpacing: 8,
           children: [
+            // Take a new photo using the camera.
             _PhotoPill(
               icon: Icons.photo_camera_outlined,
               label: s.takePhoto,
               onTap: loading ? null : onTakePhoto,
             ),
+
+            // Choose a photo from the gallery.
             _PhotoPill(
               icon: Icons.photo_library_outlined,
               label: s.chooseFromGallery,
               onTap: loading ? null : onChooseFromGallery,
             ),
+
+            // Show the delete option only when a photo exists.
             if (onDelete != null)
               _PhotoPill(
                 icon: Icons.delete_outline_rounded,
@@ -399,7 +509,7 @@ class _PhotoArea extends StatelessWidget {
   }
 }
 
-/// Small tinted pill, the same colours as the outlined [EthmarButton].
+// Build a small button for profile photo actions.
 class _PhotoPill extends StatelessWidget {
   const _PhotoPill({required this.icon, required this.label, this.onTap});
 
