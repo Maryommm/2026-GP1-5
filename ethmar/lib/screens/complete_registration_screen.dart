@@ -15,6 +15,16 @@ import 'home_screen.dart';
 import 'login_screen.dart';
 import 'validators.dart';
 
+@visibleForTesting
+String completeRegistrationFirebaseErrorMessage(FirebaseException error, S s) {
+  return switch (error.code) {
+    'network-request-failed' ||
+    'unavailable' ||
+    'deadline-exceeded' => s.errNetwork,
+    _ => s.errProfileCreate,
+  };
+}
+
 // Complete registration when the user has no Firestore profile.
 class CompleteRegistrationScreen extends StatefulWidget {
   const CompleteRegistrationScreen({super.key, required this.email});
@@ -89,10 +99,7 @@ class _CompleteRegistrationScreenState
     } on FirebaseException catch (error) {
       // Show a network or profile creation error.
       if (!mounted) return;
-      _showError(switch (error.code) {
-        'unavailable' || 'deadline-exceeded' => s.errNetwork,
-        _ => s.errProfileCreate,
-      });
+      _showError(completeRegistrationFirebaseErrorMessage(error, s));
 
     } on StateError {
       // Show an error if the authentication session is invalid.

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ethmar/services/profile_image_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -430,6 +431,28 @@ void main() {
   });
 
   group('ProfileImageService delete', () {
+    test('maps Firebase token refresh network errors to network', () async {
+      final store = _FakeMetadataStore();
+      var requests = 0;
+      final service = ProfileImageService(
+        client: MockClient((_) async {
+          requests += 1;
+          return http.Response('', 500);
+        }),
+        metadataStore: store,
+        sessionProvider: () async =>
+            throw FirebaseAuthException(code: 'network-request-failed'),
+      );
+      addTearDown(service.close);
+
+      await expectLater(
+        service.delete(),
+        throwsA(_profileError(ProfileImageErrorCode.network)),
+      );
+      expect(requests, 0);
+      expect(store.deletedUid, isNull);
+    });
+
     test('deletes Cloudinary first and then removes metadata', () async {
       final store = _FakeMetadataStore();
       final client = MockClient((request) async {
