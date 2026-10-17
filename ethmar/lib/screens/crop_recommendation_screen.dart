@@ -37,7 +37,39 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
   // fetches the data
   late final _load = widget.load ?? CropRecommendationService().recommend;
   late Future<CropRecommendationResult> _future = _load();
-  void _retry() => setState(() => _future = _load());
+  // The braces matter: `() => _future = ...` would return the Future, which
+  // setState doesn't allow.
+  void _retry() => setState(() {
+        _future = _load();
+      });
+
+  // True after we send the user to the phone's settings to allow location,
+  // so we try again by ourselves when they come back to the app.
+  bool _sentToSettings = false;
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(onResume: _onResume);
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  void _onResume() {
+    if (!_sentToSettings) return;
+    _sentToSettings = false;
+    _retry();
+  }
+
+  void _openSettings(String status) {
+    _sentToSettings = true;
+    CropRecommendationService.openLocationSettings(status);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +84,11 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
               child = const _LoadingView();
               // The request failed: show the error message.
             } else if (snap.hasError || snap.data == null) {
-              child = _ErrorView(error: snap.error, onRetry: _retry);
+              child = _ErrorView(
+                error: snap.error,
+                onRetry: _retry,
+                onOpenSettings: _openSettings,
+              );
               // It worked but returned no crops: show the "no crops" message.
             } else if (snap.data!.crops.isEmpty) {
               child = _ErrorView(onRetry: _retry, empty: true);
@@ -176,24 +212,60 @@ class _LoadingViewState extends State<_LoadingView> {
 
 /// Shown when loading fails, or when no crop
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.onRetry, this.error, this.empty = false});
+  const _ErrorView({
+    required this.onRetry,
+    this.onOpenSettings,
+    this.error,
+    this.empty = false,
+  });
   final VoidCallback onRetry;
+
+  /// Opens the phone's settings for a LOCATION_OFF / LOCATION_BLOCKED error.
+  final ValueChanged<String>? onOpenSettings;
   final Object? error;
 
   /// The request worked but no crop suits the area this month.
   final bool empty;
+
+  /// The error's status, e.g. 'LOCATION_DENIED' (null for other errors).
+  String? get _status {
+    final e = error;
+    return e is CropRecommendationException ? e.status : null;
+  }
+
   String _message(S s) {
     if (empty) return s.cropNoCrops;
-    final e = error;
-    if (e is CropRecommendationException) {
-      switch (e.status) {
-        case 'UNAUTHENTICATED':
-          return s.cropErrorSignIn;
-        case 'UNAVAILABLE':
-          return s.cropErrorClimate;
-      }
+    return switch (_status) {
+      'UNAUTHENTICATED' => s.cropErrorSignIn,
+      'UNAVAILABLE' => s.cropErrorClimate,
+      'LOCATION_DENIED' => s.cropLocationDenied,
+      'LOCATION_BLOCKED' => s.cropLocationBlocked,
+      'LOCATION_OFF' => s.cropLocationOff,
+      'LOCATION_UNAVAILABLE' => s.cropLocationUnavailable,
+      _ => s.cropError,
+    };
+  }
+
+  /// The main button, plus a smaller "Try again" link when the main button
+  /// sends the user to the phone's settings.
+  List<Widget> _actions(S s) {
+    final status = _status;
+    // Denied once: trying again shows the location prompt again.
+    if (status == 'LOCATION_DENIED') {
+      return [EthmarButton(label: s.mapAllowLocation, onPressed: onRetry)];
     }
-    return s.cropError;
+    // Off or blocked: only the phone's settings can change it. The screen
+    // tries again by itself when the user comes back.
+    final open = onOpenSettings;
+    if (open != null &&
+        (status == 'LOCATION_OFF' || status == 'LOCATION_BLOCKED')) {
+      return [
+        EthmarButton(label: s.cropOpenSettings, onPressed: () => open(status!)),
+        const SizedBox(height: 4),
+        EthmarLink(label: s.tryAgain, onTap: onRetry),
+      ];
+    }
+    return [EthmarButton(label: s.tryAgain, onPressed: onRetry)];
   }
 
   @override
@@ -226,8 +298,7 @@ class _ErrorView extends StatelessWidget {
                     style: AppText.body(context),
                   ),
                   const SizedBox(height: 24),
-                  // Calls onRetry, which starts the request again.
-                  EthmarButton(label: s.tryAgain, onPressed: onRetry),
+                  ..._actions(s),
                 ],
               ),
             ),

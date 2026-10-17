@@ -111,6 +111,15 @@ class AppStrings {
     'cropErrorSignIn': 'Please log in again to see your recommendations',
     'cropErrorClimate':
         "We couldn't reach the climate service. Please try again later",
+    'cropLocationDenied':
+        'We need your location to suggest crops for your area. Allow location access to see your recommendations',
+    'cropLocationBlocked':
+        "Location access is off for Ethmar. Allow it in your phone's settings to see crops for your area",
+    'cropLocationOff':
+        "Your phone's location is turned off. Turn it on to see crops for your area",
+    'cropLocationUnavailable':
+        "We couldn't find your location. Please try again",
+    'cropOpenSettings': 'Open settings',
     'month1': 'Jan',
     'month2': 'Feb',
     'month3': 'Mar',
@@ -449,6 +458,13 @@ class AppStrings {
     'cropError': 'تعذّر جلب الاقتراحات. حاول مرة أخرى',
     'cropErrorSignIn': 'سجّل دخولك مرة ثانية عشان تشوف الاقتراحات',
     'cropErrorClimate': 'تعذّر الوصول لبيانات المناخ. حاول مرة ثانية بعدين',
+    'cropLocationDenied':
+        'نحتاج موقعك عشان نقترح محاصيل تناسب منطقتك. اسمح بالوصول للموقع عشان تشوف الاقتراحات',
+    'cropLocationBlocked':
+        'إذن الموقع مقفل لإثمار. اسمح فيه من إعدادات جوالك عشان تشوف المحاصيل المناسبة لمنطقتك',
+    'cropLocationOff': 'الموقع مقفل في جوالك. شغّله عشان تشوف المحاصيل المناسبة لمنطقتك',
+    'cropLocationUnavailable': 'ما قدرنا نحدد موقعك. حاول مرة ثانية',
+    'cropOpenSettings': 'فتح الإعدادات',
     'month1': 'يناير',
     'month2': 'فبراير',
     'month3': 'مارس',
@@ -777,6 +793,11 @@ class S {
   String get cropError => t('cropError');
   String get cropErrorSignIn => t('cropErrorSignIn');
   String get cropErrorClimate => t('cropErrorClimate');
+  String get cropLocationDenied => t('cropLocationDenied');
+  String get cropLocationBlocked => t('cropLocationBlocked');
+  String get cropLocationOff => t('cropLocationOff');
+  String get cropLocationUnavailable => t('cropLocationUnavailable');
+  String get cropOpenSettings => t('cropOpenSettings');
 
   /// Month 1-12 by name, e.g. "Oct" / "أكتوبر".
   String monthName(int month) => t('month$month');
