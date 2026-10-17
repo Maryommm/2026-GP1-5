@@ -1,7 +1,8 @@
+// Leaderboard screen: ranks the user against other players by how many
+// plants they have in their farm.
+
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-
 import '../l10n/app_strings.dart';
 import '../services/farm_store.dart';
 import '../services/user_service.dart' show currentUsername;
@@ -12,15 +13,8 @@ import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/page_header.dart';
 
-/// Leaderboard (from the sketch): where the user ranks by number of plants,
-/// a podium for the top 3, then places 4 to 10. If the user is further
-/// down, their own row follows the list.
-///
-/// The rank and podium sit on a dark green "stage" so the top 3 stand out;
-/// the list below stays light and calm.
-///
-/// UI only for now: the other players are made up; the user's count comes
-/// from their farm.
+// ASK FOR PERMISSION FROM THE USER TO ACCESS THEIR NAME AND PROFILE PICTURE.
+/// UI only for now: the other players are made up and the user's count comes from their farm.
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
 
@@ -30,8 +24,11 @@ class LeaderboardScreen extends StatelessWidget {
     final name = currentUsername.value.isEmpty
         ? s.homeFriend
         : currentUsername.value;
+    // Everyone sorted by plant count.
     final players = _ranked(name, FarmStore.plants.value.length);
+    // Where the user is in that list.
     final you = players.indexWhere((p) => p.isYou);
+    // Only the first 10 players are listed.
     final topTen = players.take(10).toList();
     return Scaffold(
       body: LeafPrintBackground(
@@ -55,6 +52,7 @@ class LeaderboardScreen extends StatelessWidget {
                   24 + MediaQuery.paddingOf(context).bottom,
                 ),
                 children: [
+                  // The dark green card: your rank, progress to the top 10, and the podium with places 1 to 3.
                   Entrance(
                     child: _Stage(
                       rank: you + 1,
@@ -66,6 +64,7 @@ class LeaderboardScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // Places 4 to 10, one row each.
                   for (var i = 3; i < topTen.length; i++)
                     Entrance(
                       delay: Duration(milliseconds: 450 + 40 * (i - 3)),
@@ -97,10 +96,11 @@ class LeaderboardScreen extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Players
-// ---------------------------------------------------------------------------
 
+
+// Players
+
+/// One player on the leaderboard. marks the signed-in user.
 class _Player {
   const _Player(this.name, this.plants, {this.isYou = false});
   final String name;
@@ -108,8 +108,7 @@ class _Player {
   final bool isYou;
 }
 
-// TODO(backend): Load the real leaderboard (usernames and plant counts) and
-//   the user's rank from the database.
+// TODO(backend): dummy data Load the real leaderboard in the next sprints.
 const _otherPlayers = [
   _Player('sara.grows', 58),
   _Player('abdullah_farm', 47),
@@ -127,9 +126,12 @@ const _otherPlayers = [
   _Player('salem_soil', 6),
 ];
 
-/// Everyone, most plants first. On a tie the user goes after the others.
+
 List<_Player> _ranked(String name, int plants) {
+  // The made-up players plus the user.
   final all = [..._otherPlayers, _Player(name, plants, isYou: true)];
+  // Sort by plants, biggest first. On a tie, put the user after the
+  // others untill the user overtakes them.
   all.sort((a, b) {
     final byPlants = b.plants.compareTo(a.plants);
     if (byPlants != 0) return byPlants;
@@ -138,9 +140,10 @@ List<_Player> _ranked(String name, int plants) {
   return all;
 }
 
-// ---------------------------------------------------------------------------
-// Colours
-// ---------------------------------------------------------------------------
+
+
+
+
 
 /// The stage: deep forest, a touch lighter at the top.
 const _stageTop = Color(0xFF173A26);
@@ -153,13 +156,13 @@ const _placeAccent = {
   3: Color(0xFFFFA98F),
 };
 
-/// Pastel (background, letter) pairs for the list's avatars.
+/// Pastel pairs for the list's avatars.
 const _pastels = [
-  (Color(0xFFDDF5EA), Color(0xFF1E7A55)), // mint
-  (Color(0xFFFFE6DC), Color(0xFFB4492A)), // peach
-  (Color(0xFFFFF1C9), Color(0xFF7A5600)), // butter
-  (Color(0xFFDDEEFF), Color(0xFF1F5C9E)), // sky
-  (Color(0xFFEAE4FF), Color(0xFF5A43AD)), // lilac
+  (Color(0xFFDDF5EA), Color(0xFF1E7A55)), 
+  (Color(0xFFFFE6DC), Color(0xFFB4492A)),
+  (Color(0xFFFFF1C9), Color(0xFF7A5600)),
+  (Color(0xFFDDEEFF), Color(0xFF1F5C9E)),
+  (Color(0xFFEAE4FF), Color(0xFF5A43AD)),
 ];
 
 /// The same pastel for the same name, every time.
@@ -171,10 +174,11 @@ const _pastels = [
   return _pastels[sum % _pastels.length];
 }
 
-// ---------------------------------------------------------------------------
-// The stage: your rank, progress to the top 10, and the podium
-// ---------------------------------------------------------------------------
 
+
+// The stage: the users rank, progress to the top 10, and the podium
+/// The dark green card at the top: the users rank number and a message,
+/// a progress bar if you're not in the top 10 yet, and the podium.
 class _Stage extends StatelessWidget {
   const _Stage({
     required this.rank,
@@ -190,7 +194,9 @@ class _Stage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+    // True if the user is already in the top 10.
     final inTopTen = rank <= 10;
+    // Plants still needed to get one more than the 10th player.
     final toGo = tenthPlants + 1 - plants;
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
@@ -224,6 +230,7 @@ class _Stage extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Row: the gold "#rank" circle and the rank message beside it.
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
                   child: Row(
@@ -258,17 +265,20 @@ class _Stage extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Only shown when the user isn't in the top 10 yet.
                 if (!inTopTen) ...[
                   const SizedBox(height: 14),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                     child: _TopTenProgress(
+                      // How full the bar is
                       value: plants / (tenthPlants + 1),
                       caption: s.rankToTopTen(toGo),
                     ),
                   ),
                 ],
                 const SizedBox(height: 18),
+                // The podium with the top 3 players.
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: _Podium(top3: top3),
@@ -293,7 +303,9 @@ class _TopTenProgress extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Animates the bar from empty to [value] over 0.9 seconds
         TweenAnimationBuilder<double>(
+          // clamp keeps the value between 0 and 1 (empty and full).
           tween: Tween(begin: 0, end: value.clamp(0.0, 1.0)),
           duration: MediaQuery.disableAnimationsOf(context)
               ? Duration.zero
@@ -310,6 +322,8 @@ class _TopTenProgress extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
+        // The caption under the bar, e.g. "3 more plants to reach the top
+        // 10".
         Text(
           caption,
           style: AppText.small(
@@ -322,14 +336,14 @@ class _TopTenProgress extends StatelessWidget {
   }
 }
 
-/// Top 3 on frosted steps: 2nd, 1st (tallest, with a trophy), 3rd. Each
-/// rises in one after another.
+/// Top 3 on frosted steps: 2nd, 1st (tallest, with a trophy), 3rd. Each rises in one after another.
 class _Podium extends StatelessWidget {
   const _Podium({required this.top3});
   final List<_Player> top3;
 
   @override
   Widget build(BuildContext context) {
+    // How tall each step is: 1st is the tallest.
     const heights = {1: 92.0, 2: 66.0, 3: 50.0};
     const delays = {3: 150, 2: 300, 1: 450};
     Widget place(int rank) => Expanded(
@@ -341,10 +355,8 @@ class _Podium extends StatelessWidget {
       ),
     );
     return SizedBox(
-      // Room for the tallest place, including the steps' little bounce.
       height: 262,
       child: Row(
-        // Same layout in both languages, like a real podium.
         textDirection: TextDirection.ltr,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [place(2), place(1), place(3)],
@@ -353,6 +365,7 @@ class _Podium extends StatelessWidget {
   }
 }
 
+/// One podium place
 class _PodiumPlace extends StatefulWidget {
   const _PodiumPlace({
     required this.rank,
@@ -378,6 +391,7 @@ class _PodiumPlaceState extends State<_PodiumPlace>
   late final _rise = CurvedAnimation(parent: _c, curve: Curves.easeOutBack);
 
   @override
+  // Starts the animation once, when the place first appears.
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_c.status != AnimationStatus.dismissed) return;
@@ -399,9 +413,11 @@ class _PodiumPlaceState extends State<_PodiumPlace>
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+    // The colour for this place
     final accent = _placeAccent[widget.rank]!;
     final first = widget.rank == 1;
     final p = widget.player;
+    // 1st place gets a bigger avatar.
     final size = first ? 62.0 : 52.0;
     return MergeSemantics(
       child: Semantics(
@@ -419,6 +435,7 @@ class _PodiumPlaceState extends State<_PodiumPlace>
                   alignment: Alignment.bottomCenter,
                   child: Column(
                     children: [
+                      // A trophy above 1st place.
                       if (first)
                         Icon(
                           Icons.emoji_events_rounded,
@@ -426,6 +443,7 @@ class _PodiumPlaceState extends State<_PodiumPlace>
                           color: accent,
                         ),
                       const SizedBox(height: 2),
+                      // Round avatar with the player's first letter.
                       Container(
                         width: size,
                         height: size,
@@ -461,6 +479,7 @@ class _PodiumPlaceState extends State<_PodiumPlace>
                       ),
                       const SizedBox(height: 2),
                       Text(
+                        
                         s.plantsCount(p.plants),
                         style: AppText.small(
                           context,
@@ -472,10 +491,11 @@ class _PodiumPlaceState extends State<_PodiumPlace>
                   ),
                 ),
               ),
-              // The step grows up from the bottom of the stage.
+
               AnimatedBuilder(
                 animation: _rise,
                 builder: (context, child) => SizedBox(
+                  // The step's height follows the animation.
                   height: widget.stepHeight * _rise.value.clamp(0.0, 1.08),
                   child: child,
                 ),
@@ -502,6 +522,7 @@ class _PodiumPlaceState extends State<_PodiumPlace>
                   ),
                   alignment: Alignment.topCenter,
                   padding: const EdgeInsets.only(top: 6),
+                  // The rank number on the step.
                   child: Text(
                     '${widget.rank}',
                     style: AppText.title(
@@ -519,12 +540,10 @@ class _PodiumPlaceState extends State<_PodiumPlace>
   }
 }
 
-// ---------------------------------------------------------------------------
-// The list: places 4 to 10 (and the user, if further down)
-// ---------------------------------------------------------------------------
 
-/// One player on a white row. The user's own row is dark green, so it's
-/// easy to spot.
+// The list: places 4 to 10 (and the user, if further down)
+
+/// One player on a white row. The user's own row is dark green.
 class _RankRow extends StatelessWidget {
   const _RankRow({required this.rank, required this.player});
   final int rank;
@@ -535,6 +554,7 @@ class _RankRow extends StatelessWidget {
     final s = S.of(context);
     final you = player.isYou;
     final fg = you ? Colors.white : AppColors.forest;
+    // Avatar colours: gold for the user, otherwise the player's pastel.
     final (avatarBg, avatarFg) = you
         ? (_placeAccent[1]!, _stageBottom)
         : _pastelFor(player.name);

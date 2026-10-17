@@ -10,9 +10,6 @@ import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_header.dart';
 
 /// Edit a plant's name and care schedules, starting from what's saved.
-/// Pops with true once saved.
-///
-/// [index] is the plant's number on the farm (see [FarmStore]).
 class EditPlantScreen extends StatefulWidget {
   const EditPlantScreen({super.key, required this.index});
   final int index;
@@ -47,7 +44,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
 
   void _save() {
     if (!_form.currentState!.validate()) return;
-    // TODO(backend): Save the changes (and reschedule the reminders).
+    // TODO(backend): Save the changes in the next sprints.
     FarmStore.updatePlant(
       widget.index,
       _plant.edited(

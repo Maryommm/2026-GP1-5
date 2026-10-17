@@ -339,6 +339,10 @@ class AppStrings {
     'rankToTopTen': '{plants} to go',
   };
 
+
+
+  
+
   static const Map<String, String> ar = {
     'languageSwitch': 'English',
     'welcomeTitle': 'أهلًا بك في إثمار!',

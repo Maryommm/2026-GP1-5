@@ -1,3 +1,11 @@
+// ("What to plant").
+//
+// The file is in four parts:
+//   1. CropRecommendationScreen - loads the data and picks which view to show.
+//   2. _LoadingView / _ErrorView - shown while waiting or when it fails.
+//   3. _ResultsView and its pieces - the category chips and the packets.
+//   4. Drawing helpers - the packet outline and the dashed line.
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -13,11 +21,11 @@ import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 
+/// three states: loading, error, and results.
 class CropRecommendationScreen extends StatefulWidget {
   const CropRecommendationScreen({super.key, this.load});
 
-  /// Loads the recommendations; the real API when null. Previews pass
-  /// sample data here.
+  /// Loads the recommendations.
   final Future<CropRecommendationResult> Function()? load;
 
   @override
@@ -26,9 +34,9 @@ class CropRecommendationScreen extends StatefulWidget {
 }
 
 class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
+  // fetches the data
   late final _load = widget.load ?? CropRecommendationService().recommend;
   late Future<CropRecommendationResult> _future = _load();
-
   void _retry() => setState(() => _future = _load());
 
   @override
@@ -39,12 +47,16 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
           future: _future,
           builder: (context, snap) {
             final Widget child;
+            //show the loading animation.
             if (snap.connectionState != ConnectionState.done) {
               child = const _LoadingView();
+              // The request failed: show the error message.
             } else if (snap.hasError || snap.data == null) {
               child = _ErrorView(error: snap.error, onRetry: _retry);
+              // It worked but returned no crops: show the "no crops" message.
             } else if (snap.data!.crops.isEmpty) {
               child = _ErrorView(onRetry: _retry, empty: true);
+              // Success: show the seed packets.
             } else {
               child = _ResultsView(result: snap.data!);
             }
@@ -62,6 +74,7 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
   }
 }
 
+/// Loading screen
 class _LoadingView extends StatefulWidget {
   const _LoadingView();
 
@@ -74,6 +87,7 @@ class _LoadingViewState extends State<_LoadingView> {
   late final Timer _timer;
 
   @override
+  ///loading text
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(milliseconds: 1100), (t) {
@@ -84,6 +98,7 @@ class _LoadingViewState extends State<_LoadingView> {
 
   @override
   void dispose() {
+    // Stop the timer when the screen closes so it doesn't keep running.
     _timer.cancel();
     super.dispose();
   }
@@ -91,11 +106,13 @@ class _LoadingViewState extends State<_LoadingView> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+    // The loading messages, in the app's current language.
     final steps = s.cropLoadingSteps;
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Back button in the top corner.
           Padding(
             padding: const EdgeInsetsDirectional.only(start: 12, top: 8),
             child: EthmarBackButton(tooltip: s.back),
@@ -157,6 +174,7 @@ class _LoadingViewState extends State<_LoadingView> {
   }
 }
 
+/// Shown when loading fails, or when no crop
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.onRetry, this.error, this.empty = false});
   final VoidCallback onRetry;
@@ -164,7 +182,6 @@ class _ErrorView extends StatelessWidget {
 
   /// The request worked but no crop suits the area this month.
   final bool empty;
-
   String _message(S s) {
     if (empty) return s.cropNoCrops;
     final e = error;
@@ -182,6 +199,7 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+    // Prints the real error in the debug console, for developers.
     if (error != null) debugPrint('crop recommendations failed: $error');
     return SafeArea(
       child: Column(
@@ -208,6 +226,7 @@ class _ErrorView extends StatelessWidget {
                     style: AppText.body(context),
                   ),
                   const SizedBox(height: 24),
+                  // Calls onRetry, which starts the request again.
                   EthmarButton(label: s.tryAgain, onPressed: onRetry),
                 ],
               ),
@@ -219,11 +238,7 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Results: one seed packet per crop. Sideways = category, up/down = crop.
-// ---------------------------------------------------------------------------
-
-/// The weather character for this month's climate (same art as Home).
+// Results: one seed packet per crop.
 String _weatherCharacter(GrowingConditions c) {
   if (c.rainMm > 50) return 'ethmar_rainy_day_character';
   if (c.tempLow <= 8) return 'ethmar_cold_day_character';
@@ -235,6 +250,7 @@ String _weatherCharacter(GrowingConditions c) {
 class _CategoryGroup {
   _CategoryGroup(this.category);
   final CropCategory category;
+  // Filled in by _groupByCategory below.
   final crops = <CropRecommendation>[];
 }
 
@@ -243,15 +259,15 @@ class _CategoryGroup {
 List<_CategoryGroup> _groupByCategory(List<CropRecommendation> crops) {
   final groups = <CropCategory, _CategoryGroup>{};
   for (final crop in crops) {
-    groups.putIfAbsent(crop.category, () => _CategoryGroup(crop.category))
+    groups
+        .putIfAbsent(crop.category, () => _CategoryGroup(crop.category))
         .crops
         .add(crop);
   }
   return groups.values.toList();
 }
 
-/// Swipe left/right between categories, up/down between the crops of the
-/// category you're on.
+/// Swipe left/right between categories, up/down between the crops
 class _ResultsView extends StatefulWidget {
   const _ResultsView({required this.result});
   final CropRecommendationResult result;
@@ -263,17 +279,14 @@ class _ResultsView extends StatefulWidget {
 class _ResultsViewState extends State<_ResultsView> {
   late final _groups = _groupByCategory(widget.result.crops);
   final _categoryPages = PageController(viewportFraction: 0.88);
-
-  /// One up/down stack per category, so the arrow buttons can drive it.
   late final _stackKeys = [
     for (final _ in _groups) GlobalKey<_CropStackState>(),
   ];
+  // For each category, which crop (0, 1, 2…) is in view. Used for the
+  // "1 / 2" text and the arrow buttons.
   late final _cropIndex = List.filled(_groups.length, 0);
   late final _chipKeys = [for (final _ in _groups) GlobalKey()];
-
   int _category = 0;
-
-  /// The sideways hint shows until the user changes category once.
   bool _swipedSideways = false;
 
   @override
@@ -294,12 +307,12 @@ class _ResultsViewState extends State<_ResultsView> {
     }
   }
 
+  // Runs when the user lands on a different category page
   void _onCategoryChanged(int i) {
     setState(() {
       _category = i;
       _swipedSideways = true;
     });
-    // Keep the active chip in view when the chip row is wider than the screen.
     final chip = _chipKeys[i].currentContext;
     if (chip != null) {
       Scrollable.ensureVisible(
@@ -314,6 +327,7 @@ class _ResultsViewState extends State<_ResultsView> {
 
   @override
   Widget build(BuildContext context) {
+    // Data for the header, and the current category's crop position for the bottom bar.
     final conditions = widget.result.conditions;
     final group = _groups[_category];
     final row = _cropIndex[_category];
@@ -348,8 +362,7 @@ class _ResultsViewState extends State<_ResultsView> {
                     : _CropStack(
                         key: _stackKeys[i],
                         crops: _groups[i].crops,
-                        onCropChanged: (j) =>
-                            setState(() => _cropIndex[i] = j),
+                        onCropChanged: (j) => setState(() => _cropIndex[i] = j),
                       ),
               ),
             ),
@@ -379,6 +392,7 @@ class _ResultsViewState extends State<_ResultsView> {
   }
 }
 
+/// The crops of one category, one under the other, scrolling up/down
 class _CropStack extends StatefulWidget {
   const _CropStack({
     super.key,
@@ -395,17 +409,10 @@ class _CropStack extends StatefulWidget {
 class _CropStackState extends State<_CropStack>
     with AutomaticKeepAliveClientMixin {
   static const _gap = 12.0;
-
   final _scroll = ScrollController();
   late final _itemKeys = [for (final _ in widget.crops) GlobalKey()];
   int _index = 0;
-
-  /// Where each packet starts, measured after each frame. Sizes can't be
-  /// read while Flutter is still laying out, and the scroll physics asks
-  /// for these during layout.
   List<double> _offsets = const [];
-
-  // Keeps the scroll position when this category is swiped off screen.
   @override
   bool get wantKeepAlive => true;
 
@@ -433,6 +440,7 @@ class _CropStackState extends State<_CropStack>
     _offsets = offsets;
   }
 
+  /// Works out which packet is in view and tells the parent, so the "1 / 2" text and arrows update.
   void _trackIndex() {
     final pos = _scroll.position;
     final offsets = _offsets;
@@ -444,7 +452,7 @@ class _CropStackState extends State<_CropStack>
     }
     if (i == _index) return;
     _index = i;
-    // The position can change during layout; tell the parent afterwards.
+
     if (SchedulerBinding.instance.schedulerPhase ==
         SchedulerPhase.persistentCallbacks) {
       SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -455,6 +463,7 @@ class _CropStackState extends State<_CropStack>
     }
   }
 
+  /// Scrolls to crop number [i]. Called by the up/down arrow buttons.
   void goTo(int i) {
     if (!_scroll.hasClients || i >= _offsets.length) return;
     final target = _offsets[i].clamp(0.0, _scroll.position.maxScrollExtent);
@@ -501,8 +510,6 @@ class _CropStackState extends State<_CropStack>
 }
 
 /// Snaps the list so a packet's top lines up with the top of the view.
-/// A packet taller than the view (very large text) scrolls freely until
-/// its end is on screen.
 class _SnapToItems extends ScrollPhysics {
   const _SnapToItems(this.offsets, {super.parent});
   final List<double> Function() offsets;
@@ -510,19 +517,22 @@ class _SnapToItems extends ScrollPhysics {
   @override
   _SnapToItems applyTo(ScrollPhysics? ancestor) =>
       _SnapToItems(offsets, parent: buildParent(ancestor));
-
   double? _target(ScrollMetrics m, double velocity) {
     final o = offsets();
     if (o.isEmpty) return null;
     final p = m.pixels;
+    // Find the packet at the current scroll position.
     var i = 0;
     while (i + 1 < o.length && o[i + 1] <= p) {
       i++;
     }
     final next = i + 1 < o.length ? o[i + 1] : m.maxScrollExtent;
+    // A packet taller than the view: scroll freely until its bottom is visible.
     final tall = next - o[i] > m.viewportDimension;
     if (tall && p + m.viewportDimension < next) return null;
     final double t;
+    // A fast flick down goes to the next packet, a fast flick up goes
+    // back to this one; otherwise go to whichever is closer.
     if (velocity > 300) {
       t = next;
     } else if (velocity < -300) {
@@ -534,6 +544,8 @@ class _SnapToItems extends ScrollPhysics {
   }
 
   @override
+  /// Flutter calls this when the user lets go of the list. We return
+  /// an animation that springs to the snap point.
   Simulation? createBallisticSimulation(
     ScrollMetrics position,
     double velocity,
@@ -558,8 +570,7 @@ class _SnapToItems extends ScrollPhysics {
   }
 }
 
-/// Category chips under the header: shows where you are sideways, and
-/// tapping one jumps there.
+/// Category chips under the header: shows where you are sideways, and tapping one jumps there.
 class _CategoryBar extends StatelessWidget {
   const _CategoryBar({
     required this.groups,
@@ -595,6 +606,7 @@ class _CategoryBar extends StatelessWidget {
   }
 }
 
+/// One category chip: its icon, its name, and how many crops it has.
 class _CategoryTab extends StatelessWidget {
   const _CategoryTab({
     required this.group,
@@ -624,19 +636,19 @@ class _CategoryTab extends StatelessWidget {
         ),
         child: Material(
           type: MaterialType.transparency,
+          // InkWell shows the ripple effect when tapped.
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(24),
             child: ConstrainedBox(
+              // At least 44px tall so it's easy to tap.
               constraints: const BoxConstraints(minHeight: 44),
               child: Padding(
                 padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 14, 0),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // The icon art sits in the middle of a wide transparent
-                    // canvas, so draw it larger and let the empty margin
-                    // spill outside the 28px slot.
+                    // The icon art sits in the middle of a wide transparent canvas
                     ExcludeSemantics(
                       child: SizedBox.square(
                         dimension: 28,
@@ -657,15 +669,19 @@ class _CategoryTab extends StatelessWidget {
                     Text(
                       cat.label.of(context),
                       style: AppText.label(context, color: fg).copyWith(
-                        fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                       ),
                     ),
+                    // The small circle with the number of crops
                     if (group.crops.length > 1) ...[
                       const SizedBox(width: 6),
                       Container(
-                        constraints:
-                            const BoxConstraints(minWidth: 20, minHeight: 20),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: selected ? cat.color : AppColors.border,
@@ -693,9 +709,7 @@ class _CategoryTab extends StatelessWidget {
   }
 }
 
-/// Short header so the packet gets most of the screen: back + title on one
-/// row, then the accent line and today's conditions beside the weather
-/// character.
+/// Short header
 class _CompactHeader extends StatelessWidget {
   const _CompactHeader({required this.conditions});
   final GrowingConditions conditions;
@@ -713,6 +727,7 @@ class _CompactHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Row 1: back button and the screen title.
           Row(
             children: [
               EthmarBackButton(tooltip: s.back),
@@ -727,6 +742,8 @@ class _CompactHeader extends StatelessWidget {
               ),
             ],
           ),
+          // Row 2: the accent text and conditions on one side, the weather
+          // character on the other.
           Padding(
             padding: const EdgeInsetsDirectional.only(start: 12),
             child: Row(
@@ -737,8 +754,10 @@ class _CompactHeader extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.cropAccent,
-                            style: AppText.accent(context, size: 18)),
+                        Text(
+                          s.cropAccent,
+                          style: AppText.accent(context, size: 18),
+                        ),
                         const SizedBox(height: 8),
                         _ConditionsStrip(conditions: conditions),
                       ],
@@ -762,8 +781,7 @@ class _CompactHeader extends StatelessWidget {
   }
 }
 
-/// The area and this month's average temperatures on one quiet turquoise
-/// strip.
+/// The area and this month's average temperatures.
 class _ConditionsStrip extends StatelessWidget {
   const _ConditionsStrip({required this.conditions});
   final GrowingConditions conditions;
@@ -772,8 +790,8 @@ class _ConditionsStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final c = conditions;
-    // Isolate keeps "21–35°C" in reading order inside Arabic text.
-    final temps = '${String.fromCharCode(0x2066)}${c.tempLow}–${c.tempHigh}°C'
+    final temps =
+        '${String.fromCharCode(0x2066)}${c.tempLow}–${c.tempHigh}°C'
         '${String.fromCharCode(0x2069)}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -796,6 +814,7 @@ class _ConditionsStrip extends StatelessWidget {
   }
 }
 
+
 class _Condition extends StatelessWidget {
   const _Condition({required this.icon, required this.text});
   final IconData icon;
@@ -810,16 +829,17 @@ class _Condition extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           text,
-          style: AppText.small(context, color: AppColors.forest)
-              .copyWith(fontWeight: FontWeight.w500),
+          style: AppText.small(
+            context,
+            color: AppColors.forest,
+          ).copyWith(fontWeight: FontWeight.w500),
         ),
       ],
     );
   }
 }
 
-/// Scales and dims the packets beside the one in focus, so the deck reads
-/// as one packet held up with the next one waiting.
+
 class _PacketSlot extends StatelessWidget {
   const _PacketSlot({
     required this.controller,
@@ -855,22 +875,16 @@ class _PacketSlot extends StatelessWidget {
   }
 }
 
-/// One crop drawn as a seed packet: a crimped top, a short face in the
-/// crop category's colour, and the care facts on the white strip below.
-/// The packet is only as tall as its content and sits at the top of its
-/// slot; it scrolls inside itself only when the text is set very large.
+/// One crop drawn as a seed packet
 class _SeedPacket extends StatelessWidget {
   const _SeedPacket({required this.crop, this.scrollable = true});
   final CropRecommendation crop;
-
-  /// False inside [_CropStack], which already scrolls.
   final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
     final cat = crop.category;
     final packet = Padding(
-      // Room for the shadow under the packet.
       padding: const EdgeInsets.only(bottom: 8),
       child: PhysicalShape(
         clipper: const _PacketClipper(),
@@ -903,9 +917,7 @@ class _SeedPacket extends StatelessWidget {
   }
 }
 
-/// The packet's coloured top, kept short: the oversized category art in
-/// the end corner (cropped by the packet edge like printed packet art),
-/// with the name and reason below it.
+/// The packet's coloured top.
 class _PacketFace extends StatelessWidget {
   const _PacketFace({required this.crop});
   final CropRecommendation crop;
@@ -920,7 +932,6 @@ class _PacketFace extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.hardEdge,
         children: [
-          // Sealed band under the crimp, so the packet top reads clearly.
           Positioned(
             left: 0,
             right: 0,
@@ -928,8 +939,6 @@ class _PacketFace extends StatelessWidget {
             height: _PacketClipper.crimp + 12,
             child: ColoredBox(color: cat.color.withValues(alpha: 0.32)),
           ),
-          // The category chips already name the category, so the packet
-          // carries it only as colour and art.
           PositionedDirectional(
             end: -24,
             top: _PacketClipper.crimp + 4,
@@ -957,6 +966,7 @@ class _PacketFace extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
+                    // Badge 1: "Plant now" or "Plant in <month>".
                     _Badge(
                       icon: crop.plantNow
                           ? Icons.eco_rounded
@@ -967,6 +977,7 @@ class _PacketFace extends StatelessWidget {
                       color: crop.plantNow ? cat.dark : AppColors.textSecondary,
                       background: AppColors.surface,
                     ),
+                    // Badge 2: how well the crop matches the area.
                     _Badge(
                       text: s.cropBand(crop.band),
                       color: cat.dark,
@@ -979,6 +990,7 @@ class _PacketFace extends StatelessWidget {
                   crop.name.of(context),
                   style: AppText.display(context).copyWith(fontSize: 32),
                 ),
+                // Why this crop was suggested
                 if (reason != null) ...[
                   const SizedBox(height: 4),
                   Text(
@@ -995,18 +1007,15 @@ class _PacketFace extends StatelessWidget {
   }
 }
 
+/// One care fact
 class _Fact {
   const _Fact(this.icon, this.label, this.value, {this.ltr = false});
   final IconData icon;
   final String label;
   final String value;
-
-  /// Number ranges like "18–35°C" stay left-to-right in Arabic too.
   final bool ltr;
 }
 
-/// The care facts in two columns, like the back of a seed packet, then the
-/// care tip and what you eat. Facts the data doesn't have are left out.
 class _CareFacts extends StatelessWidget {
   const _CareFacts({required this.crop});
   final CropRecommendation crop;
@@ -1014,13 +1023,16 @@ class _CareFacts extends StatelessWidget {
   /// "40–100 days", or one number when both ends are the same.
   static String _range(int min, int max) => min == max ? '$min' : '$min–$max';
 
-  static String _meters(double m) =>
-      m >= 10 ? m.round().toString() : m.toStringAsFixed(1).replaceAll('.0', '');
+  /// Height in metres: "12" for 10 or more, otherwise one decimal
+  static String _meters(double m) => m >= 10
+      ? m.round().toString()
+      : m.toStringAsFixed(1).replaceAll('.0', '');
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
     final cat = crop.category;
+    // Read the crop's data. Some values can be missing (null or empty).
     final minTemp = crop.minTemp, maxTemp = crop.maxTemp;
     final water = s.cropWater(crop.waterNeed);
     final bestTime = s.monthRanges(crop.bestMonths);
@@ -1029,6 +1041,7 @@ class _CareFacts extends StatelessWidget {
     final parts = s.cropParts(crop.edibleParts);
     final tip = crop.tip;
 
+    // Build the list of facts, skipping any the crop doesn't have.
     final facts = [
       if (minTemp != null && maxTemp != null)
         _Fact(
@@ -1057,20 +1070,22 @@ class _CareFacts extends StatelessWidget {
         ),
     ];
 
-    // Plain rows (not LayoutBuilder): the packet measures its intrinsic
-    // height, which LayoutBuilder can't report.
+
+    // Puts two facts side by side. With only one, the right side stays empty.
     Widget pair(_Fact a, _Fact? b) => Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _FactTile(fact: a, category: cat)),
-            const SizedBox(width: 14),
-            Expanded(
-              child: b == null
-                  ? const SizedBox.shrink()
-                  : _FactTile(fact: b, category: cat),
-            ),
-          ],
-        );
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _FactTile(fact: a, category: cat),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: b == null
+              ? const SizedBox.shrink()
+              : _FactTile(fact: b, category: cat),
+        ),
+      ],
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1078,6 +1093,7 @@ class _CareFacts extends StatelessWidget {
           if (i > 0) const SizedBox(height: 16),
           pair(facts[i], i + 1 < facts.length ? facts[i + 1] : null),
         ],
+        // The care tip, in a yellow box.
         if (tip != null) ...[
           const SizedBox(height: 16),
           _NoteLine(
@@ -1087,6 +1103,7 @@ class _CareFacts extends StatelessWidget {
             background: AppColors.warningTint,
           ),
         ],
+        // Which parts of the plant you eat.
         if (parts.isNotEmpty) ...[
           const SizedBox(height: 10),
           _NoteLine(
@@ -1132,8 +1149,10 @@ class _Badge extends StatelessWidget {
           ],
           Text(
             text,
-            style: AppText.small(context, color: color)
-                .copyWith(fontWeight: FontWeight.w600),
+            style: AppText.small(
+              context,
+              color: color,
+            ).copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -1170,8 +1189,10 @@ class _NoteLine extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: AppText.small(context, color: AppColors.forest)
-                  .copyWith(fontWeight: FontWeight.w500),
+              style: AppText.small(
+                context,
+                color: AppColors.forest,
+              ).copyWith(fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -1180,6 +1201,7 @@ class _NoteLine extends StatelessWidget {
   }
 }
 
+/// One care fact: a round icon, a small label, and its value below.
 class _FactTile extends StatelessWidget {
   const _FactTile({required this.fact, required this.category});
   final _Fact fact;
@@ -1196,10 +1218,7 @@ class _FactTile extends StatelessWidget {
           Container(
             width: 34,
             height: 34,
-            decoration: BoxDecoration(
-              color: cat.tint,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: cat.tint, shape: BoxShape.circle),
             child: Icon(f.icon, size: 18, color: cat.dark),
           ),
           const SizedBox(width: 10),
@@ -1214,6 +1233,7 @@ class _FactTile extends StatelessWidget {
                 const SizedBox(height: 1),
                 Text(
                   f.value,
+                  // Keeps number ranges in the right order in Arabic.
                   textDirection: f.ltr ? TextDirection.ltr : null,
                   style: AppText.label(context)
                       .copyWith(fontWeight: FontWeight.w600),
@@ -1227,8 +1247,8 @@ class _FactTile extends StatelessWidget {
   }
 }
 
-/// Under the deck: in a category with several crops, "1 / 2 · Swipe up for
-/// more" with up/down buttons; otherwise a one-time sideways hint.
+
+///Swipe up for more with up/down buttons; otherwise a one-time sideways hint.
 class _DeckStatus extends StatelessWidget {
   const _DeckStatus({
     required this.index,
@@ -1249,10 +1269,12 @@ class _DeckStatus extends StatelessWidget {
     final stacked = count > 1;
     final String text;
     if (stacked) {
-      // Isolate keeps "1 / 2" in reading order inside Arabic text.
-      final position = '${String.fromCharCode(0x2066)}${index + 1} / $count${String.fromCharCode(0x2069)}';
+      final position =
+          '${String.fromCharCode(0x2066)}${index + 1} / $count${String.fromCharCode(0x2069)}';
+      // Add "Swipe up for more" unless this is the last crop.
       text = onDown != null ? '$position · ${s.cropSwipeUp}' : position;
     } else {
+      // One crop: show the sideways hint until the user has swiped once.
       text = showSidewaysHint ? s.cropSwipeHint : '';
     }
     return SizedBox(
@@ -1290,6 +1312,7 @@ class _DeckStatus extends StatelessWidget {
   }
 }
 
+/// A round up/down arrow button.
 class _StepButton extends StatelessWidget {
   const _StepButton({
     required this.icon,
@@ -1320,7 +1343,6 @@ class _StepButton extends StatelessWidget {
 /// Packet outline: a crimped (zig-zag) top edge and rounded bottom corners.
 class _PacketClipper extends CustomClipper<Path> {
   const _PacketClipper();
-
   static const crimp = 7.0;
   static const _radius = 24.0;
 
@@ -1337,20 +1359,25 @@ class _PacketClipper extends CustomClipper<Path> {
     }
     p
       ..lineTo(w, h - _radius)
-      ..arcToPoint(Offset(w - _radius, h),
-          radius: const Radius.circular(_radius))
+      ..arcToPoint(
+        Offset(w - _radius, h),
+        radius: const Radius.circular(_radius),
+      )
       ..lineTo(_radius, h)
-      ..arcToPoint(Offset(0, h - _radius),
-          radius: const Radius.circular(_radius))
+      ..arcToPoint(
+        Offset(0, h - _radius),
+        radius: const Radius.circular(_radius),
+      )
       ..close();
     return p;
   }
 
   @override
+  // The shape never changes
   bool shouldReclip(covariant _PacketClipper oldClipper) => false;
 }
 
-/// The dashed "tear here" line between the packet face and its care facts.
+/// The dashed line between the packet face and its care facts.
 class _PerforationPainter extends CustomPainter {
   const _PerforationPainter(this.color);
   final Color color;
@@ -1373,5 +1400,6 @@ class _PerforationPainter extends CustomPainter {
   }
 
   @override
+  // Only repaint when the colour changes.
   bool shouldRepaint(covariant _PerforationPainter old) => old.color != color;
 }
