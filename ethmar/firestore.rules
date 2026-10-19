@@ -162,6 +162,12 @@ service cloud.firestore {
           getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.normalizedUsername != normalizedUsername;
     }
 
+    // Climate cache of the recommendation API. Only the server writes it,
+    // through the Admin SDK, which does not go through these rules.
+    match /climate_cache/{area} {
+      allow read, write: if false;
+    }
+
     // Deny access to all other Firestore documents.
     match /{document=**} {
       allow read, write: if false;
