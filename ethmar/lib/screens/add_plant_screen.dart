@@ -15,20 +15,13 @@ import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
 
-/// "Add a plant", in two steps:
-///  1. Choose the crop (filter by type, tap a card).
-///  2. Name it and, if wanted, set the irrigation and fertilization
-///     schedules.
-/// A summary dialog confirms; then the plant goes on the farm (in the next
-/// free square) and the screen pops with it. Pops with nothing if the user
-/// leaves.
-///
-/// Open it with [open], which first checks there's a free square.
+/// "Add a plant", in two steps: (screens)
+///  1. Choose the crop
+///  2. Name it and, if wanted, set the irrigation and fertilization schedules.
 class AddPlantScreen extends StatefulWidget {
   const AddPlantScreen({super.key});
 
-  /// Opens the steps, or explains that the land is full. Returns the added
-  /// plant, if any.
+  /// Returns the added plant, if any.
   static Future<FarmPlant?> open(BuildContext context) async {
     if (FarmStore.landsFull) {
       showEthmarToast(
@@ -63,6 +56,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     Repeat.everyDay,
     const TimeOfDay(hour: 7, minute: 0),
   );
+  
   final _fertilization = ScheduleDraft(
     Repeat.everyWeek,
     const TimeOfDay(hour: 8, minute: 0),
@@ -76,8 +70,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
 
   void _choose(CatalogCrop crop) {
     setState(() {
-      // Start from the crop's name; keep the user's own name if they come
-      // back for the same crop.
+      //keep the user's own name if they come back for the same crop.
       if (crop != _crop) _name.text = crop.name.of(context);
       _crop = crop;
       _step = 1;
@@ -104,7 +97,6 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // In step 2, "back" returns to step 1 instead of leaving.
     return PopScope(
       canPop: _step == 0,
       onPopInvokedWithResult: (didPop, _) {
@@ -147,14 +139,13 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Step 1: choose the crop
-  // -------------------------------------------------------------------------
+
+
+  // Step 1: choose the crop process 
 
   Widget _buildChooseStep() {
     final s = S.of(context);
-    // In the crop list's order (vegetables, fruits, herbs, grains), and only
-    // types that have crops.
+
     final categories = <CropCategory>{
       for (final crop in cropCatalog) crop.category,
     };
@@ -209,9 +200,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Step 2: name and schedules
-  // -------------------------------------------------------------------------
+  // Step 2: name and schedules process
 
   Widget _buildDetailsStep() {
     final s = S.of(context);
@@ -269,9 +258,8 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   }
 }
 
-// ---------------------------------------------------------------------------
+
 // Header: back, title, which step, and a two-part progress bar.
-// ---------------------------------------------------------------------------
 
 class _StepHeader extends StatelessWidget {
   const _StepHeader({required this.step});
@@ -349,11 +337,10 @@ class _StepHeader extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Step 1 pieces
-// ---------------------------------------------------------------------------
 
-/// Crop type filter, same look as the categories on "What to plant?".
+// Step 1 classes: crop filter and card
+
+/// Crop type filter
 /// Without a [category] it's the "All" chip.
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
@@ -507,9 +494,8 @@ class _CropCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Step 2 pieces
-// ---------------------------------------------------------------------------
+
+// Step 2 classes: chosen crop and summary dialog
 
 /// The crop picked in step 1, with a link back to change it.
 class _ChosenCrop extends StatelessWidget {
@@ -568,9 +554,9 @@ class _ChosenCrop extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
+
 // Summary dialog: confirm, or go back and change something.
-// ---------------------------------------------------------------------------
+
 
 class _SummaryDialog extends StatelessWidget {
   const _SummaryDialog({required this.plant});

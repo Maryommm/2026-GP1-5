@@ -22,7 +22,8 @@ class CropRecommendationException implements Exception {
 
 /// Gets crop suggestions for the user's area from the recommendation API.
 ///
-/// 1. Reads the phone's location (Riyadh if location is off or denied).
+/// 1. Reads the phone's location. Without it there is nothing to suggest,
+///    so it stops with a LOCATION_* error (see [_location]).
 /// 2. Sends it with the current month to POST /api/recommend, signed in
 ///    with the user's Firebase ID token.
 /// 3. Turns the answer into a [CropRecommendationResult].
@@ -52,7 +53,7 @@ class CropRecommendationService {
 
     // The city name is only for the header, so look it up while the
     // server works.
-    final city = _cityName(place.latitude, place.longitude, place.isFallback);
+    final city = _cityName(place.latitude, place.longitude);
 
     final http.Response response;
     try {
@@ -116,19 +117,28 @@ class CropRecommendationService {
     );
   }
 
-  /// The phone's position, or Riyadh when it isn't available.
-  Future<({double latitude, double longitude, bool isFallback})>
-      _location() async {
+  /// The phone's position. Throws a [CropRecommendationException] when it
+  /// can't be read:
+  /// - LOCATION_OFF: location is turned off on the phone.
+  /// - LOCATION_DENIED: the user said no. Asking again shows the prompt again.
+  /// - LOCATION_BLOCKED: denied for good; only the phone's settings can
+  ///   allow it now (see [openLocationSettings]).
+  /// - LOCATION_UNAVAILABLE: allowed, but no position could be read.
+  Future<({double latitude, double longitude})> _location() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      throw const CropRecommendationException('LOCATION_OFF');
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied) {
+      throw const CropRecommendationException('LOCATION_DENIED');
+    }
+    if (permission == LocationPermission.deniedForever) {
+      throw const CropRecommendationException('LOCATION_BLOCKED');
+    }
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) return _fallback;
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return _fallback;
-      }
       // The server rounds the position to ~11 km, so low accuracy is enough
       // and much faster.
       final position = await Geolocator.getCurrentPosition(
@@ -137,38 +147,27 @@ class CropRecommendationService {
           timeLimit: Duration(seconds: 10),
         ),
       );
-      return (
-        latitude: position.latitude,
-        longitude: position.longitude,
-        isFallback: false,
-      );
+      return (latitude: position.latitude, longitude: position.longitude);
     } catch (_) {
-      // Timeout, or no location support on this platform.
+      // Timed out: use the last position the phone knows, if any.
       final last = await Geolocator.getLastKnownPosition()
           .catchError((Object _) => null);
-      if (last == null) return _fallback;
-      return (
-        latitude: last.latitude,
-        longitude: last.longitude,
-        isFallback: false,
-      );
+      if (last == null) {
+        throw const CropRecommendationException('LOCATION_UNAVAILABLE');
+      }
+      return (latitude: last.latitude, longitude: last.longitude);
     }
   }
 
-  /// Riyadh.
-  static const _fallback = (
-    latitude: 24.71,
-    longitude: 46.67,
-    isFallback: true,
-  );
+  /// Opens the phone's settings where location can be allowed again: the
+  /// location switch for LOCATION_OFF, this app's permissions otherwise.
+  static Future<bool> openLocationSettings(String status) =>
+      status == 'LOCATION_OFF'
+          ? Geolocator.openLocationSettings()
+          : Geolocator.openAppSettings();
 
   /// The city in English and Arabic, from the phone's geocoder.
-  Future<BiText> _cityName(
-    double latitude,
-    double longitude,
-    bool isFallback,
-  ) async {
-    if (isFallback) return const BiText('Riyadh', 'الرياض');
+  Future<BiText> _cityName(double latitude, double longitude) async {
     try {
       final geocoding = Geocoding();
       Future<String?> name(String language) async {

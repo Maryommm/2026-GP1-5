@@ -376,26 +376,30 @@ class ProfileImageService {
 
   // Require a signed-in user with a verified email.
   Future<ProfileImageSession> _getVerifiedSession() async {
-    final customProvider = _sessionProvider;
-    if (customProvider != null) {
-      final session = await customProvider();
-      if (session.uid.isEmpty || session.idToken.isEmpty) {
+    try {
+      final customProvider = _sessionProvider;
+      if (customProvider != null) {
+        final session = await customProvider();
+        if (session.uid.isEmpty || session.idToken.isEmpty) {
+          throw const ProfileImageException(
+            ProfileImageErrorCode.unauthenticated,
+          );
+        }
+        return session;
+      }
+
+      final user = (_auth ?? FirebaseAuth.instance).currentUser;
+      if (user == null) {
         throw const ProfileImageException(
           ProfileImageErrorCode.unauthenticated,
         );
       }
-      return session;
-    }
+      if (!user.emailVerified) {
+        throw const ProfileImageException(
+          ProfileImageErrorCode.emailNotVerified,
+        );
+      }
 
-    final user = (_auth ?? FirebaseAuth.instance).currentUser;
-    if (user == null) {
-      throw const ProfileImageException(ProfileImageErrorCode.unauthenticated);
-    }
-    if (!user.emailVerified) {
-      throw const ProfileImageException(ProfileImageErrorCode.emailNotVerified);
-    }
-
-    try {
       // Never log or store the Firebase token.
       final token = await user.getIdToken(true);
       if (token == null || token.isEmpty) {
@@ -406,7 +410,10 @@ class ProfileImageService {
       return ProfileImageSession(uid: user.uid, idToken: token);
     } on ProfileImageException {
       rethrow;
-    } on FirebaseAuthException {
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'network-request-failed') {
+        throw const ProfileImageException(ProfileImageErrorCode.network);
+      }
       throw const ProfileImageException(ProfileImageErrorCode.unauthenticated);
     }
   }

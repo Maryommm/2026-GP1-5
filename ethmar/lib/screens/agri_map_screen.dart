@@ -11,17 +11,13 @@ import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 
 /// "Near me" (AgriMap): nurseries and farm stores around the user.
-///
-/// Asks for location access first. Allowed: the map centres on the user and
-/// shows the places as markers; tapping one opens a preview card.
-/// Denied: the map stays empty and explains why GPS access is needed.
-///
-/// UI only for now: the permission prompt, the user's position, the map and
-/// the places are all prototypes.
-/// TODO(location): Ask for the real GPS permission and read the user's
-///   current coordinates.
-/// TODO(google-maps): Replace the drawn map with Google Maps, centred on the
-///   user, and load the real nearby nurseries and farm stores.
+///  PROTOTYPE: the map is drawn, the places are hard-coded, and the GPS permission is skipped.
+
+/// TODO(location) in the next sprints
+/// TODO(google-maps) in the next sprints
+
+
+
 class AgriMapScreen extends StatefulWidget {
   const AgriMapScreen({super.key});
 
@@ -29,7 +25,7 @@ class AgriMapScreen extends StatefulWidget {
   State<AgriMapScreen> createState() => _AgriMapScreenState();
 }
 
-enum _Status { asking, locating, ready, denied }
+enum _Status { locating, ready, denied }
 
 enum _Filter { all, nursery, store }
 
@@ -40,15 +36,11 @@ class _Place {
   final _PlaceType type;
   final BiText name;
   final BiText address;
-
-  /// Distance from the user, e.g. '1.2'.
   final String km;
-
-  /// Where it sits on the drawn map.
   final Offset at;
 }
 
-/// Colours and icon for each kind of place (markers, chips and card).
+/// Colours and icon for each kind of place
 ({Color color, Color tint, IconData icon}) _look(_PlaceType type) =>
     switch (type) {
       _PlaceType.nursery => (
@@ -63,20 +55,17 @@ class _Place {
       ),
     };
 
-// The drawn map is a fixed canvas; the user stands in its middle.
+// The drawn map
 const _mapSize = Size(1400, 1400);
 const _userAt = Offset(700, 700);
 const _land = Color(0xFFF1EBDF);
 
-// TODO(google-maps): Prototype places, replaced by real nearby results.
+// dummy data (places)
 const _places = [
   _Place(
     _PlaceType.nursery,
     BiText('Al Nakheel Nursery', 'مشتل النخيل'),
-    BiText(
-      'Prince Turki St, Al Nakheel, Riyadh',
-      'شارع الأمير تركي، النخيل، الرياض',
-    ),
+    BiText('Prince Turki St, Al Nakheel, Riyadh','شارع الأمير تركي، النخيل، الرياض'),
     '0.8',
     Offset(560, 590),
   ),
@@ -104,20 +93,14 @@ const _places = [
   _Place(
     _PlaceType.store,
     BiText('Seed & Soil Store', 'متجر البذور والتربة'),
-    BiText(
-      'Takhassusi St, Al Mohammadiyah, Riyadh',
-      'شارع التخصصي، المحمدية، الرياض',
-    ),
+    BiText('Takhassusi St, Al Mohammadiyah, Riyadh','شارع التخصصي، المحمدية، الرياض'),
     '1.7',
     Offset(980, 760),
   ),
   _Place(
     _PlaceType.store,
     BiText('Harvest Tools Center', 'مركز أدوات الحصاد'),
-    BiText(
-      'Northern Ring Rd, Al Wadi, Riyadh',
-      'الطريق الدائري الشمالي، الوادي، الرياض',
-    ),
+    BiText('Northern Ring Rd, Al Wadi, Riyadh','الطريق الدائري الشمالي، الوادي، الرياض'),
     '2.4',
     Offset(640, 1010),
   ),
@@ -125,16 +108,10 @@ const _places = [
 
 class _AgriMapScreenState extends State<AgriMapScreen>
     with SingleTickerProviderStateMixin {
-  /// Like the real OS permission, a "yes" is remembered, so the prompt
-  /// isn't shown again this session.
-  static bool _granted = false;
-
-  _Status _status = _Status.asking;
+  _Status _status = _Status.locating;
   _Filter _filter = _Filter.all;
   _Place? _selected;
   Timer? _locateTimer;
-
-  /// Size of the map area, kept from the last layout.
   Size _viewport = Size.zero;
 
   final _map = TransformationController();
@@ -147,11 +124,7 @@ class _AgriMapScreenState extends State<AgriMapScreen>
   @override
   void initState() {
     super.initState();
-    if (_granted) {
-      _locate();
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _askPermission());
-    }
+    _locate();
   }
 
   @override
@@ -160,22 +133,6 @@ class _AgriMapScreenState extends State<AgriMapScreen>
     _move.dispose();
     _map.dispose();
     super.dispose();
-  }
-
-  Future<void> _askPermission() async {
-    final allowed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: AppColors.overlay,
-      builder: (_) => const _PermissionDialog(),
-    );
-    if (!mounted) return;
-    if (allowed == true) {
-      _granted = true;
-      _locate();
-    } else {
-      setState(() => _status = _Status.denied);
-    }
   }
 
   void _locate() {
@@ -262,7 +219,7 @@ class _AgriMapScreenState extends State<AgriMapScreen>
           ),
           if (_status == _Status.locating) const Center(child: _LocatingPill()),
           if (_status == _Status.denied)
-            Center(child: _DeniedCard(onAllow: _askPermission)),
+            Center(child: _DeniedCard(onAllow: _locate)),
           if (ready)
             Align(
               alignment: Alignment.bottomCenter,
@@ -351,12 +308,9 @@ class _AgriMapScreenState extends State<AgriMapScreen>
   }
 }
 
-// ---------------------------------------------------------------------------
-// Header and filters
-// ---------------------------------------------------------------------------
 
-/// Soft green header (same style as the chat): back, title and accent line,
-/// and the Ethmar buddy carrying a crate.
+// Header and filters
+
 class _MapHeader extends StatelessWidget {
   const _MapHeader();
 
@@ -518,9 +472,8 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
+
 // Map pieces: markers, the user's dot, and the drawn streets.
-// ---------------------------------------------------------------------------
 
 /// A round pin with the place's icon. Grows a little when selected.
 class _Marker extends StatelessWidget {
@@ -680,8 +633,8 @@ class _UserDotState extends State<_UserDot>
   }
 }
 
-/// A calm, made-up neighbourhood: sand blocks, white streets, warm main
-/// roads, green parks and a turquoise wadi.
+/// map look
+
 class _MapPainter extends CustomPainter {
   const _MapPainter();
 
@@ -753,9 +706,9 @@ class _MapPainter extends CustomPainter {
   bool shouldRepaint(covariant _MapPainter oldDelegate) => false;
 }
 
-// ---------------------------------------------------------------------------
+
 // Overlays: recenter, preview card, locating, denied, permission prompt.
-// ---------------------------------------------------------------------------
+
 
 class _RecenterButton extends StatelessWidget {
   const _RecenterButton({required this.onPressed});
@@ -778,8 +731,7 @@ class _RecenterButton extends StatelessWidget {
   }
 }
 
-/// Shown after tapping a marker: what the place is, its name, address and
-/// how far it is.
+/// Shown after tapping a marker: what the place is, its name, address and how far it is.
 class _PreviewCard extends StatelessWidget {
   const _PreviewCard({super.key, required this.place, required this.onClose});
   final _Place place;
@@ -987,70 +939,6 @@ class _DeniedCard extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             EthmarButton(label: s.mapAllowLocation, onPressed: onAllow),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Stand-in for the system's location prompt.
-/// TODO(location): Show the real OS permission request instead.
-class _PermissionDialog extends StatelessWidget {
-  const _PermissionDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    return Dialog(
-      backgroundColor: AppColors.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: const BoxDecoration(
-                  color: AppColors.seaTint,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.location_on_rounded,
-                  size: 40,
-                  color: AppColors.seaDeep,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              s.mapPermissionTitle,
-              textAlign: TextAlign.center,
-              style: AppText.title(context).copyWith(fontSize: 22),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              s.mapPermissionBody,
-              textAlign: TextAlign.center,
-              style: AppText.body(context),
-            ),
-            const SizedBox(height: 24),
-            EthmarButton(
-              label: s.mapAllow,
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
-            const SizedBox(height: 4),
-            Center(
-              child: EthmarLink(
-                label: s.mapDontAllow,
-                onTap: () => Navigator.of(context).pop(false),
-              ),
-            ),
           ],
         ),
       ),

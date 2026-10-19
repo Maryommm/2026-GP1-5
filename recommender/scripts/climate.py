@@ -9,7 +9,7 @@ information that the recommendation model needs for that place:
     * soil pH                                   -> SoilGrids (ISRIC)
 
 The only input is the location, so the module works for any place in the
-world. There is no list of cities or countries in the code.
+world.
 
 Caching and privacy
 -------------------
@@ -19,9 +19,7 @@ data is fetched for the centre of that area. This has two benefits:
     * the user's exact location is never sent to the services or saved.
 Climate averages change very slowly, so each result is reused for 30 days.
 
-Usage:
-    python recommender/scripts/climate.py                # Riyadh
-    python recommender/scripts/climate.py 29.37 47.98    # any latitude and longitude
+
 """
 
 from __future__ import annotations
@@ -42,9 +40,7 @@ CACHE_DIR = ROOT / "data" / "external" / "climate_cache"
 CACHE_MAX_AGE_DAYS = 30
 # The cache version is increased whenever the meaning of the saved values
 # changes, so that old cache files are ignored and fetched again.
-#   Version 2: temperatures are averages of daily highs and lows.
-#   Version 3: temperatures are corrected for the real ground elevation.
-#   Version 4: data is fetched for the centre of the ~11 km area.
+
 CACHE_VERSION = 4
 
 NASA_DAILY_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
@@ -57,7 +53,7 @@ TIMEOUT = 45          # seconds, for the small requests
 NASA_TIMEOUT = 150    # seconds, NASA returns 20 years of data in one response
 USER_AGENT = "Ethmar-GraduationProject/0.1"
 
-# SoilGrids has no data inside cities, so the centre of Riyadh has no pH value.
+# SoilGrids has no data inside cities.
 # When this happens we search around the point at these distances (in degrees,
 # where 0.1 degree is about 11 km) and stop at the first distance with data.
 SOIL_SEARCH_RINGS = (0.1, 0.25, 0.5)
@@ -88,11 +84,8 @@ class ClimateProfile:
     latitude: float
     longitude: float
     monthly: list                   # 12 MonthClimate objects, index 0 = January
-    annual_rain_mm: float           # total rainfall in a year
-    annual_temp_min_c: float        # lowest monthly average of the daily lows
-    annual_temp_max_c: float        # highest monthly average of the daily highs
     soil_ph: float
-    soil_ph_source: str             # "soilgrids", "soilgrids_nearby_<km>km" or "default"
+    soil_ph_source: str             # "soilgrids", "soilgrids_nearby_11km" (or 28km, 55km) or "default"
     elevation_m: float | None       # real ground elevation of the point
     grid_elevation_m: float | None  # elevation that NASA used for its grid cell
     temp_adjust_c: float            # correction added to every NASA temperature
@@ -128,16 +121,14 @@ def _cache_key(latitude: float, longitude: float) -> str:
 class FileCache:
     """
     Saves each profile as a JSON file in data/external/climate_cache/.
-    Used when the scripts run on a computer. On Firebase the Cloud Function
-    passes a Firestore cache instead; any object with the same get() and
-    set() methods can be used.
+    Used when the scripts run on a computer. The server on Vercel
+    (api/index.py) passes service.FirestoreCache instead, which saves the
+    profiles in Firestore; any object with the same get() and set() methods
+    can be used.
     """
 
-    def __init__(self, folder: Path = CACHE_DIR):
-        self.folder = folder
-
     def get(self, key: str) -> dict | None:
-        path = self.folder / f"{key}.json"
+        path = CACHE_DIR / f"{key}.json"
         if not path.exists():
             return None
         try:
@@ -146,8 +137,8 @@ class FileCache:
             return None
 
     def set(self, key: str, data: dict) -> None:
-        self.folder.mkdir(parents=True, exist_ok=True)
-        path = self.folder / f"{key}.json"
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        path = CACHE_DIR / f"{key}.json"
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
@@ -325,8 +316,7 @@ def _query_soil_ph(latitude: float, longitude: float, attempts: int = 4):
     """
     Return the topsoil pH at one point, or None if there is no value.
 
-    SoilGrids limits how many requests it accepts per minute and answers
-    429 ("too many requests") or 5xx when it is busy. In that case we wait
+    SoilGrids limits how many requests it accepts per minute when it is busy. In that case we wait
     and try again, so that a busy service is not mistaken for "no data",
     which would change the median of a search ring.
     """
@@ -405,20 +395,11 @@ def fetch_soil_ph(latitude: float, longitude: float):
 # Main function
 # --------------------------------------------------------------------------- #
 
-def _refresh_annual(profile: ClimateProfile) -> None:
-    """Recalculate the yearly summary values from the 12 months."""
-    profile.annual_rain_mm = round(sum(m.rain_mm for m in profile.monthly), 1)
-    profile.annual_temp_min_c = round(min(m.temp_low_c for m in profile.monthly), 1)
-    profile.annual_temp_max_c = round(max(m.temp_high_c for m in profile.monthly), 1)
-
-
-def lookup(latitude: float, longitude: float, use_cache: bool = True,
-           cache=None) -> ClimateProfile:
+def lookup(latitude: float, longitude: float, cache=None) -> ClimateProfile:
     """
     Return the climate profile of a location.
 
-    The location is rounded to the centre of its ~11 km area first (see the
-    note at the top of this file). The cache is used when possible.
+    The location is rounded to the centre of its ~11 km area first. The cache is used when possible.
     Otherwise the three services are called at the same time, the
     temperatures are corrected for elevation, and the result is saved in
     the cache.
@@ -436,29 +417,27 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True,
     latitude, longitude = area_centre(latitude, longitude)
     cache = cache if cache is not None else FileCache()
 
-    if use_cache:
-        cached = _read_cache(cache, latitude, longitude)
-        if cached is not None:
-            # A default pH or a missing elevation means that a service failed
-            # last time. We try again instead of keeping the placeholder for
-            # the whole 30 days.
-            changed = False
-            if cached.soil_ph_source == "default":
-                soil_ph, ph_source = fetch_soil_ph(latitude, longitude)
-                if ph_source != "default":
-                    cached.soil_ph, cached.soil_ph_source = soil_ph, ph_source
-                    changed = True
-            if cached.elevation_m is None:
-                elevation = fetch_elevation(latitude, longitude)
-                if elevation is not None:
-                    cached.elevation_m = elevation
-                    cached.temp_adjust_c = apply_elevation_correction(
-                        cached.monthly, cached.grid_elevation_m, elevation)
-                    _refresh_annual(cached)
-                    changed = True
-            if changed:
-                _write_cache(cache, cached)
-            return cached
+    cached = _read_cache(cache, latitude, longitude)
+    if cached is not None:
+        # A default pH or a missing elevation means that a service failed
+        # last time. We try again instead of keeping the placeholder for
+        # the whole 30 days.
+        changed = False
+        if cached.soil_ph_source == "default":
+            soil_ph, ph_source = fetch_soil_ph(latitude, longitude)
+            if ph_source != "default":
+                cached.soil_ph, cached.soil_ph_source = soil_ph, ph_source
+                changed = True
+        if cached.elevation_m is None:
+            elevation = fetch_elevation(latitude, longitude)
+            if elevation is not None:
+                cached.elevation_m = elevation
+                cached.temp_adjust_c = apply_elevation_correction(
+                    cached.monthly, cached.grid_elevation_m, elevation)
+                changed = True
+        if changed:
+            _write_cache(cache, cached)
+        return cached
 
     # The three services do not depend on each other, so they are called at
     # the same time. The total wait is the time of the slowest one.
@@ -480,9 +459,6 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True,
         latitude=latitude,
         longitude=longitude,
         monthly=monthly,
-        annual_rain_mm=0.0,
-        annual_temp_min_c=0.0,
-        annual_temp_max_c=0.0,
         soil_ph=soil_ph,
         soil_ph_source=ph_source,
         elevation_m=elevation,
@@ -490,7 +466,6 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True,
         temp_adjust_c=temp_adjust,
         fetched_at=datetime.now().isoformat(timespec="seconds"),
     )
-    _refresh_annual(profile)
     _write_cache(cache, profile)
     return profile
 
@@ -502,8 +477,6 @@ def _report(profile: ClimateProfile) -> None:
           f"(NASA cell {profile.grid_elevation_m} m, "
           f"temps shifted {profile.temp_adjust_c:+} C)")
     print(f"soil pH       : {profile.soil_ph} ({profile.soil_ph_source})")
-    print(f"annual rain   : {profile.annual_rain_mm} mm")
-    print(f"year temp     : {profile.annual_temp_min_c} to {profile.annual_temp_max_c} C")
     print()
     print(f"{'Month':<7}{'high':>7}{'low':>7}{'rain':>9}")
     for month in profile.monthly:

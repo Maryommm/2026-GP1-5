@@ -9,11 +9,10 @@ import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 
-/// "Ask Ethmar": the bot says hello, and the user can type messages.
-///
+/// "Ask Ethmar"
 /// UI only for now: messages stay on this screen and the bot doesn't reply.
-/// TODO(chatbot): Send the user's messages to the chatbot and show its
-///   replies.
+/// TODO(chatbot): in the next sprints.
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, this.username = ''});
   final String username;
@@ -32,7 +31,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Rebuild so the send button turns on and off with the text.
+    // the send button turns on and off with the text.
     _input.addListener(() => setState(() {}));
   }
 
@@ -110,8 +109,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-/// Soft green header with rounded bottom corners: back, the title, and the
-/// waving Ethmar buddy.
+///screen look.
 class _ChatHeader extends StatelessWidget {
   const _ChatHeader({required this.title});
   final String title;
@@ -147,8 +145,7 @@ class _ChatHeader extends StatelessWidget {
   }
 }
 
-/// One message. Ethmar's sit at the start in soft green, the user's at the
-/// end in forest (sides flip in Arabic).
+/// One message. Ethmar's sit at the start.
 class _Bubble extends StatelessWidget {
   const _Bubble({required this.text, required this.fromUser});
   final String text;
@@ -198,7 +195,7 @@ class _Bubble extends StatelessWidget {
   }
 }
 
-/// White pill text field and the round send button.
+/// text field and send button.
 class _InputBar extends StatelessWidget {
   const _InputBar({
     required this.controller,

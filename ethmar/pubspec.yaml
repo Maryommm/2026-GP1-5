@@ -33,6 +33,27 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# App icon. After changing the images in assets/icon/, run:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  android: true
+  # Android 8+: the logo on a white layer, shaped by the phone (circle, etc.).
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  # The foreground image already has its safe-zone margin built in.
+  adaptive_icon_foreground_inset: 0
+  min_sdk_android: 21
+  ios: false
+  web:
+    generate: true
+    background_color: "#FFFFFF"
+    theme_color: "#FFFFFF"
+  windows:
+    generate: true
+    icon_size: 256
 
 flutter:
   uses-material-design: true
