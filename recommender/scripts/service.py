@@ -3,9 +3,7 @@ Ethmar - request handling for the recommendation API.
 
 This module checks a request from the mobile app, runs the climate lookup
 and the recommendation model, and builds the response. It does not depend on
-any hosting platform. It is used by api/index.py (the server on Vercel), and
-could be called the same way from another host, such as a Firebase Cloud
-Function, without changes.
+any hosting platform.
 
 Request fields:
     latitude      number, required
@@ -27,8 +25,6 @@ Response fields:
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import climate
 import scoring
 
@@ -39,11 +35,8 @@ CACHE_COLLECTION = "climate_cache"
 
 class FirestoreCache:
     """
-    Climate cache stored in Firestore, one document per ~11 km area. It has
-    the same get() and set() methods as climate.FileCache. Only the server
-    reads and writes this collection; the Firestore security rules should
-    block the app from it.
-
+    Climate cache stored in Firestore, one document per ~11 km area. Only the server
+    reads and writes this collection.
     Parameters:
         client  a Firestore client from firebase_admin.firestore.client()
     """
@@ -92,15 +85,13 @@ def _integer(data: dict, name: str, default: int, low: int, high: int) -> int:
     return value
 
 
-def recommend_crops(data, cache, model_dir: Path | None = None) -> dict:
+def recommend_crops(data, cache) -> dict:
     """
     Handle one recommendation request.
 
     Parameters:
         data       the request fields as a dict (see the top of this file)
         cache      where climate profiles are saved (FileCache or a Firestore cache)
-        model_dir  folder that holds ethmar_recommendable.csv and
-                   scoring_config.json; the default project files if None
 
     Returns:
         The response as a dict, ready to be sent as JSON.
@@ -147,15 +138,9 @@ def recommend_crops(data, cache, model_dir: Path | None = None) -> dict:
                            "Climate data is not available right now. "
                            "Please try again later.")
 
-    # 3. Score the crops.
-    if model_dir is None:
-        table, config = scoring.load_table(), scoring.load_config()
-    else:
-        table = scoring.load_table(model_dir / "ethmar_recommendable.csv")
-        config = scoring.load_config(model_dir / "scoring_config.json")
+    # 3. Score the crops (scoring.py loads the crop table and the settings).
     results = scoring.recommend(profile, month, site,
-                                preferences=scoring.Preferences(groups=groups),
-                                table=table, config=config)
+                                preferences=scoring.Preferences(groups=groups))
 
     this_month = profile.monthly[month - 1]
     return {

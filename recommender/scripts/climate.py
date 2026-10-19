@@ -53,7 +53,7 @@ TIMEOUT = 45          # seconds, for the small requests
 NASA_TIMEOUT = 150    # seconds, NASA returns 20 years of data in one response
 USER_AGENT = "Ethmar-GraduationProject/0.1"
 
-# SoilGrids has no data inside cities,
+# SoilGrids has no data inside cities.
 # When this happens we search around the point at these distances (in degrees,
 # where 0.1 degree is about 11 km) and stop at the first distance with data.
 SOIL_SEARCH_RINGS = (0.1, 0.25, 0.5)
@@ -88,7 +88,7 @@ class ClimateProfile:
     annual_temp_min_c: float        # lowest monthly average of the daily lows
     annual_temp_max_c: float        # highest monthly average of the daily highs
     soil_ph: float
-    soil_ph_source: str             # "soilgrids", "soilgrids_nearby_km or "default"
+    soil_ph_source: str             # "soilgrids", "soilgrids_nearby_11km" (or 28km, 55km) or "default"
     elevation_m: float | None       # real ground elevation of the point
     grid_elevation_m: float | None  # elevation that NASA used for its grid cell
     temp_adjust_c: float            # correction added to every NASA temperature
