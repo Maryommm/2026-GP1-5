@@ -2,7 +2,7 @@
 Ethmar - recommendation API on Vercel.
 
 The Flutter app sends a POST request to /api/recommend with a JSON body
-(see recommender/scripts/service.py for the fields) and the user's Firebase ID token:
+ and the user's Firebase ID token:
 
     POST /api/recommend
     Authorization: Bearer <Firebase ID token>
@@ -14,23 +14,12 @@ Responses:
     200  the recommendations
     400  INVALID_ARGUMENT  - a wrong value in the request
     401  UNAUTHENTICATED   - missing or invalid sign-in token
+    500  INTERNAL          - an unexpected error on the server
     503  UNAVAILABLE       - a climate service is down; try again later
 Errors have the form {"error": {"status": "...", "message": "..."}}.
+The server  uses Firebase: Authentication to check the user, and Firestore
+to save the climate cache.
 
-We use Vercel because Firebase Cloud Functions need the Blaze plan. The
-server still uses Firebase: Authentication to check the user, and Firestore
-to save the climate cache. Both work on the free Spark plan.
-
-Environment variables (set in the Vercel project settings, never in Git):
-    FIREBASE_SERVICE_ACCOUNT  the service account key JSON, as one line
-
-Run locally with the Firebase emulators instead of the real project:
-    firebase emulators:start --only auth,firestore --project ethmar-95aaf
-    (in a second terminal)
-    set FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
-    set FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
-    python api/index.py
-The server then listens on http://127.0.0.1:8000.
 """
 
 import json
@@ -46,7 +35,7 @@ from werkzeug.exceptions import HTTPException
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "recommender" / "scripts"))
 
-import service  # noqa: E402  (imported after the path is set)
+import service  # imported after the path is set
 
 PROJECT_ID = "ethmar-95aaf"
 
