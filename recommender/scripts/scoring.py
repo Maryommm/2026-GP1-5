@@ -115,13 +115,6 @@ class Preferences:
     """Optional filters chosen by the user. None means "no filter"."""
 
     groups: list | None = None          # crop_group values, e.g. ["leafy_herb"]
-    life_cycle: str | None = None       # annual | perennial
-    max_height_m: float | None = None
-    edible_parts: list | None = None    # e.g. ["Fruit", "Leaves"]
-
-    def is_empty(self) -> bool:
-        return not any([self.groups, self.life_cycle,
-                        self.max_height_m, self.edible_parts])
 
 
 @dataclass
@@ -679,34 +672,14 @@ def crop_details(row) -> dict:
 
 def matches_preferences(row, preferences) -> bool:
     """
-    Return True if the crop passes the user's filters. The filters are only
-    for personal taste (for example "herbs only"); the climate is handled by
-    the scoring.
+    Return True if the crop passes the user's filter. The filter is only for
+    personal taste (for example "herbs only"); the climate is handled by the
+    scoring.
     """
-    if preferences is None or preferences.is_empty():
+    if preferences is None or not preferences.groups:
         return True
-
-    if preferences.groups:
-        group = _text(row, "crop_group") or ""
-        if group not in [g.lower() for g in preferences.groups]:
-            return False
-
-    if preferences.life_cycle:
-        cycle = _text(row, "ecocrop_lifespan") or _text(row, "life_cycle_raw") or ""
-        if preferences.life_cycle.lower() not in cycle:
-            return False
-
-    if preferences.max_height_m is not None:
-        height = _number(row, "height_m")
-        if height is not None and height > preferences.max_height_m:
-            return False
-
-    if preferences.edible_parts:
-        parts = _text(row, "edible_parts_raw") or ""
-        if not any(part.lower() in parts for part in preferences.edible_parts):
-            return False
-
-    return True
+    group = _text(row, "crop_group") or ""
+    return group in [g.lower() for g in preferences.groups]
 
 
 # --------------------------------------------------------------------------- #
@@ -835,8 +808,7 @@ def score_species(row, climate, month: int, site: Site, config: dict):
 
 
 def recommend(climate, month: int, site: Site | None = None, preferences=None,
-              limit: int | None = None, table: list | None = None,
-              config: dict | None = None):
+              limit: int | None = None):
     """
     Return every crop that can be grown at the location.
 
@@ -850,17 +822,14 @@ def recommend(climate, month: int, site: Site | None = None, preferences=None,
         site         the user's growing setup (default: Site())
         preferences  optional filters
         limit        return only the first `limit` crops (default: all)
-        table        rows from load_table(); loaded from the default file if None
-        config       settings from load_config(); loaded from the default file if None
     """
     if not 1 <= month <= 12:
         raise ValueError(f"month must be 1-12, got {month}")
-    config = config or load_config()
+    config = load_config()
     site = site or Site()
-    table = load_table() if table is None else table
 
     results = []
-    for row in table:
+    for row in load_table():
         if not matches_preferences(row, preferences):
             continue
         scored = score_species(row, climate, month, site, config)

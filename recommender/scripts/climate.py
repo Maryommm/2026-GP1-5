@@ -84,9 +84,6 @@ class ClimateProfile:
     latitude: float
     longitude: float
     monthly: list                   # 12 MonthClimate objects, index 0 = January
-    annual_rain_mm: float           # total rainfall in a year
-    annual_temp_min_c: float        # lowest monthly average of the daily lows
-    annual_temp_max_c: float        # highest monthly average of the daily highs
     soil_ph: float
     soil_ph_source: str             # "soilgrids", "soilgrids_nearby_11km" (or 28km, 55km) or "default"
     elevation_m: float | None       # real ground elevation of the point
@@ -130,11 +127,8 @@ class FileCache:
     can be used.
     """
 
-    def __init__(self, folder: Path = CACHE_DIR):
-        self.folder = folder
-
     def get(self, key: str) -> dict | None:
-        path = self.folder / f"{key}.json"
+        path = CACHE_DIR / f"{key}.json"
         if not path.exists():
             return None
         try:
@@ -143,8 +137,8 @@ class FileCache:
             return None
 
     def set(self, key: str, data: dict) -> None:
-        self.folder.mkdir(parents=True, exist_ok=True)
-        path = self.folder / f"{key}.json"
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        path = CACHE_DIR / f"{key}.json"
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
@@ -401,15 +395,7 @@ def fetch_soil_ph(latitude: float, longitude: float):
 # Main function
 # --------------------------------------------------------------------------- #
 
-def _refresh_annual(profile: ClimateProfile) -> None:
-    """Recalculate the yearly summary values from the 12 months."""
-    profile.annual_rain_mm = round(sum(m.rain_mm for m in profile.monthly), 1)
-    profile.annual_temp_min_c = round(min(m.temp_low_c for m in profile.monthly), 1)
-    profile.annual_temp_max_c = round(max(m.temp_high_c for m in profile.monthly), 1)
-
-
-def lookup(latitude: float, longitude: float, use_cache: bool = True,
-           cache=None) -> ClimateProfile:
+def lookup(latitude: float, longitude: float, cache=None) -> ClimateProfile:
     """
     Return the climate profile of a location.
 
@@ -431,29 +417,27 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True,
     latitude, longitude = area_centre(latitude, longitude)
     cache = cache if cache is not None else FileCache()
 
-    if use_cache:
-        cached = _read_cache(cache, latitude, longitude)
-        if cached is not None:
-            # A default pH or a missing elevation means that a service failed
-            # last time. We try again instead of keeping the placeholder for
-            # the whole 30 days.
-            changed = False
-            if cached.soil_ph_source == "default":
-                soil_ph, ph_source = fetch_soil_ph(latitude, longitude)
-                if ph_source != "default":
-                    cached.soil_ph, cached.soil_ph_source = soil_ph, ph_source
-                    changed = True
-            if cached.elevation_m is None:
-                elevation = fetch_elevation(latitude, longitude)
-                if elevation is not None:
-                    cached.elevation_m = elevation
-                    cached.temp_adjust_c = apply_elevation_correction(
-                        cached.monthly, cached.grid_elevation_m, elevation)
-                    _refresh_annual(cached)
-                    changed = True
-            if changed:
-                _write_cache(cache, cached)
-            return cached
+    cached = _read_cache(cache, latitude, longitude)
+    if cached is not None:
+        # A default pH or a missing elevation means that a service failed
+        # last time. We try again instead of keeping the placeholder for
+        # the whole 30 days.
+        changed = False
+        if cached.soil_ph_source == "default":
+            soil_ph, ph_source = fetch_soil_ph(latitude, longitude)
+            if ph_source != "default":
+                cached.soil_ph, cached.soil_ph_source = soil_ph, ph_source
+                changed = True
+        if cached.elevation_m is None:
+            elevation = fetch_elevation(latitude, longitude)
+            if elevation is not None:
+                cached.elevation_m = elevation
+                cached.temp_adjust_c = apply_elevation_correction(
+                    cached.monthly, cached.grid_elevation_m, elevation)
+                changed = True
+        if changed:
+            _write_cache(cache, cached)
+        return cached
 
     # The three services do not depend on each other, so they are called at
     # the same time. The total wait is the time of the slowest one.
@@ -475,9 +459,6 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True,
         latitude=latitude,
         longitude=longitude,
         monthly=monthly,
-        annual_rain_mm=0.0,
-        annual_temp_min_c=0.0,
-        annual_temp_max_c=0.0,
         soil_ph=soil_ph,
         soil_ph_source=ph_source,
         elevation_m=elevation,
@@ -485,7 +466,6 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True,
         temp_adjust_c=temp_adjust,
         fetched_at=datetime.now().isoformat(timespec="seconds"),
     )
-    _refresh_annual(profile)
     _write_cache(cache, profile)
     return profile
 
@@ -497,8 +477,6 @@ def _report(profile: ClimateProfile) -> None:
           f"(NASA cell {profile.grid_elevation_m} m, "
           f"temps shifted {profile.temp_adjust_c:+} C)")
     print(f"soil pH       : {profile.soil_ph} ({profile.soil_ph_source})")
-    print(f"annual rain   : {profile.annual_rain_mm} mm")
-    print(f"year temp     : {profile.annual_temp_min_c} to {profile.annual_temp_max_c} C")
     print()
     print(f"{'Month':<7}{'high':>7}{'low':>7}{'rain':>9}")
     for month in profile.monthly:
