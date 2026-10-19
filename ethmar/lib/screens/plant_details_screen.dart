@@ -335,7 +335,7 @@ class _GrowthTimeline extends StatelessWidget {
                             style: AppText.label(context).copyWith(
                               color: entries[i].notes == null
                                   ? AppColors.textSecondary
-                                  : AppColors.forest,
+                                  : AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),

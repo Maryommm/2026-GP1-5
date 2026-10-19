@@ -19,13 +19,15 @@ class AuthHeader extends StatelessWidget {
   const AuthHeader({
     super.key,
     required this.title,
-    required this.accent,
     required this.character,
+    this.accent,
   });
 
   final String title;
-  final String accent;
   final String character;
+
+  /// Optional hand-written line with a squiggle under the title.
+  final String? accent;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +44,11 @@ class AuthHeader extends StatelessWidget {
           Padding(
             padding: const EdgeInsetsDirectional.only(start: 12),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              // A one-line title (no accent) sits level with the middle of
+              // the character; a title with an accent keeps its baseline.
+              crossAxisAlignment: accent == null
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.end,
               children: [
                 Expanded(
                   child: Entrance(
@@ -50,25 +56,27 @@ class AuthHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(title, style: AppText.title(context)),
-                        const SizedBox(height: 6),
 
                         // Display the accent text with an animated underline.
-                        IntrinsicWidth(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                accent,
-                                style: AppText.accent(context, size: 19),
-                              ),
-                              DelayedProgress(
-                                delay: const Duration(milliseconds: 400),
-                                builder: (_, p) =>
-                                    SquiggleUnderline(progress: p, width: 40),
-                              ),
-                            ],
+                        if (accent case final a?) ...[
+                          const SizedBox(height: 6),
+                          IntrinsicWidth(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  a,
+                                  style: AppText.accent(context, size: 19),
+                                ),
+                                DelayedProgress(
+                                  delay: const Duration(milliseconds: 400),
+                                  builder: (_, p) =>
+                                      SquiggleUnderline(progress: p, width: 40),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -119,31 +127,51 @@ class AuthFooter extends StatelessWidget {
   }
 }
 
+/// The kind of feedback a toast gives; it sets the icon and its colour.
+enum EthmarToastType {
+  success(Icons.check_rounded, AppColors.toastSuccess),
+  error(Icons.close_rounded, AppColors.toastError),
+  info(Icons.info_outline_rounded, AppColors.toastInfo);
+
+  const EthmarToastType(this.icon, this.color);
+  final IconData icon;
+  final Color color;
+}
+
 /// Show a floating message and replace any previous message.
 void showEthmarToast(
   BuildContext context,
   String message, {
-  IconData icon = Icons.check_circle_rounded,
-  Color color = AppColors.forest,
+  EthmarToastType type = EthmarToastType.success,
 }) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: color,
+        backgroundColor: AppColors.forest,
         margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
         ),
         content: Row(
           children: [
-            Icon(icon, color: AppColors.sun),
+            // White circle, same 24px as the old icon, so the size stays.
+            Container(
+              width: 24,
+              height: 24,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(type.icon, size: 16, color: type.color),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 message,
-                style: AppText.label(context, color: Colors.white),
+                style: AppText.label(context, color: AppColors.surface),
               ),
             ),
           ],

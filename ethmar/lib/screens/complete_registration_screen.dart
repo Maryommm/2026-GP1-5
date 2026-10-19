@@ -143,7 +143,7 @@ class _CompleteRegistrationScreenState
 
   // Show an error message to the user.
   void _showError(String message) {
-    showEthmarToast(context, message, icon: Icons.error_outline_rounded);
+    showEthmarToast(context, message, type: EthmarToastType.error);
   }
 
   @override

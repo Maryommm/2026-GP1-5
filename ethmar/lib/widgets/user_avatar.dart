@@ -3,18 +3,13 @@ import 'package:flutter/material.dart';
 
 import '../services/profile_image_service.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
 
-/// Shows the profile photo or the user's initial.
+/// Shows the profile photo, or the Ethmar default avatar when there is none.
 class UserAvatar extends StatelessWidget {
-  const UserAvatar({
-    super.key,
-    required this.username,
-    this.size = 44,
-    this.imageUrl,
-  });
+  const UserAvatar({super.key, this.size = 44, this.imageUrl});
 
-  final String username;
+  static const defaultAvatar = 'assets/images/ethmar_default_avatar.png';
+
   final double size;
   final String? imageUrl;
 
@@ -55,30 +50,24 @@ class UserAvatar extends StatelessWidget {
     );
   }
 
-  // Show the user's initial or a default person icon.
+  // The Ethmar default avatar, on the feature-card green while it loads.
   Widget _fallback(BuildContext context) {
-    final initial = username.isEmpty
-        ? ''
-        : username.characters.first.toUpperCase();
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: AppColors.forestTint,
-        shape: BoxShape.circle,
+    // Decode the large image at the size it is shown.
+    final pixels = (size * MediaQuery.devicePixelRatioOf(context)).round();
+    return ClipOval(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: ColoredBox(
+          color: AppColors.featureCard,
+          child: Image.asset(
+            defaultAvatar,
+            fit: BoxFit.cover,
+            cacheWidth: pixels,
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          ),
+        ),
       ),
-      child: initial.isEmpty
-          ? Icon(
-              Icons.person_rounded,
-              size: size * 0.5,
-              color: AppColors.forest,
-            )
-          : Text(
-              initial,
-              style: AppText.label(context)
-                  .copyWith(fontSize: size * 0.4, fontWeight: FontWeight.w700),
-            ),
     );
   }
 }

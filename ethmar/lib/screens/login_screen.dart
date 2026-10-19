@@ -321,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Show an error message on the screen.
   void _showError(String message) {
-    showEthmarToast(context, message, icon: Icons.error_outline_rounded);
+    showEthmarToast(context, message, type: EthmarToastType.error);
   }
 
   @override

@@ -677,7 +677,7 @@ class _CategoryTab extends StatelessWidget {
                             context,
                             color: selected
                                 ? AppColors.onForest
-                                : AppColors.forest,
+                                : AppColors.textPrimary,
                           ).copyWith(fontSize: 11, fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -810,7 +810,7 @@ class _Condition extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           text,
-          style: AppText.small(context, color: AppColors.forest)
+          style: AppText.small(context, color: AppColors.textPrimary)
               .copyWith(fontWeight: FontWeight.w500),
         ),
       ],
@@ -1170,7 +1170,7 @@ class _NoteLine extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: AppText.small(context, color: AppColors.forest)
+              style: AppText.small(context, color: AppColors.textPrimary)
                   .copyWith(fontWeight: FontWeight.w500),
             ),
           ),

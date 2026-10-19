@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'ethmar_buttons.dart';
 
 /// Soft green header with rounded bottom corners: back button in a white
 /// circle, the title, an optional hand-written line, and an optional
@@ -42,19 +43,7 @@ class EthmarPageHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Material(
-            color: AppColors.surface,
-            shape: const CircleBorder(),
-            child: IconButton(
-              tooltip: S.of(context).back,
-              onPressed: () => Navigator.of(context).maybePop(),
-              style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-              icon: const Icon(
-                Icons.arrow_back_rounded,
-                color: AppColors.forest,
-              ),
-            ),
-          ),
+          EthmarBackButton(tooltip: S.of(context).back),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

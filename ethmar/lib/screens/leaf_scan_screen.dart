@@ -382,7 +382,7 @@ class _NoCamera extends StatelessWidget {
                 Text(
                   s.scanNoCamera,
                   textAlign: TextAlign.center,
-                  style: AppText.small(context, color: AppColors.forest),
+                  style: AppText.small(context, color: AppColors.textPrimary),
                 ),
                 EthmarLink(label: s.tryAgain, onTap: onRetry),
               ],
@@ -540,7 +540,7 @@ class _TipChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: AppText.small(context, color: AppColors.forest)
+            style: AppText.small(context, color: AppColors.textPrimary)
                 .copyWith(fontWeight: FontWeight.w600),
           ),
         ],

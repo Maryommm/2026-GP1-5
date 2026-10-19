@@ -173,7 +173,7 @@ class _InfoChip extends StatelessWidget {
             text,
             style: AppText.small(
               context,
-              color: AppColors.forest,
+              color: AppColors.textPrimary,
             ).copyWith(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],

@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../l10n/app_strings.dart';
 import '../services/profile_image_service.dart';
@@ -136,7 +138,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   // Show an error message to the user.
   void _showError(String message) {
-    showEthmarToast(context, message, icon: Icons.error_outline_rounded);
+    showEthmarToast(context, message, type: EthmarToastType.error);
   }
 
   // Choose a photo and upload it.
@@ -146,16 +148,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _photoBusy = true);
 
+    // Null until the camera or gallery returns a file, so errors can be
+    // told apart: picking vs. uploading.
+    XFile? image;
+
     try {
+      // The camera needs permission first; the gallery does not.
+      if (source == ImageSource.camera && !await _ensureCameraAccess()) return;
+
       // Open the camera or gallery to select a photo.
-      final image = await _imagePicker.pickImage(
+      image = await _imagePicker.pickImage(
         source: source,
         maxWidth: 4096,
         maxHeight: 4096,
         requestFullMetadata: false,
       );
 
-      // Stop if the user did not select a photo.
+      // The user cancelled: no message.
       if (image == null) return;
 
       // Upload the selected photo.
@@ -174,15 +183,111 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!mounted) return;
       _showError(_profilePhotoError(S.of(context), error));
 
-    } catch (_) {
-      // Handle errors while choosing or uploading the photo.
+    } catch (error) {
       if (!mounted) return;
-      _showError(S.of(context).errProfilePhotoPick);
+      if (image == null) {
+        // Failed while opening the camera or gallery.
+        await _handlePickerError(source, error);
+      } else {
+        // Failed after a photo was chosen, for a reason the upload
+        // service could not identify.
+        _showError(S.of(context).errPhotoUpload);
+      }
 
     } finally {
       // Stop loading after the photo operation finishes.
       if (mounted) setState(() => _photoBusy = false);
     }
+  }
+
+  // Explain a camera or gallery failure using image_picker's error code.
+  // Unknown causes get a neutral message for the action that failed.
+  Future<void> _handlePickerError(ImageSource source, Object error) async {
+    final code = error is PlatformException ? error.code : null;
+
+    if (code == 'camera_access_denied') {
+      // Point to Settings only if Android will not ask again; a plain
+      // denial needs no message.
+      final status = await Permission.camera.status;
+      if (status.isPermanentlyDenied || status.isRestricted) {
+        await _showCameraSettingsDialog();
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    final s = S.of(context);
+    _showError(switch (code) {
+      'no_available_camera' => s.errCameraOpen,
+      'no_valid_image_uri' => s.errImageRead,
+      _ => source == ImageSource.camera ? s.errPhotoCapture : s.errPhotoSelect,
+    });
+  }
+
+  // Make sure the camera can be used. Shows Android's own prompt when it
+  // is allowed to ask, and the Settings dialog only when it is not.
+  // A plain "Don't allow" is respected quietly.
+  Future<bool> _ensureCameraAccess() async {
+    var status = await Permission.camera.status;
+    if (status.isGranted) return true;
+
+    if (!status.isPermanentlyDenied && !status.isRestricted) {
+      status = await Permission.camera.request();
+      if (status.isGranted) return true;
+    }
+
+    if (status.isPermanentlyDenied || status.isRestricted) {
+      await _showCameraSettingsDialog();
+    }
+    return false;
+  }
+
+  // Explain that camera access is off and offer to open the app settings.
+  Future<void> _showCameraSettingsDialog() async {
+    if (!mounted) return;
+    final s = S.of(context);
+
+    final openSettings = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                s.cameraAccessTitle,
+                textAlign: TextAlign.center,
+                style: AppText.title(context).copyWith(fontSize: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                s.cameraAccessBody,
+                textAlign: TextAlign.center,
+                style: AppText.body(context),
+              ),
+              const SizedBox(height: 24),
+              EthmarButton(
+                label: s.openSettings,
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+              ),
+              const SizedBox(height: 12),
+              EthmarButton(
+                label: s.cancel,
+                outlined: true,
+                color: AppColors.featureCard,
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // The status is checked again on the next tap, so no restart is needed.
+    if (openSettings == true) await openAppSettings();
   }
 
   // Delete the current profile photo.
@@ -214,7 +319,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (_) {
       // Handle unexpected deletion errors.
       if (!mounted) return;
-      _showError(S.of(context).errProfilePhotoServer);
+      _showError(S.of(context).errPhotoDelete);
 
     } finally {
       // Stop loading after deletion finishes.
@@ -223,11 +328,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   // Convert photo errors into user-friendly messages.
+  // Technical details (HTTP status, server codes) are never shown.
   String _profilePhotoError(S s, ProfileImageException error) {
-    final message = switch (error.code) {
+    return switch (error.code) {
       ProfileImageErrorCode.unauthenticated ||
       ProfileImageErrorCode.unauthorized => s.errProfilePhotoAuth,
       ProfileImageErrorCode.emailNotVerified => s.errProfilePhotoVerification,
+      ProfileImageErrorCode.unreadableImage => s.errImageRead,
       ProfileImageErrorCode.unsupportedImage => s.errProfilePhotoType,
       ProfileImageErrorCode.imageTooLarge => s.errProfilePhotoSize,
       ProfileImageErrorCode.network => s.errNetwork,
@@ -236,10 +343,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ProfileImageErrorCode.server ||
       ProfileImageErrorCode.invalidResponse => s.errProfilePhotoServer,
     };
-
-    // Include safe error details if available.
-    final diagnostic = error.safeDiagnostic;
-    return diagnostic == null ? message : '$message\n[$diagnostic]';
   }
 
   // Handle leaving the screen.
@@ -294,6 +397,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               EthmarButton(
                 label: s.discard,
                 outlined: true,
+                color: AppColors.featureCard,
                 onPressed: () => Navigator.of(dialogContext).pop(true),
               ),
             ],
@@ -320,8 +424,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 // Edit Profile screen header.
                 AuthHeader(
-                  title: s.editProfileTitle,
-                  accent: s.editProfileAccent,
+                  title: s.editProfile,
                   character: 'ethmar_buddy_seedling',
                 ),
 
@@ -340,7 +443,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         children: [
                           // Display the profile photo and photo options.
                           _PhotoArea(
-                            username: widget.username,
                             imageUrl: _uploadedProfileImage?.secureUrl,
                             loading: _photoBusy,
                             onTakePhoto: () =>
@@ -384,6 +486,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           EthmarButton(
                             label: s.cancel,
                             outlined: true,
+                            color: AppColors.featureCard,
+                            textColor: AppColors.textPrimary,
                             onPressed: _saving || _photoBusy ? null : _leave,
                           ),
                         ],
@@ -403,7 +507,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 // Display the profile photo and photo action buttons.
 class _PhotoArea extends StatelessWidget {
   const _PhotoArea({
-    required this.username,
     required this.imageUrl,
     required this.loading,
     required this.onTakePhoto,
@@ -411,7 +514,6 @@ class _PhotoArea extends StatelessWidget {
     required this.onDelete,
   });
 
-  final String username;
   final String? imageUrl;
   final bool loading;
   final VoidCallback onTakePhoto;
@@ -427,8 +529,16 @@ class _PhotoArea extends StatelessWidget {
         Stack(
           clipBehavior: Clip.none,
           children: [
-            // Display the current photo or default avatar.
-            UserAvatar(username: username, size: 96, imageUrl: imageUrl),
+            // The current photo or default avatar, in a forest-green ring
+            // like Profile's.
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: const BoxDecoration(
+                color: AppColors.forest,
+                shape: BoxShape.circle,
+              ),
+              child: UserAvatar(size: 96, imageUrl: imageUrl),
+            ),
 
             // Show loading over the avatar during photo operations.
             if (loading)
@@ -519,23 +629,24 @@ class _PhotoPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Rounded rectangle in the Home green, like the app's other controls.
     return Material(
-      color: AppColors.forestTint,
-      shape: const StadiumBorder(),
+      color: AppColors.featureCard,
+      shape: const RoundedRectangleBorder(borderRadius: kControlRadius),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: AppColors.forest),
-              const SizedBox(width: 6),
+              Icon(icon, size: 20, color: AppColors.forest),
+              const SizedBox(width: 8),
               Text(
                 label,
                 style: AppText.label(context)
-                    .copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+                    .copyWith(fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ],
           ),

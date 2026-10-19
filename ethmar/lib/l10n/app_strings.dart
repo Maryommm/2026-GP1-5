@@ -6,7 +6,7 @@ class AppStrings {
   AppStrings._();
 
   static const Map<String, String> en = {
-    'languageSwitch': 'عربي',
+    'languageSwitch': 'العربية',
     'welcomeTitle': 'Welcome to Ethmar!',
     'welcomeBody': 'Grow your own little farm, one seed at a time.',
     'createAccount': 'Sign up',
@@ -170,9 +170,21 @@ class AppStrings {
     'homeGoodMorning': 'Good morning,',
     'homeGoodAfternoon': 'Good afternoon,',
     'homeGoodEvening': 'Good evening,',
-    'homeMotivation': 'every big harvest starts small',
-    'homeStreakDays': '0 days streak',
-    'homeStreakHint': 'Add a plant to start your streak',
+    // Home slogans, one shown per day (see daily_slogan_service.dart).
+    'homeSlogan1': "Tomorrow's Harvest Begins with Today's Seed",
+    'homeSlogan2': 'Plant Today, Change Tomorrow',
+    'homeSlogan3': 'Beautiful Things Take Time to Grow',
+    // Streak card states on Home.
+    'streakNotStartedTitle': '0 day streak',
+    'streakNotStartedHint': 'Add your first plant and start your streak now!',
+    'streakActiveTitle': '{n} day streak',
+    'streakActiveTitleOne': '1 day streak',
+    'streakActiveTitleTwo': '2 day streak',
+    'streakActiveTitleMany': '{n} day streak',
+    'streakActiveHint':
+        'Great job! Keep caring for your plants to maintain your streak.',
+    'streakLostTitle': 'Streak lost',
+    'streakLostHint': 'Take care of your plants and start your streak again.',
     'homeAddPlant': 'Add Plant',
     'homeWhatToPlant': 'What to plant?',
     'homeScanPlant': 'Scan plant',
@@ -182,12 +194,56 @@ class AppStrings {
     'navDailyTasks': 'Daily Tasks',
     'navVirtualFarm': 'Virtual Farm',
     'navLeaderboard': 'Leaderboard',
+    // Home feature cards and the Ask Thamoor tab (Thamoor is the mascot).
+    'homeCardRecommended': 'Recommended',
+    'homeCardNearMe': 'Near Me',
+    'homeCardLeaderboard': 'Leaderboard',
+    'homeCardAddPlant': 'Add Plant',
+    'homeCardDiagnosis': 'Disease Diagnosis',
+    'navAskThamoor': 'Ask Thamoor',
     'profile': 'Profile',
     'editProfile': 'Edit Profile',
-    'statPlants': 'Plants',
-    'statRank': 'Rank',
-    'editProfileTitle': 'Edit your profile',
-    'editProfileAccent': 'keep it fresh',
+    // Profile screen
+    'memberSince': 'Member since {date}',
+    'statMyPlants': 'My Plants',
+    'statMyRank': 'My Rank',
+    'settingsTitle': 'Settings',
+    'settingsLanguage': 'Language',
+    'aboutEthmar': 'About Ethmar',
+    'contactEthmar': 'Contact Ethmar',
+    'chooseLanguage': 'Choose language',
+    'languageArabic': 'العربية',
+    'languageEnglish': 'English',
+    'logOutConfirmTitle': 'Log out?',
+    'logOutConfirmBody': 'Are you sure you want to log out of your account?',
+    // About Ethmar
+    'aboutTagline': 'Your Personal Agricultural Assistant',
+    'aboutWhatTitle': 'What is Ethmar?',
+    'aboutWhatBody':
+        'Ethmar is a personal agricultural assistant mobile application designed to help beginner home farmers choose suitable productive crops, care for their plants, and track their growth through guidance tailored to their local environment.',
+    'aboutOffersTitle': 'What Ethmar Offers',
+    'aboutCard1Title': 'Start Growing with Confidence',
+    'aboutCard1Body':
+        'Get suggestions for productive crops that suit your local climate, and find nearby nurseries and farm stores on the map.',
+    'aboutCard2Title': 'Care for Your Plants with Ease',
+    'aboutCard2Body':
+        'Care reminders, weather alerts and growth tracking help you stay on track. If a leaf looks unwell, get a preliminary diagnosis or ask Thamoor, our AI assistant.',
+    'aboutCard3Title': 'Enjoy Your Farming Journey',
+    'aboutCard3Body':
+        'Watch your virtual farm grow with every plant you add, and see how you rank among other growers.',
+    'aboutPrototypeNote':
+        'Ethmar is still growing. Some features are early versions and will keep improving.',
+    'aboutGoalTitle': 'Our Goal',
+    'aboutGoalBody':
+        'To make home farming easier and more engaging by providing accessible, climate-aware guidance that helps beginners grow productive crops with confidence and stay motivated throughout their farming journey.',
+    'appVersion': 'Version {v}',
+    // Contact Ethmar
+    'contactIntro':
+        "Have a question, an idea or feedback? We'd love to hear from you.",
+    'contactEmailTitle': 'Email Us',
+    'contactXTitle': 'Follow Us on X',
+    'errOpenEmail': "Couldn't open an email app. The address has been copied.",
+    'errOpenLink': "Couldn't open the link. It has been copied.",
     'takePhoto': 'Take Photo',
     'chooseFromGallery': 'Choose from Gallery',
     'deletePhoto': 'Delete Photo',
@@ -196,15 +252,26 @@ class AppStrings {
     'errProfilePhotoAuth': 'Your session expired. Sign in again and retry.',
     'errProfilePhotoVerification':
         'Verify your email before changing your photo.',
-    'errProfilePhotoType': 'Choose a valid JPEG or PNG image.',
-    'errProfilePhotoSize': 'The image must be 5 MB or smaller.',
+    'errProfilePhotoType':
+        "This image format isn't supported. Please choose a JPEG, PNG or WebP image.",
+    'errProfilePhotoSize':
+        'The image is larger than 5 MB. Please choose a smaller image.',
     'errProfilePhotoRateLimit':
         'Too many photo requests. Wait a minute and retry.',
     'errProfilePhotoServer':
         'The image service is unavailable. Try again later.',
     'errProfilePhotoSave':
         'The photo changed, but your profile could not be updated. Try again.',
-    'errProfilePhotoPick': "We couldn't open that image. Try another one.",
+    'errImageRead': 'Unable to read the image. Please try again.',
+    'errCameraOpen': 'Unable to open the camera. Please try again.',
+    'errPhotoCapture': 'Unable to take the photo. Please try again.',
+    'errPhotoSelect': 'Unable to select the image. Please try again.',
+    'errPhotoUpload': 'Unable to upload the photo. Please try again.',
+    'errPhotoDelete': 'Unable to delete the photo. Please try again.',
+    'cameraAccessTitle': 'Allow camera access',
+    'cameraAccessBody':
+        'To take a profile photo, turn on camera access for Ethmar in your device settings.',
+    'openSettings': 'Open Settings',
     'save': 'Save',
     'cancel': 'Cancel',
     'profileUpdated': 'Profile updated successfully.',
@@ -501,9 +568,18 @@ class AppStrings {
     'homeGoodMorning': 'صباح الخير،',
     'homeGoodAfternoon': 'مساء الخير،',
     'homeGoodEvening': 'مساء الخير،',
-    'homeMotivation': 'كل حصاد كبير يبدأ صغير',
-    'homeStreakDays': '٠ أيام متتالية',
-    'homeStreakHint': 'أضف نبتة عشان تبدأ سلسلتك',
+    'homeSlogan1': 'ثمار الغد تبدأ ببذرة اليوم',
+    'homeSlogan2': 'ازرع اليوم، وغيّر الغد',
+    'homeSlogan3': 'الأشياء الجميلة تحتاج وقتًا لتنمو',
+    'streakNotStartedTitle': '0 أيام متتالية',
+    'streakNotStartedHint': 'ازرع نبتتك الأولى، وابدأ سلسلتك الآن!',
+    'streakActiveTitle': '{n} أيام متتالية',
+    'streakActiveTitleOne': 'يوم واحد متتالٍ',
+    'streakActiveTitleTwo': 'يومان متتاليان',
+    'streakActiveTitleMany': '{n} يومًا متتاليًا',
+    'streakActiveHint': 'أحسنت! واصل العناية بنباتاتك للحفاظ على السلسلة.',
+    'streakLostTitle': 'انقطعت السلسلة',
+    'streakLostHint': 'حافظ على نباتاتك وابدأ السلسلة من جديد.',
     'homeAddPlant': 'أضف نبتة',
     'homeWhatToPlant': 'وش أزرع؟',
     'homeScanPlant': 'افحص نبتتك',
@@ -513,12 +589,54 @@ class AppStrings {
     'navDailyTasks': 'المهام اليومية',
     'navVirtualFarm': 'المزرعة الافتراضية',
     'navLeaderboard': 'المتصدرون',
+    'homeCardRecommended': 'مقترح لك',
+    'homeCardNearMe': 'قريب مني',
+    'homeCardLeaderboard': 'لوحة الصدارة',
+    'homeCardAddPlant': 'إضافة نبتة',
+    'homeCardDiagnosis': 'تشخيص المرض',
+    'navAskThamoor': 'اسأل ثمور',
     'profile': 'الملف الشخصي',
     'editProfile': 'تعديل الملف الشخصي',
-    'statPlants': 'النباتات',
-    'statRank': 'الترتيب',
-    'editProfileTitle': 'عدّل ملفك',
-    'editProfileAccent': 'خلّه دايم جديد',
+    // Profile screen
+    'memberSince': 'عضو منذ {date}',
+    'statMyPlants': 'نباتاتي',
+    'statMyRank': 'ترتيبي',
+    'settingsTitle': 'الإعدادات',
+    'settingsLanguage': 'اللغة',
+    'aboutEthmar': 'عن إثمار',
+    'contactEthmar': 'تواصل مع إثمار',
+    'chooseLanguage': 'اختر اللغة',
+    'languageArabic': 'العربية',
+    'languageEnglish': 'English',
+    'logOutConfirmTitle': 'تسجيل الخروج؟',
+    'logOutConfirmBody': 'هل أنت متأكد من رغبتك في تسجيل الخروج من حسابك؟',
+    // About Ethmar
+    'aboutTagline': 'مساعدك الزراعي الشخصي',
+    'aboutWhatTitle': 'ما هو إثمار؟',
+    'aboutWhatBody':
+        'إثمار تطبيق مساعد زراعي شخصي يهدف إلى مساعدة المبتدئين في الزراعة المنزلية على اختيار المحاصيل المنتجة المناسبة، والعناية بنباتاتهم، ومتابعة نموها من خلال إرشادات تراعي ظروف بيئتهم المحلية.',
+    'aboutOffersTitle': 'ماذا يقدم إثمار؟',
+    'aboutCard1Title': 'ابدأ زراعتك بثقة',
+    'aboutCard1Body':
+        'احصل على اقتراحات لمحاصيل منتجة تناسب مناخك المحلي، واعثر على المشاتل ومتاجر المستلزمات الزراعية القريبة منك عبر الخريطة.',
+    'aboutCard2Title': 'اعتنِ بنباتاتك بسهولة',
+    'aboutCard2Body':
+        'تذكيرات بمواعيد العناية، وتنبيهات بالطقس، ومتابعة لنمو نباتاتك خطوة بخطوة. وإذا لاحظت مشكلة في أوراق نبتتك، احصل على تشخيص أولي أو اسأل ثمور، مساعدك الذكي.',
+    'aboutCard3Title': 'استمتع برحلتك الزراعية',
+    'aboutCard3Body':
+        'شاهد مزرعتك الافتراضية تكبر مع كل نبتة تضيفها، وتعرّف على ترتيبك بين المزارعين الآخرين.',
+    'aboutPrototypeNote':
+        'إثمار ما زال ينمو، وبعض ميزاته نسخ أولية ستتطور باستمرار.',
+    'aboutGoalTitle': 'هدفنا',
+    'aboutGoalBody':
+        'نسعى إلى جعل الزراعة المنزلية أسهل وأكثر تفاعلية، من خلال تقديم إرشادات واضحة تراعي المناخ المحلي، وتساعد المبتدئين على زراعة المحاصيل المنتجة بثقة، وتحفزهم على الاستمرار في رحلتهم الزراعية.',
+    'appVersion': 'الإصدار {v}',
+    // Contact Ethmar
+    'contactIntro': 'لديك سؤال أو فكرة أو ملاحظة؟ يسعدنا أن نسمع منك.',
+    'contactEmailTitle': 'راسلنا عبر البريد',
+    'contactXTitle': 'تابعنا على X',
+    'errOpenEmail': 'تعذّر فتح تطبيق البريد، وتم نسخ العنوان.',
+    'errOpenLink': 'تعذّر فتح الرابط، وتم نسخه.',
     'takePhoto': 'التقط صورة',
     'chooseFromGallery': 'اختر من المعرض',
     'deletePhoto': 'حذف الصورة',
@@ -526,14 +644,25 @@ class AppStrings {
     'profilePhotoDeleted': 'تم حذف صورة الملف الشخصي.',
     'errProfilePhotoAuth': 'انتهت جلستك. سجّل الدخول مجددًا ثم حاول مرة أخرى.',
     'errProfilePhotoVerification': 'تحقق من بريدك قبل تغيير صورتك.',
-    'errProfilePhotoType': 'اختر صورة JPEG أو PNG صالحة.',
-    'errProfilePhotoSize': 'يجب ألا يتجاوز حجم الصورة 5 ميجابايت.',
+    'errProfilePhotoType':
+        'صيغة الصورة غير مدعومة. يُرجى اختيار صورة بصيغة JPEG أو PNG أو WebP.',
+    'errProfilePhotoSize':
+        'حجم الصورة يتجاوز 5 ميجابايت. يُرجى اختيار صورة أصغر.',
     'errProfilePhotoRateLimit':
         'طلبات صور كثيرة. انتظر دقيقة ثم حاول مرة أخرى.',
     'errProfilePhotoServer': 'خدمة الصور غير متاحة حاليًا. حاول لاحقًا.',
     'errProfilePhotoSave':
         'تغيّرت الصورة، لكن تعذّر تحديث ملفك. حاول مرة أخرى.',
-    'errProfilePhotoPick': 'تعذّر فتح هذه الصورة. اختر صورة أخرى.',
+    'errImageRead': 'تعذّر قراءة الصورة. يُرجى المحاولة مرة أخرى.',
+    'errCameraOpen': 'تعذّر تشغيل الكاميرا. يُرجى المحاولة مرة أخرى.',
+    'errPhotoCapture': 'تعذّر التقاط الصورة. يُرجى المحاولة مرة أخرى.',
+    'errPhotoSelect': 'تعذّر اختيار الصورة. يُرجى المحاولة مرة أخرى.',
+    'errPhotoUpload': 'تعذّر رفع الصورة. يُرجى المحاولة مرة أخرى.',
+    'errPhotoDelete': 'تعذّر حذف الصورة. يُرجى المحاولة مرة أخرى.',
+    'cameraAccessTitle': 'السماح بالوصول إلى الكاميرا',
+    'cameraAccessBody':
+        'لالتقاط صورة للملف الشخصي، فعّل صلاحية الكاميرا لتطبيق إثمار من إعدادات جهازك.',
+    'openSettings': 'فتح الإعدادات',
     'save': 'حفظ',
     'cancel': 'إلغاء',
     'profileUpdated': 'تم تحديث الملف الشخصي بنجاح.',
@@ -835,9 +964,24 @@ class S {
   String get homeGoodMorning => t('homeGoodMorning');
   String get homeGoodAfternoon => t('homeGoodAfternoon');
   String get homeGoodEvening => t('homeGoodEvening');
-  String get homeMotivation => t('homeMotivation');
+  /// Home slogan by its stable index (0, 1 or 2).
+  String homeSlogan(int i) => t('homeSlogan${i + 1}');
   String get homeStreakDays => t('homeStreakDays');
   String get homeStreakHint => t('homeStreakHint');
+  String get streakNotStartedTitle => t('streakNotStartedTitle');
+  String get streakNotStartedHint => t('streakNotStartedHint');
+  String get streakActiveHint => t('streakActiveHint');
+  String get streakLostTitle => t('streakLostTitle');
+  String get streakLostHint => t('streakLostHint');
+
+  /// "{n} day streak", with the correct Arabic number form:
+  /// 1 → يوم واحد, 2 → يومان, 3–10 → أيام, 11+ → يومًا.
+  String streakActiveTitle(int n) => switch (n) {
+        1 => t('streakActiveTitleOne'),
+        2 => t('streakActiveTitleTwo'),
+        >= 3 && <= 10 => t('streakActiveTitle').replaceAll('{n}', '$n'),
+        _ => t('streakActiveTitleMany').replaceAll('{n}', '$n'),
+      };
   String get homeAddPlant => t('homeAddPlant');
   String get homeWhatToPlant => t('homeWhatToPlant');
   String get homeScanPlant => t('homeScanPlant');
@@ -847,12 +991,45 @@ class S {
   String get navDailyTasks => t('navDailyTasks');
   String get navVirtualFarm => t('navVirtualFarm');
   String get navLeaderboard => t('navLeaderboard');
+  String get homeCardRecommended => t('homeCardRecommended');
+  String get homeCardNearMe => t('homeCardNearMe');
+  String get homeCardLeaderboard => t('homeCardLeaderboard');
+  String get homeCardAddPlant => t('homeCardAddPlant');
+  String get homeCardDiagnosis => t('homeCardDiagnosis');
+  String get navAskThamoor => t('navAskThamoor');
   String get profile => t('profile');
   String get editProfile => t('editProfile');
-  String get statPlants => t('statPlants');
-  String get statRank => t('statRank');
-  String get editProfileTitle => t('editProfileTitle');
-  String get editProfileAccent => t('editProfileAccent');
+  String memberSince(String date) => t('memberSince').replaceAll('{date}', date);
+  String get statMyPlants => t('statMyPlants');
+  String get statMyRank => t('statMyRank');
+  String get settingsTitle => t('settingsTitle');
+  String get settingsLanguage => t('settingsLanguage');
+  String get aboutEthmar => t('aboutEthmar');
+  String get contactEthmar => t('contactEthmar');
+  String get chooseLanguage => t('chooseLanguage');
+  String get languageArabic => t('languageArabic');
+  String get languageEnglish => t('languageEnglish');
+  String get logOutConfirmTitle => t('logOutConfirmTitle');
+  String get logOutConfirmBody => t('logOutConfirmBody');
+  String get aboutTagline => t('aboutTagline');
+  String get aboutWhatTitle => t('aboutWhatTitle');
+  String get aboutWhatBody => t('aboutWhatBody');
+  String get aboutOffersTitle => t('aboutOffersTitle');
+  String get aboutCard1Title => t('aboutCard1Title');
+  String get aboutCard1Body => t('aboutCard1Body');
+  String get aboutCard2Title => t('aboutCard2Title');
+  String get aboutCard2Body => t('aboutCard2Body');
+  String get aboutCard3Title => t('aboutCard3Title');
+  String get aboutCard3Body => t('aboutCard3Body');
+  String get aboutPrototypeNote => t('aboutPrototypeNote');
+  String get aboutGoalTitle => t('aboutGoalTitle');
+  String get aboutGoalBody => t('aboutGoalBody');
+  String appVersion(String v) => t('appVersion').replaceAll('{v}', v);
+  String get contactIntro => t('contactIntro');
+  String get contactEmailTitle => t('contactEmailTitle');
+  String get contactXTitle => t('contactXTitle');
+  String get errOpenEmail => t('errOpenEmail');
+  String get errOpenLink => t('errOpenLink');
   String get takePhoto => t('takePhoto');
   String get chooseFromGallery => t('chooseFromGallery');
   String get deletePhoto => t('deletePhoto');
@@ -865,7 +1042,15 @@ class S {
   String get errProfilePhotoRateLimit => t('errProfilePhotoRateLimit');
   String get errProfilePhotoServer => t('errProfilePhotoServer');
   String get errProfilePhotoSave => t('errProfilePhotoSave');
-  String get errProfilePhotoPick => t('errProfilePhotoPick');
+  String get errImageRead => t('errImageRead');
+  String get errCameraOpen => t('errCameraOpen');
+  String get errPhotoCapture => t('errPhotoCapture');
+  String get errPhotoSelect => t('errPhotoSelect');
+  String get errPhotoUpload => t('errPhotoUpload');
+  String get errPhotoDelete => t('errPhotoDelete');
+  String get cameraAccessTitle => t('cameraAccessTitle');
+  String get cameraAccessBody => t('cameraAccessBody');
+  String get openSettings => t('openSettings');
   String get save => t('save');
   String get cancel => t('cancel');
   String get profileUpdated => t('profileUpdated');

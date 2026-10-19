@@ -66,6 +66,8 @@ class WelcomeScreen extends StatelessWidget {
                     EthmarButton(
                       label: s.haveAccount,
                       outlined: true,
+                      color: AppColors.featureCard,
+                      textColor: AppColors.textPrimary,
                       onPressed: () => Navigator.of(context)
                           .push(riseRoute(const LoginScreen())),
                     ),

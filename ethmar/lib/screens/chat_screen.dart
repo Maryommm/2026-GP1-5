@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/backgrounds.dart';
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
+import '../widgets/ethmar_buttons.dart';
 
 /// "Ask Ethmar": the bot says hello, and the user can type messages.
 ///
@@ -130,19 +131,7 @@ class _ChatHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Material(
-            color: AppColors.surface,
-            shape: const CircleBorder(),
-            child: IconButton(
-              tooltip: S.of(context).back,
-              onPressed: () => Navigator.of(context).maybePop(),
-              style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-              icon: const Icon(
-                Icons.arrow_back_rounded,
-                color: AppColors.forest,
-              ),
-            ),
-          ),
+          EthmarBackButton(tooltip: S.of(context).back),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
@@ -200,7 +189,7 @@ class _Bubble extends StatelessWidget {
             text,
             style: AppText.label(
               context,
-              color: fromUser ? AppColors.onForest : AppColors.forest,
+              color: fromUser ? AppColors.onForest : AppColors.textPrimary,
             ).copyWith(fontSize: 15, height: 1.4),
           ),
         ),
@@ -241,7 +230,7 @@ class _InputBar extends StatelessWidget {
                 onSubmitted: (_) => onSend?.call(),
                 style: AppText.body(
                   context,
-                  color: AppColors.forest,
+                  color: AppColors.textPrimary,
                 ).copyWith(fontSize: 15),
                 decoration: InputDecoration(
                   hintText: hint,

@@ -23,6 +23,8 @@ class ProfileImageSession {
 enum ProfileImageErrorCode {
   unauthenticated,
   emailNotVerified,
+  // The selected file could not be read from the device.
+  unreadableImage,
   unsupportedImage,
   imageTooLarge,
   network,
@@ -235,7 +237,12 @@ class ProfileImageService {
   // Validate and upload a selected profile image.
   Future<UploadedProfileImage> upload(XFile image) async {
     // Check the file size before reading it.
-    final length = await image.length();
+    final int length;
+    try {
+      length = await image.length();
+    } catch (_) {
+      throw const ProfileImageException(ProfileImageErrorCode.unreadableImage);
+    }
     if (length <= 0) {
       throw const ProfileImageException(ProfileImageErrorCode.unsupportedImage);
     }
@@ -244,7 +251,12 @@ class ProfileImageService {
     }
 
     // Read the file and check its actual size.
-    final imageBytes = await image.readAsBytes();
+    final Uint8List imageBytes;
+    try {
+      imageBytes = await image.readAsBytes();
+    } catch (_) {
+      throw const ProfileImageException(ProfileImageErrorCode.unreadableImage);
+    }
     if (imageBytes.length > maxImageBytes) {
       throw const ProfileImageException(ProfileImageErrorCode.imageTooLarge);
     }

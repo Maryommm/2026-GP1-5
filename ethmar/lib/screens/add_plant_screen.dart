@@ -7,7 +7,7 @@ import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../widgets/auth_header.dart' show showEthmarToast;
+import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/care_schedule_editor.dart';
 import '../widgets/entrance.dart';
@@ -34,7 +34,7 @@ class AddPlantScreen extends StatefulWidget {
       showEthmarToast(
         context,
         S.of(context).farmLandFull,
-        icon: Icons.info_rounded,
+        type: EthmarToastType.info,
       );
       return null;
     }
@@ -296,19 +296,7 @@ class _StepHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Material(
-                color: AppColors.surface,
-                shape: const CircleBorder(),
-                child: IconButton(
-                  tooltip: s.back,
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-                  icon: const Icon(
-                    Icons.arrow_back_rounded,
-                    color: AppColors.forest,
-                  ),
-                ),
-              ),
+              EthmarBackButton(tooltip: s.back),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -326,7 +314,7 @@ class _StepHeader extends StatelessWidget {
                         key: ValueKey(step),
                         style: AppText.small(
                           context,
-                          color: AppColors.forest,
+                          color: AppColors.textPrimary,
                         ).copyWith(fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -745,7 +733,7 @@ class _SummaryRow extends StatelessWidget {
                   style:
                       AppText.label(
                         context,
-                        color: set ? AppColors.forest : AppColors.textSecondary,
+                        color: set ? AppColors.textPrimary : AppColors.textSecondary,
                       ).copyWith(
                         fontWeight: set ? FontWeight.w600 : FontWeight.w400,
                       ),

@@ -383,19 +383,7 @@ class _MapHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Material(
-            color: AppColors.surface,
-            shape: const CircleBorder(),
-            child: IconButton(
-              tooltip: s.back,
-              onPressed: () => Navigator.of(context).maybePop(),
-              style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-              icon: const Icon(
-                Icons.arrow_back_rounded,
-                color: AppColors.forest,
-              ),
-            ),
-          ),
+          EthmarBackButton(tooltip: s.back),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -471,7 +459,7 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = selected ? AppColors.onForest : AppColors.forest;
+    final fg = selected ? AppColors.onForest : AppColors.textPrimary;
     final t = type;
     return Semantics(
       selected: selected,

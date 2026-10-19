@@ -534,7 +534,7 @@ class _RankRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final you = player.isYou;
-    final fg = you ? Colors.white : AppColors.forest;
+    final fg = you ? Colors.white : AppColors.textPrimary;
     final (avatarBg, avatarFg) = you
         ? (_placeAccent[1]!, _stageBottom)
         : _pastelFor(player.name);

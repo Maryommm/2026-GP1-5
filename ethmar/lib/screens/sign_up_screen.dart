@@ -88,7 +88,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // Show an error message on the screen.
   void _showError(String message) {
-    showEthmarToast(context, message, icon: Icons.error_outline_rounded);
+    showEthmarToast(context, message, type: EthmarToastType.error);
   }
 
   // Create a new account or continue an unfinished registration.

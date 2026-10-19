@@ -178,7 +178,7 @@ class _ScheduleSection extends StatelessWidget {
                                   s.schedRepetition,
                                   style: AppText.small(
                                     context,
-                                    color: AppColors.forest,
+                                    color: AppColors.textPrimary,
                                   ).copyWith(fontWeight: FontWeight.w600),
                                 ),
                                 AnimatedSwitcher(
@@ -216,7 +216,7 @@ class _ScheduleSection extends StatelessWidget {
                       s.schedAlarmTime,
                       style: AppText.small(
                         context,
-                        color: AppColors.forest,
+                        color: AppColors.textPrimary,
                       ).copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 6),

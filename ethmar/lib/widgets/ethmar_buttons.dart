@@ -127,7 +127,8 @@ class EthmarLink extends StatelessWidget {
             widthFactor: 1,
             child: Text(
               label,
-              style: AppText.label(context).copyWith(
+              // Links stay brand green so they look tappable.
+              style: AppText.label(context, color: AppColors.forest).copyWith(
                 fontWeight: FontWeight.w600,
                 decoration: TextDecoration.underline,
                 decorationColor: AppColors.forest,
@@ -141,18 +142,24 @@ class EthmarLink extends StatelessWidget {
   }
 }
 
-/// Plain back arrow with a 48px tap area (arrow flips in Arabic).
+/// The one Back button used across the app: a white 48px circle with a
+/// forest arrow. The arrow flips in Arabic, and [Navigator.maybePop] keeps
+/// each screen's own back handling (PopScope) working.
 class EthmarBackButton extends StatelessWidget {
   const EthmarBackButton({super.key, required this.tooltip});
   final String tooltip;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: () => Navigator.of(context).maybePop(),
-      style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.forest),
+    return Material(
+      color: AppColors.surface,
+      shape: const CircleBorder(),
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: () => Navigator.of(context).maybePop(),
+        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+        icon: const Icon(Icons.arrow_back_rounded, color: AppColors.forest),
+      ),
     );
   }
 }

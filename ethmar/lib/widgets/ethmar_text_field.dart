@@ -74,7 +74,7 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
           onFieldSubmitted: widget.onSubmitted,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           textDirection: widget.forceLtr ? TextDirection.ltr : null,
-          style: AppText.body(context, color: AppColors.forest).copyWith(fontSize: 16),
+          style: AppText.body(context, color: AppColors.textPrimary).copyWith(fontSize: 16),
           decoration: InputDecoration(
             hintText: widget.hint,
             hintTextDirection: widget.forceLtr ? TextDirection.ltr : null,

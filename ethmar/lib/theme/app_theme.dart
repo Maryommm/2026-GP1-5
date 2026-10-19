@@ -6,8 +6,8 @@ import 'app_colors.dart';
 /// Typography:
 ///  * Headings  -> Baloo Bhaijaan 2 (rounded, friendly, Arabic + English)
 ///  * Body / UI -> Readex Pro (soft, very readable, Arabic + English)
-///  * Accent    -> Caveat handwriting in English, Baloo in Arabic
-///                 (for the little coral "hand-written" lines)
+///  * Accent    -> Baloo Bhaijaan 2 in Arabic and English
+///                 (for the little earth-brown lines under titles)
 class AppText {
   AppText._();
 
@@ -19,7 +19,7 @@ class AppText {
         fontSize: 34,
         height: _isAr(context) ? 1.35 : 1.08,
         fontWeight: FontWeight.w700,
-        color: color ?? AppColors.forest,
+        color: color ?? AppColors.textPrimary,
       );
 
   static TextStyle title(BuildContext context, {Color? color}) =>
@@ -27,17 +27,16 @@ class AppText {
         fontSize: 30,
         height: _isAr(context) ? 1.35 : 1.1,
         fontWeight: FontWeight.w700,
-        color: color ?? AppColors.forest,
+        color: color ?? AppColors.textPrimary,
       );
 
-  static TextStyle accent(BuildContext context, {Color? color, double? size}) {
-    final c = color ?? AppColors.coralDark;
-    return _isAr(context)
-        ? GoogleFonts.balooBhaijaan2(
-            fontSize: size ?? 21.0, fontWeight: FontWeight.w600, color: c, height: 1.3)
-        : GoogleFonts.caveat(
-            fontSize: (size ?? 21.0) + 5, fontWeight: FontWeight.w700, color: c, height: 1.1);
-  }
+  static TextStyle accent(BuildContext context, {Color? color, double? size}) =>
+      GoogleFonts.balooBhaijaan2(
+        fontSize: size ?? 21.0,
+        fontWeight: FontWeight.w600,
+        color: color ?? AppColors.earthBrown,
+        height: 1.3,
+      );
 
   static TextStyle body(BuildContext context, {Color? color}) =>
       GoogleFonts.readexPro(
@@ -50,7 +49,7 @@ class AppText {
       GoogleFonts.readexPro(
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        color: color ?? AppColors.forest,
+        color: color ?? AppColors.textPrimary,
       );
 
   static TextStyle button(BuildContext context, {Color? color}) =>
@@ -75,7 +74,7 @@ ThemeData buildEthmarTheme() {
       primary: AppColors.forest,
       onPrimary: AppColors.onForest,
       secondary: AppColors.sea,
-      tertiary: AppColors.coral,
+      tertiary: AppColors.earthBrown,
       error: AppColors.error,
       surface: AppColors.surface,
     ),

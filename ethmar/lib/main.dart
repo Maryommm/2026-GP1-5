@@ -15,6 +15,9 @@ Future<void> main() async {
   // Initialize Firebase before building the app.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // Open the app in the language the user chose last time.
+  await loadSavedLocale();
+
   // Configure the system status and navigation bars.
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

@@ -82,7 +82,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         showEthmarToast(
           context,
           message,
-          icon: Icons.error_outline_rounded,
+          type: EthmarToastType.error,
         );
       }
 
@@ -93,7 +93,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       showEthmarToast(
         context,
         s.errAuthGeneral,
-        icon: Icons.error_outline_rounded,
+        type: EthmarToastType.error,
       );
 
     } finally {
