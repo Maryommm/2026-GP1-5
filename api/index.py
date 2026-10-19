@@ -24,8 +24,13 @@ to save the climate cache. Both work on the free Spark plan.
 Environment variables (set in the Vercel project settings, never in Git):
     FIREBASE_SERVICE_ACCOUNT  the service account key JSON, as one line
 
-Run locally with the Firebase emulators (see README):
+Run locally with the Firebase emulators instead of the real project:
+    firebase emulators:start --only auth,firestore --project ethmar-95aaf
+    (in a second terminal)
+    set FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+    set FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
     python api/index.py
+The server then listens on http://127.0.0.1:8000.
 """
 
 import json

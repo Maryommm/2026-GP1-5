@@ -2,13 +2,13 @@
 Ethmar - Smart Crop Recommendation model.
 
 This module compares the climate of the user's location with the growing
-needs of every crop in our table, and returns the crops that can be grown
+needs of every crop in the table, and returns the crops that can be grown
 there. For each crop it also returns the best months to plant it, a score,
 and the reasons and warnings behind that score.
 
 The module does not call any web service. The climate comes from
-recommender/scripts/climate.py, so this file can be tested on its own and later be
-called from a Firebase Cloud Function.
+recommender/scripts/climate.py, so this file can be tested on its own. The
+server on Vercel (api/index.py) calls it through service.py.
 
 How the model works
 -------------------
@@ -30,9 +30,7 @@ How the model works
 5. The table and the rules are the same for every country. The difference
    between locations comes only from their climate data.
 
-Usage:
-    python recommender/scripts/scoring.py                 # Riyadh, current month
-    python recommender/scripts/scoring.py 51.51 -0.13 4   # London, April
+
 """
 
 from __future__ import annotations
@@ -260,8 +258,7 @@ def _note(code: str, text: str, **params) -> dict:
     Build one reason or warning.
 
     The app uses the code (and the values in params, such as months) to show
-    its own Arabic or English sentence. The English text is kept for testing
-    and for the chatbot.
+    its own Arabic or English sentence.
     Example: {"code": "plant_later", "text": "best planted in Feb ...",
               "month": 2, "months": 4}
     """
@@ -296,9 +293,7 @@ def season_length(row, config: dict) -> int:
     data, mostly wild and water plants, and watermelon among the common
     crops. For these we use config["season"]["default_annual_days"] = 120.
     This value comes from the data itself: the seasonal crops that do have
-    a growing cycle (323 crops) take 121 days on average (median 100,
-    middle half 70-150). Both 100 and 120 days round up to the same
-    4 months, so the choice between them does not change any result.
+    a growing cycle (323 crops) take 121 days on average.
     """
     if stays_in_ground(row):
         return 12
@@ -355,11 +350,9 @@ def protection_need(row, month, woody: bool, protection: dict) -> str | None:
     return None.
 
     ECOCROP's absolute limits are for crops in an open field. At home, a
-    lemon tree can survive a Riyadh July (average 36 C, limit 36 C) under
-    shade cloth, and seedlings can survive a cold night under a cover, as
-    the first interviewee described. We therefore allow a small margin past
-    each limit, with a warning. Frost below the killing temperature cannot
-    be handled this way, so it stays a hard limit.
+    lemon tree can survive under shade cloth, and seedlings can survive a cold night under a cover. 
+    We therefore allow a small margin past each limit, with a warning.
+    Frost below the killing temperature cannot be handled this way, so it stays a hard limit.
     """
     limits = _temperature_limits(row, woody)
     if limits is None:
@@ -380,17 +373,14 @@ def month_temperature_score(row, month, woody: bool = False,
                             protection: dict | None = None) -> float:
     """
     Temperature score of one month, between 0 and 1 (ECOCROP method).
-
-        score
-          1 |        ___________
-            |       /           \\
-            |      /             \\
-          0 |_____/               \\_____
-               abs_min opt_min opt_max abs_max   (average temperature)
-
     The score is 0 if the average night is below the killing temperature.
-    A month that needs shade or a cover (see `protection_need`) gets a small
+    A month that needs shade or a cover gets a small
     score instead of 0.
+
+    Inside the range the score never drops below that small score, so a
+    hotter month never scores higher than a cooler one. Without this, for
+    tomato in Riyadh, June (34.8 C, limit 35 C) scored 0.03 while the
+    hotter July (36.3 C, needs shade) scored 0.25.
     """
     limits = _temperature_limits(row, woody)
     if limits is None:
@@ -405,23 +395,27 @@ def month_temperature_score(row, month, woody: bool = False,
         if protection and protection_need(row, month, woody, protection):
             return protection["month_score"]
         return 0.0
+
     if mean < opt_min:
-        return (mean - abs_min) / max(opt_min - abs_min, 0.1)
-    if mean > opt_max:
-        return (abs_max - mean) / max(abs_max - opt_max, 0.1)
-    return 1.0
+        score = (mean - abs_min) / max(opt_min - abs_min, 0.1)
+    elif mean > opt_max:
+        score = (abs_max - mean) / max(abs_max - opt_max, 0.1)
+    else:
+        return 1.0
+    if protection:
+        score = max(score, protection["month_score"])
+    return score
 
 
 def season_temperature_score(row, window: list, woody: bool,
                              protection: dict | None = None) -> float:
     """
     Temperature score of a whole season.
-
+    
     * Annual crops take the score of their worst month, because one month
       outside the crop's range is enough to lose it.
     * Trees take the average of the 12 months, as long as no month scores 0.
-      A date palm grows slowly in a mild winter, but it is not lost, so a
-      cool month should only lower its score.
+    
     """
     scores = [month_temperature_score(row, month, woody, protection) for month in window]
     if woody:
@@ -650,9 +644,8 @@ def score_popularity(row, config: dict) -> float:
 
 def crop_details(row) -> dict:
     """
-    Facts about the crop for its detail screen in the app. The product
-    backlog asks for the temperature range it survives in, its growth rate
-    and how much water it needs. Missing values are returned as None.
+    Facts about the crop for its detail screen in the app.
+    Missing values are returned as None.
     """
     water = [level for level, column in (("low", "water_dry"),
                                          ("medium", "water_moist"),

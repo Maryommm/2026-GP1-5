@@ -9,7 +9,7 @@ information that the recommendation model needs for that place:
     * soil pH                                   -> SoilGrids (ISRIC)
 
 The only input is the location, so the module works for any place in the
-world. There is no list of cities or countries in the code.
+world.
 
 Caching and privacy
 -------------------
@@ -19,9 +19,7 @@ data is fetched for the centre of that area. This has two benefits:
     * the user's exact location is never sent to the services or saved.
 Climate averages change very slowly, so each result is reused for 30 days.
 
-Usage:
-    python recommender/scripts/climate.py                # Riyadh
-    python recommender/scripts/climate.py 29.37 47.98    # any latitude and longitude
+
 """
 
 from __future__ import annotations
@@ -42,9 +40,7 @@ CACHE_DIR = ROOT / "data" / "external" / "climate_cache"
 CACHE_MAX_AGE_DAYS = 30
 # The cache version is increased whenever the meaning of the saved values
 # changes, so that old cache files are ignored and fetched again.
-#   Version 2: temperatures are averages of daily highs and lows.
-#   Version 3: temperatures are corrected for the real ground elevation.
-#   Version 4: data is fetched for the centre of the ~11 km area.
+
 CACHE_VERSION = 4
 
 NASA_DAILY_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
@@ -57,7 +53,7 @@ TIMEOUT = 45          # seconds, for the small requests
 NASA_TIMEOUT = 150    # seconds, NASA returns 20 years of data in one response
 USER_AGENT = "Ethmar-GraduationProject/0.1"
 
-# SoilGrids has no data inside cities, so the centre of Riyadh has no pH value.
+# SoilGrids has no data inside cities,
 # When this happens we search around the point at these distances (in degrees,
 # where 0.1 degree is about 11 km) and stop at the first distance with data.
 SOIL_SEARCH_RINGS = (0.1, 0.25, 0.5)
@@ -92,7 +88,7 @@ class ClimateProfile:
     annual_temp_min_c: float        # lowest monthly average of the daily lows
     annual_temp_max_c: float        # highest monthly average of the daily highs
     soil_ph: float
-    soil_ph_source: str             # "soilgrids", "soilgrids_nearby_<km>km" or "default"
+    soil_ph_source: str             # "soilgrids", "soilgrids_nearby_km or "default"
     elevation_m: float | None       # real ground elevation of the point
     grid_elevation_m: float | None  # elevation that NASA used for its grid cell
     temp_adjust_c: float            # correction added to every NASA temperature
@@ -128,9 +124,10 @@ def _cache_key(latitude: float, longitude: float) -> str:
 class FileCache:
     """
     Saves each profile as a JSON file in data/external/climate_cache/.
-    Used when the scripts run on a computer. On Firebase the Cloud Function
-    passes a Firestore cache instead; any object with the same get() and
-    set() methods can be used.
+    Used when the scripts run on a computer. The server on Vercel
+    (api/index.py) passes service.FirestoreCache instead, which saves the
+    profiles in Firestore; any object with the same get() and set() methods
+    can be used.
     """
 
     def __init__(self, folder: Path = CACHE_DIR):
@@ -325,8 +322,7 @@ def _query_soil_ph(latitude: float, longitude: float, attempts: int = 4):
     """
     Return the topsoil pH at one point, or None if there is no value.
 
-    SoilGrids limits how many requests it accepts per minute and answers
-    429 ("too many requests") or 5xx when it is busy. In that case we wait
+    SoilGrids limits how many requests it accepts per minute when it is busy. In that case we wait
     and try again, so that a busy service is not mistaken for "no data",
     which would change the median of a search ring.
     """
@@ -417,8 +413,7 @@ def lookup(latitude: float, longitude: float, use_cache: bool = True,
     """
     Return the climate profile of a location.
 
-    The location is rounded to the centre of its ~11 km area first (see the
-    note at the top of this file). The cache is used when possible.
+    The location is rounded to the centre of its ~11 km area first. The cache is used when possible.
     Otherwise the three services are called at the same time, the
     temperatures are corrected for elevation, and the result is saved in
     the cache.
