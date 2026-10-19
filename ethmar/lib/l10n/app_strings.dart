@@ -29,14 +29,16 @@ class AppStrings {
     'newHere': 'New to Ethmar?',
     'createAccountLink': 'Create an account',
     'errUsernameRequired': 'Pick a username so we can say hi',
-    'errUsernameInvalid':
-        'Use 3–20 letters, numbers, dots or underscores (no spaces)',
     'errUsernameTaken': 'Username is already taken.',
     'errEmailRequired': 'Enter your email',
     'errEmailInvalid':
         "That email doesn't look right. Try something like name@example.com",
     'errPasswordRequired': 'Enter your password',
-    'errPasswordWeak': 'Use at least 8 characters, with a capital letter, a number and a special character (like ! or @)',
+    'errPasswordNeeds': 'Your password needs',
+    'errPasswordLength': 'at least 8 characters',
+    'errPasswordUpper': 'a capital letter',
+    'errPasswordDigit': 'a number',
+    'errPasswordSpecial': 'a special character (like ! or @)',
     'showPassword': 'Show password',
     'hidePassword': 'Hide password',
     'back': 'Back',
@@ -443,14 +445,16 @@ class AppStrings {
     'newHere': 'جديد في إثمار؟',
     'createAccountLink': 'أنشئ حساب',
     'errUsernameRequired': 'اختر اسم مستخدم عشان نسلّم عليك',
-    'errUsernameInvalid':
-        'استخدم من ٣ إلى ٢٠ حرف إنجليزي أو رقم أو نقطة أو _ (بدون مسافات)',
     'errUsernameTaken': 'اسم المستخدم مستخدم بالفعل.',
     'errEmailRequired': 'اكتب بريدك الإلكتروني',
     'errEmailInvalid':
         'البريد الإلكتروني غير صحيح. جرّب مثلًا name@example.com',
     'errPasswordRequired': 'اكتب كلمة المرور',
-    'errPasswordWeak': 'استخدم ٨ أحرف على الأقل، فيها حرف إنجليزي كبير ورقم ورمز خاص (مثل ! أو @)',
+    'errPasswordNeeds': 'كلمة المرور تحتاج',
+    'errPasswordLength': '٨ أحرف على الأقل',
+    'errPasswordUpper': 'حرف إنجليزي كبير',
+    'errPasswordDigit': 'رقم',
+    'errPasswordSpecial': 'رمز خاص (مثل ! أو @)',
     'showPassword': 'إظهار كلمة المرور',
     'hidePassword': 'إخفاء كلمة المرور',
     'back': 'رجوع',
@@ -849,12 +853,28 @@ class S {
   String get newHere => t('newHere');
   String get createAccountLink => t('createAccountLink');
   String get errUsernameRequired => t('errUsernameRequired');
-  String get errUsernameInvalid => t('errUsernameInvalid');
   String get errUsernameTaken => t('errUsernameTaken');
   String get errEmailRequired => t('errEmailRequired');
   String get errEmailInvalid => t('errEmailInvalid');
   String get errPasswordRequired => t('errPasswordRequired');
-  String get errPasswordWeak => t('errPasswordWeak');
+  String get errPasswordLength => t('errPasswordLength');
+  String get errPasswordUpper => t('errPasswordUpper');
+  String get errPasswordDigit => t('errPasswordDigit');
+  String get errPasswordSpecial => t('errPasswordSpecial');
+
+  /// Every password rule (used when the server says the password is weak).
+  String get errPasswordWeak => passwordNeeds([
+        errPasswordLength,
+        errPasswordUpper,
+        errPasswordDigit,
+        errPasswordSpecial,
+      ]);
+
+  /// "Your password needs a number", or a bullet list when several rules
+  /// are missing.
+  String passwordNeeds(List<String> missing) => missing.length == 1
+      ? '${t('errPasswordNeeds')} ${missing.single}'
+      : '${t('errPasswordNeeds')}:\n${missing.map((m) => '• $m').join('\n')}';
   String get showPassword => t('showPassword');
   String get hidePassword => t('hidePassword');
   String get back => t('back');

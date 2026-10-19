@@ -286,9 +286,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             hint: s.usernameHint,
                             enabled: !_loading,
                             controller: _username,
-                            forceLtr: true,
                             keyboardType: TextInputType.text,
                             autofillHints: const [AutofillHints.newUsername],
+                            inputFormatters: Validators.usernameFormatters,
                             validator: (v) => Validators.username(v, s),
                           ),
 

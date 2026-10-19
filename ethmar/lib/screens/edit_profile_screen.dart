@@ -462,9 +462,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             hint: s.usernameHint,
                             enabled: !_saving && !_photoBusy,
                             controller: _username,
-                            forceLtr: true,
                             keyboardType: TextInputType.text,
                             textInputAction: TextInputAction.done,
+                            inputFormatters: Validators.usernameFormatters,
                             validator: (v) => Validators.username(v, s),
                             onSubmitted: _saving || _photoBusy
                                 ? null

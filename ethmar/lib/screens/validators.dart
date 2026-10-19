@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 import '../l10n/app_strings.dart';
 
 // Check if the user's input follows the required rules.
@@ -7,15 +9,21 @@ class Validators {
   // Check the email format.
   static final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$');
 
-  // Allow 3 to 20 characters: letters, numbers, _ and .
-  static final _usernameRe = RegExp(r'^[a-zA-Z0-9_.]{3,20}$');
+  // The longest username. Typing simply stops here, with no error.
+  static const usernameMaxLength = 30;
 
-  // Check if the username is entered and has a valid format.
+  // For the username field: stop at the maximum length and ignore "/",
+  // which can't be used (the username is also a database document name).
+  static final usernameFormatters = <TextInputFormatter>[
+    FilteringTextInputFormatter.deny('/'),
+    LengthLimitingTextInputFormatter(usernameMaxLength),
+  ];
+
+  // Any username is fine; it just can't be empty.
   static String? username(String? v, S s) {
     final t = v?.trim() ?? '';
 
     if (t.isEmpty) return s.errUsernameRequired;
-    if (!_usernameRe.hasMatch(t)) return s.errUsernameInvalid;
 
     return null;
   }
@@ -36,17 +44,20 @@ class Validators {
   static final _specialRe = RegExp(r'[^A-Za-z0-9\s]');
 
   // Require 8 characters, a capital letter, a number, and a special character.
+  // The error lists only the rules that are still missing.
   static String? password(String? v, S s) {
     final t = v ?? '';
 
     if (t.isEmpty) return s.errPasswordRequired;
 
-    final ok = t.length >= 8 &&
-        _upperRe.hasMatch(t) &&
-        _digitRe.hasMatch(t) &&
-        _specialRe.hasMatch(t);
+    final missing = [
+      if (t.length < 8) s.errPasswordLength,
+      if (!_upperRe.hasMatch(t)) s.errPasswordUpper,
+      if (!_digitRe.hasMatch(t)) s.errPasswordDigit,
+      if (!_specialRe.hasMatch(t)) s.errPasswordSpecial,
+    ];
 
-    return ok ? null : s.errPasswordWeak;
+    return missing.isEmpty ? null : s.passwordNeeds(missing);
   }
 
   // Check that the password field is not empty.

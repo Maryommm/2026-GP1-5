@@ -34,8 +34,20 @@ class UserService {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
 
-  // Allow usernames with 3 to 20 letters, numbers, _ or .
-  static final _usernamePattern = RegExp(r'^[a-zA-Z0-9_.]{3,20}$');
+  // Any username is allowed, as long as its lowercase form can be a
+  // Firestore document name (it reserves the username): not empty, no "/",
+  // not "." or "..", and not "__like_this__". The app stops typing at 30
+  // characters; 100 leaves room for emoji, which count as several.
+  // firestore.rules checks the same things.
+  static bool _isAllowedUsername(String username) {
+    final id = username.toLowerCase();
+    return username.isNotEmpty &&
+        username.length <= 100 &&
+        !username.contains('/') &&
+        id != '.' &&
+        id != '..' &&
+        !(id.startsWith('__') && id.endsWith('__'));
+  }
 
   // Create a Firestore profile for the signed-in user.
   Future<void> createCurrentUserProfile({required String username}) async {
@@ -62,7 +74,7 @@ class UserService {
     }
 
     // Check that the username follows the required rules.
-    if (!_usernamePattern.hasMatch(trimmedUsername)) {
+    if (!_isAllowedUsername(trimmedUsername)) {
       throw ArgumentError.value(username, 'username', 'Username is invalid.');
     }
 
@@ -161,7 +173,7 @@ class UserService {
     if (data?.length != 4 ||
         username is! String ||
         username != username.trim() ||
-        !_usernamePattern.hasMatch(username) ||
+        !_isAllowedUsername(username) ||
         normalizedUsername is! String ||
         normalizedUsername != username.toLowerCase() ||
         storedEmail is! String ||
@@ -188,7 +200,7 @@ class UserService {
     }
 
     // Check the new username format.
-    if (!_usernamePattern.hasMatch(trimmedUsername)) {
+    if (!_isAllowedUsername(trimmedUsername)) {
       throw ArgumentError.value(
         newUsername,
         'username',

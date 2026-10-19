@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
@@ -6,6 +9,10 @@ import '../theme/app_theme.dart';
 import 'ethmar_buttons.dart';
 
 /// Label above a plain white rounded field, with friendly error text below.
+///
+/// Errors don't show while the user is typing: the field checks itself
+/// two seconds after they stop. An empty field only shows its error when
+/// the screen checks the whole form (e.g. the "Log in" button).
 class EthmarTextField extends StatefulWidget {
   const EthmarTextField({
     super.key,
@@ -21,6 +28,7 @@ class EthmarTextField extends StatefulWidget {
     this.forceLtr = false,
     this.onSubmitted,
     this.fieldKey,
+    this.inputFormatters,
   });
 
   final String label;
@@ -40,12 +48,64 @@ class EthmarTextField extends StatefulWidget {
   /// Lets a screen validate just this field (e.g. the "Verify email" link).
   final GlobalKey<FormFieldState<String>>? fieldKey;
 
+  /// Rules applied while typing, e.g. a length limit.
+  final List<TextInputFormatter>? inputFormatters;
+
   @override
   State<EthmarTextField> createState() => _EthmarTextFieldState();
 }
 
 class _EthmarTextFieldState extends State<EthmarTextField> {
   bool _obscure = true;
+
+  // How long to wait after the last key press before checking the field.
+  static const _checkDelay = Duration(seconds: 2);
+  Timer? _checkTimer;
+
+  // Lets this field check itself when the screen didn't pass a [fieldKey].
+  final _ownKey = GlobalKey<FormFieldState<String>>();
+  GlobalKey<FormFieldState<String>> get _key => widget.fieldKey ?? _ownKey;
+
+  // Which kind of check is running (see [_validate]).
+  bool _hiding = false;
+  bool _liveCheck = false;
+
+  @override
+  void dispose() {
+    _checkTimer?.cancel();
+    super.dispose();
+  }
+
+  // Wraps the screen's validator:
+  // - While typing (_hiding), show no error.
+  // - Two seconds after typing (_liveCheck), show errors, except "empty".
+  // - Any other time it's the screen checking the form (a button), so run
+  //   the full check, empty field included.
+  String? _validate(String? value) {
+    final validator = widget.validator;
+    if (validator == null || _hiding) return null;
+    if (_liveCheck) {
+      return (value ?? '').trim().isEmpty ? null : validator(value);
+    }
+    // The button's result stays on screen until the user types again.
+    _checkTimer?.cancel();
+    return validator(value);
+  }
+
+  void _onChanged(String _) {
+    if (widget.validator == null) return;
+    _checkTimer?.cancel();
+    // Hide the current error while the user fixes it.
+    _hiding = true;
+    _key.currentState?.validate();
+    _hiding = false;
+    _checkTimer = Timer(_checkDelay, () {
+      if (!mounted) return;
+      _liveCheck = true;
+      _key.currentState?.validate();
+      _liveCheck = false;
+    });
+  }
 
   static InputBorder _border(Color c, [double w = 1]) => OutlineInputBorder(
         borderRadius: kControlRadius,
@@ -63,16 +123,17 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
           child: Text(widget.label, style: AppText.label(context)),
         ),
         TextFormField(
-          key: widget.fieldKey,
+          key: _key,
           enabled: widget.enabled,
           controller: widget.controller,
-          validator: widget.validator,
+          validator: _validate,
+          onChanged: _onChanged,
+          inputFormatters: widget.inputFormatters,
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
           obscureText: widget.isPassword && _obscure,
           autofillHints: widget.autofillHints,
           onFieldSubmitted: widget.onSubmitted,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
           textDirection: widget.forceLtr ? TextDirection.ltr : null,
           style: AppText.body(context, color: AppColors.textPrimary).copyWith(fontSize: 16),
           decoration: InputDecoration(
@@ -96,7 +157,8 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
                   )
                 : null,
             errorStyle: AppText.small(context, color: AppColors.error),
-            errorMaxLines: 3,
+            // Room for a heading and a few bullet points.
+            errorMaxLines: 6,
             disabledBorder: _border(AppColors.border),
             enabledBorder: _border(AppColors.border),
             focusedBorder: _border(AppColors.forest, 1.6),

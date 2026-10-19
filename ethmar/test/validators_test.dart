@@ -43,21 +43,13 @@ void main() {
   });
 
   group('Validators.username', () {
-    test('accepts allowed characters and trims surrounding spaces', () {
+    test('accepts any username that is not empty', () {
+      expect(Validators.username('N', s), isNull);
       expect(Validators.username('Fanar_2.0', s), isNull);
       expect(Validators.username('  fanar  ', s), isNull);
-      expect(Validators.username('abcdefghijklmnopqrst', s), isNull);
-    });
-
-    test('rejects invalid length, spaces, and unsupported characters', () {
-      expect(Validators.username('ab', s), s.errUsernameInvalid);
-      expect(
-        Validators.username('abcdefghijklmnopqrstu', s),
-        s.errUsernameInvalid,
-      );
-      expect(Validators.username('fanar user', s), s.errUsernameInvalid);
-      expect(Validators.username('fanar-user', s), s.errUsernameInvalid);
-      expect(Validators.username('فَنار', s), s.errUsernameInvalid);
+      expect(Validators.username('fanar user', s), isNull);
+      expect(Validators.username('fanar-user', s), isNull);
+      expect(Validators.username('فَنار', s), isNull);
     });
   });
 
@@ -66,24 +58,38 @@ void main() {
       expect(Validators.password('', s), s.errPasswordRequired);
     });
 
-    test('rejects a password missing any one rule', () {
-      expect(Validators.password('Seed@12', s), s.errPasswordWeak); // < 8
+    test('one missing rule is a single sentence', () {
+      final needs = s.passwordNeeds;
       expect(
-        Validators.password('seed@123', s),
-        s.errPasswordWeak,
-      ); // no capital
-      expect(
-        Validators.password('Seed@abc', s),
-        s.errPasswordWeak,
-      ); // no number
+        Validators.password('Seed@12', s),
+        needs([s.errPasswordLength]),
+      );
+      expect(Validators.password('seed@123', s), needs([s.errPasswordUpper]));
+      expect(Validators.password('Seed@abc', s), needs([s.errPasswordDigit]));
       expect(
         Validators.password('Seed1234', s),
-        s.errPasswordWeak,
-      ); // no special
+        needs([s.errPasswordSpecial]),
+      );
+      // A space isn't a special character.
       expect(
         Validators.password('Seed 1234', s),
-        s.errPasswordWeak,
-      ); // space isn't special
+        needs([s.errPasswordSpecial]),
+      );
+      expect(
+        Validators.password('Seed@12', s),
+        'Your password needs at least 8 characters',
+      );
+    });
+
+    test('several missing rules are listed as bullet points', () {
+      expect(
+        Validators.password('seed', s),
+        'Your password needs:\n'
+        '• at least 8 characters\n'
+        '• a capital letter\n'
+        '• a number\n'
+        '• a special character (like ! or @)',
+      );
     });
 
     test('accepts a password that meets every rule', () {

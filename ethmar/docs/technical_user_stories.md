@@ -136,6 +136,10 @@
 
 - Email format is validated.
 - Passwords use the application's defined validation requirements.
-- Usernames contain 3–20 characters.
-- Usernames accept only English letters, numbers, periods, and underscores.
+- Usernames can be anything the user likes (1–30 characters); only "/" is
+  blocked while typing, because the username is also a document name.
+- Errors appear two seconds after the user stops typing, not on every key
+  press. Empty-field errors appear only when the form's button is pressed.
+- When an error has several instructions (e.g. missing password rules), they
+  are shown as bullet points.
 - Invalid input is rejected before unnecessary Firebase operations.

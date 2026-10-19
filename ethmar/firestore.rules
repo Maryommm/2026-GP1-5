@@ -15,20 +15,22 @@ service cloud.firestore {
       return hasVerifiedEmail() && request.auth.uid == uid;
     }
 
-    // Validate the username format and length.
+    // Any username is allowed (same checks as UserService._isAllowedUsername):
+    // not empty, at most 100 characters, and no "/".
     function validUsername(username) {
       return username is string &&
-          username.size() >= 3 &&
-          username.size() <= 20 &&
-          username.matches('^[a-zA-Z0-9_.]+$');
+          username.size() >= 1 &&
+          username.size() <= 100 &&
+          !username.matches('.*/.*');
     }
 
-    // Validate the lowercase username used for reservations.
+    // The lowercase username is also the reservation's document name, so it
+    // can't be "." or ".." or look like "__this__".
     function validNormalizedUsername(username) {
-      return username is string &&
-          username.size() >= 3 &&
-          username.size() <= 20 &&
-          username.matches('^[a-z0-9_.]+$');
+      return validUsername(username) &&
+          username != '.' &&
+          username != '..' &&
+          !username.matches('^__.*__$');
     }
 
     // Allow only the expected profile fields and Firebase email.
