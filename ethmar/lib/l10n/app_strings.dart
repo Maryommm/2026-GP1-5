@@ -85,23 +85,27 @@ class AppStrings {
     'errLogout': "We couldn't log you out. Please try again",
     'homeFriend': 'friend',
     'logOut': 'Log Out',
-    'cropTitle': 'Crops picked\nfor you',
-    'cropAccent': "based on your area's climate this month",
+    'cropTitle': 'Crops Picked For You',
+    'cropAccent': "Based on your area's climate this month",
+    'cropCatHerb': 'Herb',
+    'cropCatLegume': 'Legume',
+    'cropCatRoot': 'Root veg',
+    'cropCatVegetable': 'Veg',
+    'cropCatFruit': 'Fruit',
     'cropLoading1': 'Finding where you are…',
     'cropLoading2': "Checking your area's climate…",
     'cropLoading3': 'Picking your perfect crops…',
     'cropYourArea': 'Your area',
-    'cropTempRange': 'Best temperature',
-    'cropWaterNeed': 'Water need',
-    'cropBestTime': 'Best time to plant',
-    'cropHarvest': 'Harvest in',
+    'cropTempRange': 'Best Temperature',
+    'cropWaterNeed': 'Water Need',
+    'cropBestTime': 'Best Time to Plant',
+    'cropHarvest': 'Harvest In',
     'cropGrowsTo': 'Grows to',
     'cropDays': 'days',
     'cropMeters': 'm',
     'cropAllYear': 'All year',
     'cropPlantNow': 'Plant now',
     'cropPlantIn': 'Plant in {month}',
-    'cropYouEat': 'You eat',
     'cropBand_excellent': 'Great match',
     'cropBand_good': 'Good match',
     'cropBand_fair': 'Fair match',
@@ -173,10 +177,7 @@ class AppStrings {
     'note_prefers_more_alkaline': 'Likes slightly more alkaline soil than yours',
     'note_light_mismatch': 'Prefers a different amount of sun than you have',
     'note_soil_texture_mismatch': 'Your soil type is not ideal for it',
-    'cropPrev': 'Previous crop',
-    'cropNext': 'Next crop',
     'cropSwipeHint': 'Swipe sideways for other crop types',
-    'cropSwipeUp': 'Swipe up for more',
     'tryAgain': 'Try again',
     'homeGoodMorning': 'Good morning,',
     'homeGoodAfternoon': 'Good afternoon,',
@@ -502,24 +503,28 @@ class AppStrings {
     'errLogout': 'تعذّر تسجيل الخروج. حاول مرة أخرى',
     'homeFriend': 'يا صديقي',
     'logOut': 'تسجيل الخروج',
-    'cropTitle': 'محاصيل\nاخترناها لك',
-    'cropAccent': 'حسب مناخ منطقتك هذا الشهر',
+    'cropTitle': 'المحاصيل الموصى بها لك',
+    'cropAccent': 'بناءً على مناخ منطقتك خلال هذا الشهر',
+    'cropCatHerb': 'الأعشاب',
+    'cropCatLegume': 'البقوليات',
+    'cropCatRoot': 'الخضروات الجذرية',
+    'cropCatVegetable': 'الخضروات',
+    'cropCatFruit': 'الفواكه',
     'cropLoading1': 'نحدد موقعك…',
     'cropLoading2': 'نشيّك على مناخ منطقتك…',
     'cropLoading3': 'نختار لك أنسب المحاصيل…',
     'cropYourArea': 'منطقتك',
-    'cropTempRange': 'أفضل حرارة',
-    'cropWaterNeed': 'حاجته للماء',
+    'cropTempRange': 'أفضل درجة حرارة',
+    'cropWaterNeed': 'احتياج الماء',
     'cropBestTime': 'أفضل وقت للزراعة',
-    'cropHarvest': 'الحصاد بعد',
+    'cropHarvest': 'مدة الحصاد',
     'cropGrowsTo': 'يكبر حتى',
     'cropDays': 'يوم',
     'cropMeters': 'م',
     'cropAllYear': 'طوال السنة',
-    'cropPlantNow': 'ازرعه الآن',
+    'cropPlantNow': 'ازرع الآن',
     'cropPlantIn': 'ازرعه في {month}',
-    'cropYouEat': 'يؤكل منه',
-    'cropBand_excellent': 'مناسب جدًا',
+    'cropBand_excellent': 'توافق ممتاز',
     'cropBand_good': 'مناسب',
     'cropBand_fair': 'مناسب نوعًا ما',
     'cropWater_low': 'قليلة',
@@ -584,10 +589,7 @@ class AppStrings {
     'note_prefers_more_alkaline': 'يفضّل تربة قلوية أكثر شوي من تربتك',
     'note_light_mismatch': 'يفضّل كمية شمس غير اللي عندك',
     'note_soil_texture_mismatch': 'نوع تربتك مو مثالي له',
-    'cropPrev': 'المحصول السابق',
-    'cropNext': 'المحصول التالي',
     'cropSwipeHint': 'اسحب يمين ويسار لباقي الأنواع',
-    'cropSwipeUp': 'اسحب لفوق للمزيد',
     'tryAgain': 'حاول مرة أخرى',
     'homeGoodMorning': 'صباح الخير،',
     'homeGoodAfternoon': 'مساء الخير،',
@@ -921,6 +923,11 @@ class S {
   String get logOut => t('logOut');
   String get cropTitle => t('cropTitle');
   String get cropAccent => t('cropAccent');
+  String get cropCatHerb => t('cropCatHerb');
+  String get cropCatLegume => t('cropCatLegume');
+  String get cropCatRoot => t('cropCatRoot');
+  String get cropCatVegetable => t('cropCatVegetable');
+  String get cropCatFruit => t('cropCatFruit');
   List<String> get cropLoadingSteps => [
     t('cropLoading1'),
     t('cropLoading2'),
@@ -937,7 +944,6 @@ class S {
   String get cropPlantNow => t('cropPlantNow');
   String cropPlantIn(int month) =>
       t('cropPlantIn').replaceAll('{month}', monthName(month));
-  String get cropYouEat => t('cropYouEat');
   String get cropNoCrops => t('cropNoCrops');
   String get cropError => t('cropError');
   String get cropErrorSignIn => t('cropErrorSignIn');
@@ -1001,10 +1007,7 @@ class S {
         .replaceAll('{months}', monthRanges(note.months));
   }
 
-  String get cropPrev => t('cropPrev');
-  String get cropNext => t('cropNext');
   String get cropSwipeHint => t('cropSwipeHint');
-  String get cropSwipeUp => t('cropSwipeUp');
   String get tryAgain => t('tryAgain');
   String get homeGoodMorning => t('homeGoodMorning');
   String get homeGoodAfternoon => t('homeGoodAfternoon');

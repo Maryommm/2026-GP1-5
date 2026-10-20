@@ -3,13 +3,12 @@
 // The file is in four parts:
 //   1. CropRecommendationScreen - loads the data and picks which view to show.
 //   2. _LoadingView / _ErrorView - shown while waiting or when it fails.
-//   3. _ResultsView and its pieces - the category chips and the packets.
-//   4. Drawing helpers - the packet outline and the dashed line.
+//   3. _ResultsView and its pieces - the category buttons and the tickets.
+//   4. Drawing helpers - the ticket outline and the dashed line.
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/crop_recommendation.dart';
@@ -75,6 +74,8 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: LeafPrintBackground(
+        // Hills, clouds and leaves at the top, behind Thamoor.
+        image: 'assets/images/ethmar_recommender_background.png',
         child: FutureBuilder<CropRecommendationResult>(
           future: _future,
           builder: (context, snap) {
@@ -167,7 +168,7 @@ class _LoadingViewState extends State<_LoadingView> {
                           width: 200,
                           height: 200,
                           decoration: const BoxDecoration(
-                            color: AppColors.seaTint,
+                            color: AppColors.featureCard,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -195,8 +196,8 @@ class _LoadingViewState extends State<_LoadingView> {
                       borderRadius: BorderRadius.circular(8),
                       child: const LinearProgressIndicator(
                         minHeight: 6,
-                        color: AppColors.sea,
-                        backgroundColor: AppColors.seaTint,
+                        color: AppColors.forest,
+                        backgroundColor: AppColors.featureCard,
                       ),
                     ),
                   ],
@@ -338,7 +339,44 @@ List<_CategoryGroup> _groupByCategory(List<CropRecommendation> crops) {
   return groups.values.toList();
 }
 
-/// Swipe left/right between categories, up/down between the crops
+// Display names and artwork for the five main categories on this screen.
+// Grain and "Other crops" keep their existing label and art unchanged.
+
+String _categoryLabel(CropCategory cat, BuildContext context) {
+  final s = S.of(context);
+  return switch (cat) {
+    CropCategory.herb => s.cropCatHerb,
+    CropCategory.legume => s.cropCatLegume,
+    CropCategory.root => s.cropCatRoot,
+    CropCategory.vegetable => s.cropCatVegetable,
+    CropCategory.fruit => s.cropCatFruit,
+    _ => cat.label.of(context),
+  };
+}
+
+/// Small transparent icon for the category buttons.
+String _categoryIcon(CropCategory cat) => switch (cat) {
+      CropCategory.herb => 'assets/images/ethmar_herbs_icon.png',
+      CropCategory.legume => 'assets/images/ethmar_legumes_icon.png',
+      CropCategory.root => 'assets/images/ethmar_root_veg_icon.png',
+      CropCategory.vegetable => 'assets/images/ethmar_veg_icon.png',
+      CropCategory.fruit => 'assets/images/ethmar_fruits_icon.png',
+      _ => cat.iconImage,
+    };
+
+/// Illustration on the ticket (drawn on a near-white background, so the
+/// ticket face is warm white for it to blend in).
+String _categoryPhoto(CropCategory cat) => switch (cat) {
+      CropCategory.herb => 'assets/images/ethmar_herbs_photo.png',
+      CropCategory.legume => 'assets/images/ethmar_legumes_photo.png',
+      CropCategory.root => 'assets/images/ethmar_root_veg_photo.png',
+      CropCategory.vegetable => 'assets/images/ethmar_veg_photo.png',
+      CropCategory.fruit => 'assets/images/ethmar_fruits_photo.png',
+      _ => cat.image,
+    };
+
+/// Swipe left/right between categories; each category's tickets scroll
+/// freely up and down.
 class _ResultsView extends StatefulWidget {
   const _ResultsView({required this.result});
   final CropRecommendationResult result;
@@ -350,12 +388,6 @@ class _ResultsView extends StatefulWidget {
 class _ResultsViewState extends State<_ResultsView> {
   late final _groups = _groupByCategory(widget.result.crops);
   final _categoryPages = PageController(viewportFraction: 0.88);
-  late final _stackKeys = [
-    for (final _ in _groups) GlobalKey<_CropStackState>(),
-  ];
-  // For each category, which crop (0, 1, 2…) is in view. Used for the
-  // "1 / 2" text and the arrow buttons.
-  late final _cropIndex = List.filled(_groups.length, 0);
   late final _chipKeys = [for (final _ in _groups) GlobalKey()];
   int _category = 0;
   bool _swipedSideways = false;
@@ -398,10 +430,8 @@ class _ResultsViewState extends State<_ResultsView> {
 
   @override
   Widget build(BuildContext context) {
-    // Data for the header, and the current category's crop position for the bottom bar.
     final conditions = widget.result.conditions;
-    final group = _groups[_category];
-    final row = _cropIndex[_category];
+    final showSwipeHint = !_swipedSideways && _groups.length > 1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -428,215 +458,67 @@ class _ResultsViewState extends State<_ResultsView> {
               itemBuilder: (context, i) => _PacketSlot(
                 controller: _categoryPages,
                 index: i,
-                child: _groups[i].crops.length == 1
-                    ? _SeedPacket(crop: _groups[i].crops.first)
-                    : _CropStack(
-                        key: _stackKeys[i],
-                        crops: _groups[i].crops,
-                        onCropChanged: (j) => setState(() => _cropIndex[i] = j),
-                      ),
+                child: _CropList(crops: _groups[i].crops),
               ),
             ),
           ),
         ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            6,
-            16,
-            MediaQuery.paddingOf(context).bottom + 8,
+        // One-time hint about swiping between categories. Takes no space
+        // once it no longer applies.
+        if (showSwipeHint)
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              6,
+              16,
+              MediaQuery.paddingOf(context).bottom + 8,
+            ),
+            child: Text(
+              S.of(context).cropSwipeHint,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.small(context),
+            ),
           ),
-          child: _DeckStatus(
-            index: row,
-            count: group.crops.length,
-            showSidewaysHint: !_swipedSideways && _groups.length > 1,
-            onUp: row > 0
-                ? () => _stackKeys[_category].currentState?.goTo(row - 1)
-                : null,
-            onDown: row < group.crops.length - 1
-                ? () => _stackKeys[_category].currentState?.goTo(row + 1)
-                : null,
-          ),
-        ),
       ],
     );
   }
 }
 
-/// The crops of one category, one under the other, scrolling up/down
-class _CropStack extends StatefulWidget {
-  const _CropStack({
-    super.key,
-    required this.crops,
-    required this.onCropChanged,
-  });
+/// The tickets of one category, one under the other, scrolling freely.
+/// Kept alive so each category remembers where it was scrolled to.
+class _CropList extends StatefulWidget {
+  const _CropList({required this.crops});
   final List<CropRecommendation> crops;
-  final ValueChanged<int> onCropChanged;
 
   @override
-  State<_CropStack> createState() => _CropStackState();
+  State<_CropList> createState() => _CropListState();
 }
 
-class _CropStackState extends State<_CropStack>
+class _CropListState extends State<_CropList>
     with AutomaticKeepAliveClientMixin {
-  static const _gap = 12.0;
-  final _scroll = ScrollController();
-  late final _itemKeys = [for (final _ in widget.crops) GlobalKey()];
-  int _index = 0;
-  List<double> _offsets = const [];
+  static const _gap = 16.0;
+
   @override
   bool get wantKeepAlive => true;
 
   @override
-  void initState() {
-    super.initState();
-    _scroll.addListener(_trackIndex);
-  }
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  void _measure(Duration _) {
-    if (!mounted) return;
-    final offsets = <double>[];
-    var y = 0.0;
-    for (final key in _itemKeys) {
-      offsets.add(y);
-      final box = key.currentContext?.findRenderObject() as RenderBox?;
-      if (box != null && box.hasSize) y += box.size.height;
-    }
-    _offsets = offsets;
-  }
-
-  /// Works out which packet is in view and tells the parent, so the "1 / 2" text and arrows update.
-  void _trackIndex() {
-    final pos = _scroll.position;
-    final offsets = _offsets;
-    if (offsets.isEmpty) return;
-    var i = 0;
-    while (i + 1 < offsets.length &&
-        offsets[i + 1] <= pos.pixels + pos.viewportDimension * 0.35) {
-      i++;
-    }
-    if (i == _index) return;
-    _index = i;
-
-    if (SchedulerBinding.instance.schedulerPhase ==
-        SchedulerPhase.persistentCallbacks) {
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.onCropChanged(_index);
-      });
-    } else {
-      widget.onCropChanged(i);
-    }
-  }
-
-  /// Scrolls to crop number [i]. Called by the up/down arrow buttons.
-  void goTo(int i) {
-    if (!_scroll.hasClients || i >= _offsets.length) return;
-    final target = _offsets[i].clamp(0.0, _scroll.position.maxScrollExtent);
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _scroll.jumpTo(target);
-    } else {
-      _scroll.animateTo(
-        target,
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     super.build(context);
-    SchedulerBinding.instance.addPostFrameCallback(_measure);
     final crops = widget.crops;
-    return LayoutBuilder(
-      builder: (context, box) => SingleChildScrollView(
-        controller: _scroll,
-        physics: _SnapToItems(() => _offsets),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var j = 0; j < crops.length; j++)
-              Padding(
-                key: _itemKeys[j],
-                padding: const EdgeInsets.only(bottom: _gap),
-                child: Semantics(
-                  container: true,
-                  label: '${j + 1} / ${crops.length}',
-                  child: _SeedPacket(crop: crops[j], scrollable: false),
-                ),
-              ),
-            // Room so the last packet can also snap to the top.
-            SizedBox(height: box.maxHeight * 0.5),
-          ],
-        ),
+    return ListView.separated(
+      padding: EdgeInsets.only(
+        top: 4,
+        bottom: MediaQuery.paddingOf(context).bottom + 16,
       ),
-    );
-  }
-}
-
-/// Snaps the list so a packet's top lines up with the top of the view.
-class _SnapToItems extends ScrollPhysics {
-  const _SnapToItems(this.offsets, {super.parent});
-  final List<double> Function() offsets;
-
-  @override
-  _SnapToItems applyTo(ScrollPhysics? ancestor) =>
-      _SnapToItems(offsets, parent: buildParent(ancestor));
-  double? _target(ScrollMetrics m, double velocity) {
-    final o = offsets();
-    if (o.isEmpty) return null;
-    final p = m.pixels;
-    // Find the packet at the current scroll position.
-    var i = 0;
-    while (i + 1 < o.length && o[i + 1] <= p) {
-      i++;
-    }
-    final next = i + 1 < o.length ? o[i + 1] : m.maxScrollExtent;
-    // A packet taller than the view: scroll freely until its bottom is visible.
-    final tall = next - o[i] > m.viewportDimension;
-    if (tall && p + m.viewportDimension < next) return null;
-    final double t;
-    // A fast flick down goes to the next packet, a fast flick up goes
-    // back to this one; otherwise go to whichever is closer.
-    if (velocity > 300) {
-      t = next;
-    } else if (velocity < -300) {
-      t = o[i];
-    } else {
-      t = p - o[i] < (next - o[i]) / 2 ? o[i] : next;
-    }
-    return t.clamp(m.minScrollExtent, m.maxScrollExtent);
-  }
-
-  @override
-  /// Flutter calls this when the user lets go of the list. We return
-  /// an animation that springs to the snap point.
-  Simulation? createBallisticSimulation(
-    ScrollMetrics position,
-    double velocity,
-  ) {
-    if ((velocity <= 0 && position.pixels <= position.minScrollExtent) ||
-        (velocity >= 0 && position.pixels >= position.maxScrollExtent)) {
-      return super.createBallisticSimulation(position, velocity);
-    }
-    final target = _target(position, velocity);
-    if (target == null) {
-      return super.createBallisticSimulation(position, velocity);
-    }
-    final tolerance = toleranceFor(position);
-    if ((target - position.pixels).abs() < tolerance.distance) return null;
-    return ScrollSpringSimulation(
-      spring,
-      position.pixels,
-      target,
-      velocity,
-      tolerance: tolerance,
+      itemCount: crops.length,
+      separatorBuilder: (_, _) => const SizedBox(height: _gap),
+      itemBuilder: (context, j) => Semantics(
+        container: true,
+        label: '${j + 1} / ${crops.length}',
+        child: _SeedPacket(crop: crops[j]),
+      ),
     );
   }
 }
@@ -677,7 +559,9 @@ class _CategoryBar extends StatelessWidget {
   }
 }
 
-/// One category chip: its icon, its name, and how many crops it has.
+/// One category button: its icon, its name, and how many crops it has.
+/// White with a thin earthy border; the selected one gets a soft green
+/// tint and a stronger border.
 class _CategoryTab extends StatelessWidget {
   const _CategoryTab({
     required this.group,
@@ -691,18 +575,19 @@ class _CategoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cat = group.category;
-    final fg = selected ? cat.dark : AppColors.textSecondary;
+    const radius = BorderRadius.all(Radius.circular(14));
     return Semantics(
       selected: selected,
       button: true,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: selected ? cat.tint : AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
+          color: selected ? AppColors.featureCard : AppColors.surface,
+          borderRadius: radius,
           border: Border.all(
-            color: selected ? cat.color : AppColors.border,
-            width: selected ? 1.5 : 1,
+            color: AppColors.earthBrown
+                .withValues(alpha: selected ? 0.7 : 0.35),
+            width: selected ? 1.6 : 1,
           ),
         ),
         child: Material(
@@ -710,39 +595,30 @@ class _CategoryTab extends StatelessWidget {
           // InkWell shows the ripple effect when tapped.
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: radius,
             child: ConstrainedBox(
-              // At least 44px tall so it's easy to tap.
-              constraints: const BoxConstraints(minHeight: 44),
+              // Compact, but still an easy tap target.
+              constraints: const BoxConstraints(minHeight: 40),
               child: Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 14, 0),
+                padding: const EdgeInsetsDirectional.fromSTEB(8, 0, 10, 0),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // The icon art sits in the middle of a wide transparent canvas
                     ExcludeSemantics(
-                      child: SizedBox.square(
-                        dimension: 28,
-                        child: OverflowBox(
-                          maxWidth: 62,
-                          maxHeight: 62,
-                          child: Image.asset(
-                            cat.iconImage,
-                            width: 62,
-                            height: 62,
-                            cacheWidth: 200,
-                            filterQuality: FilterQuality.medium,
-                          ),
-                        ),
+                      child: Image.asset(
+                        _categoryIcon(cat),
+                        width: 24,
+                        height: 24,
+                        cacheWidth: 96,
+                        filterQuality: FilterQuality.medium,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      cat.label.of(context),
-                      style: AppText.label(context, color: fg).copyWith(
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
+                      _categoryLabel(cat, context),
+                      style: AppText.label(context).copyWith(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     // The small circle with the number of crops
@@ -754,17 +630,15 @@ class _CategoryTab extends StatelessWidget {
                           minHeight: 20,
                         ),
                         alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: selected ? cat.color : AppColors.border,
+                        decoration: const BoxDecoration(
+                          color: AppColors.backgroundAlt,
                           shape: BoxShape.circle,
                         ),
                         child: Text(
                           '${group.crops.length}',
                           style: AppText.small(
                             context,
-                            color: selected
-                                ? AppColors.onForest
-                                : AppColors.textPrimary,
+                            color: AppColors.earthBrown,
                           ).copyWith(fontSize: 11, fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -798,27 +672,18 @@ class _CompactHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Row 1: back button and the screen title.
-          Row(
-            children: [
-              EthmarBackButton(tooltip: s.back),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  s.cropTitle.replaceAll('\n', ' '),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.title(context).copyWith(fontSize: 25),
-                ),
-              ),
-            ],
+          // Back button on its own row at the top.
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: EthmarBackButton(tooltip: s.back),
           ),
-          // Row 2: the accent text and conditions on one side, the weather
-          // character on the other.
+          const SizedBox(height: 6),
+          // Title and subtitle on one side, Thamoor on the other (in front
+          // of the hills in the background).
           Padding(
             padding: const EdgeInsetsDirectional.only(start: 12),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Entrance(
@@ -826,11 +691,16 @@ class _CompactHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          s.cropAccent,
-                          style: AppText.accent(context, size: 18),
+                          s.cropTitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.title(context).copyWith(fontSize: 26),
                         ),
-                        const SizedBox(height: 8),
-                        _ConditionsStrip(conditions: conditions),
+                        const SizedBox(height: 2),
+                        Text(
+                          s.cropAccent,
+                          style: AppText.accent(context, size: 17),
+                        ),
                       ],
                     ),
                   ),
@@ -840,11 +710,16 @@ class _CompactHeader extends StatelessWidget {
                   delay: const Duration(milliseconds: 120),
                   child: EthmarCharacter(
                     name: _weatherCharacter(conditions),
-                    height: 88,
+                    height: 96,
                   ),
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: 12),
+            child: _ConditionsRow(conditions: conditions),
           ),
         ],
       ),
@@ -852,9 +727,10 @@ class _CompactHeader extends StatelessWidget {
   }
 }
 
-/// The area and this month's average temperatures.
-class _ConditionsStrip extends StatelessWidget {
-  const _ConditionsStrip({required this.conditions});
+/// The area, this month, and this month's average temperatures, straight
+/// on the background.
+class _ConditionsRow extends StatelessWidget {
+  const _ConditionsRow({required this.conditions});
   final GrowingConditions conditions;
 
   @override
@@ -864,23 +740,17 @@ class _ConditionsStrip extends StatelessWidget {
     final temps =
         '${String.fromCharCode(0x2066)}${c.tempLow}–${c.tempHigh}°C'
         '${String.fromCharCode(0x2069)}';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: const BoxDecoration(
-        color: AppColors.seaTint,
-        borderRadius: BorderRadius.all(Radius.circular(16)),
-      ),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 6,
-        children: [
-          _Condition(icon: Icons.place_rounded, text: c.city.of(context)),
-          _Condition(
-            icon: Icons.thermostat_rounded,
-            text: '${s.monthName(c.month)} · $temps',
-          ),
-        ],
-      ),
+    return Wrap(
+      spacing: 18,
+      runSpacing: 6,
+      children: [
+        _Condition(icon: Icons.place_rounded, text: c.city.of(context)),
+        _Condition(
+          icon: Icons.calendar_month_rounded,
+          text: s.monthName(c.month),
+        ),
+        _Condition(icon: Icons.thermostat_rounded, text: temps),
+      ],
     );
   }
 }
@@ -896,14 +766,14 @@ class _Condition extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: AppColors.seaDeep),
-        const SizedBox(width: 6),
+        Icon(icon, size: 16, color: AppColors.forest),
+        const SizedBox(width: 5),
         Text(
           text,
           style: AppText.small(
             context,
             color: AppColors.textPrimary,
-          ).copyWith(fontWeight: FontWeight.w500),
+          ).copyWith(fontSize: 13.5, fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -946,49 +816,45 @@ class _PacketSlot extends StatelessWidget {
   }
 }
 
-/// One crop drawn as a seed packet
+/// One crop drawn as a ticket: a zig-zag top, a warm-white face, a dashed
+/// line, then the care facts.
 class _SeedPacket extends StatelessWidget {
-  const _SeedPacket({required this.crop, this.scrollable = true});
+  const _SeedPacket({required this.crop});
   final CropRecommendation crop;
-  final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
-    final cat = crop.category;
-    final packet = Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: PhysicalShape(
-        clipper: const _PacketClipper(),
-        clipBehavior: Clip.antiAlias,
-        color: AppColors.surface,
-        elevation: 3,
-        shadowColor: AppColors.forest.withValues(alpha: 0.3),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _PacketFace(crop: crop),
-            CustomPaint(
-              size: const Size.fromHeight(2),
-              painter: _PerforationPainter(cat.color.withValues(alpha: 0.55)),
+    return PhysicalShape(
+      clipper: const _PacketClipper(),
+      clipBehavior: Clip.antiAlias,
+      // Warm white: the category illustrations have a near-white
+      // background, so they blend straight into the ticket.
+      color: AppColors.surface,
+      elevation: 3,
+      shadowColor: AppColors.earthBrown.withValues(alpha: 0.25),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PacketFace(crop: crop),
+          CustomPaint(
+            size: const Size.fromHeight(2),
+            painter: _PerforationPainter(
+              AppColors.earthBrown.withValues(alpha: 0.45),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
-              child: _CareFacts(crop: crop),
-            ),
-          ],
-        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+            child: _CareFacts(crop: crop),
+          ),
+        ],
       ),
-    );
-    if (!scrollable) return packet;
-    return SingleChildScrollView(
-      physics: const ClampingScrollPhysics(),
-      child: packet,
     );
   }
 }
 
-/// The packet's coloured top.
+/// The ticket's top: badges, crop name and reason on the start side, the
+/// category illustration on the end side (mirrors in Arabic).
 class _PacketFace extends StatelessWidget {
   const _PacketFace({required this.crop});
   final CropRecommendation crop;
@@ -996,84 +862,86 @@ class _PacketFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final cat = crop.category;
     final reason = crop.reason;
-    return ColoredBox(
-      color: cat.tint,
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            height: _PacketClipper.crimp + 12,
-            child: ColoredBox(color: cat.color.withValues(alpha: 0.32)),
+    return Stack(
+      children: [
+        // Soft earthy band along the zig-zag edge.
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          height: _PacketClipper.crimp + 8,
+          child: ColoredBox(
+            color: AppColors.earthBrown.withValues(alpha: 0.18),
           ),
-          PositionedDirectional(
-            end: -24,
-            top: _PacketClipper.crimp + 4,
-            child: ExcludeSemantics(
-              child: Image.asset(
-                cat.image,
-                width: 170,
-                height: 170,
-                cacheWidth: 520,
-                filterQuality: FilterQuality.medium,
-              ),
-            ),
+        ),
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(
+            20,
+            _PacketClipper.crimp + 18,
+            12,
+            14,
           ),
-          Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(
-              22,
-              _PacketClipper.crimp + 22,
-              22,
-              18,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Badge 1: "Plant now" or "Plant in <month>".
-                    _Badge(
-                      icon: crop.plantNow
-                          ? Icons.eco_rounded
-                          : Icons.event_rounded,
-                      text: crop.plantNow
-                          ? s.cropPlantNow
-                          : s.cropPlantIn(crop.plantMonth),
-                      color: crop.plantNow ? cat.dark : AppColors.textSecondary,
-                      background: AppColors.surface,
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        // Badge 1: "Plant now" or "Plant in <month>".
+                        _Badge(
+                          icon: crop.plantNow
+                              ? Icons.eco_rounded
+                              : Icons.event_rounded,
+                          text: crop.plantNow
+                              ? s.cropPlantNow
+                              : s.cropPlantIn(crop.plantMonth),
+                          color: AppColors.forest,
+                          background: AppColors.featureCard,
+                        ),
+                        // Badge 2: how well the crop matches the area.
+                        _Badge(
+                          text: s.cropBand(crop.band),
+                          color: AppColors.earthBrown,
+                          background: AppColors.backgroundAlt,
+                        ),
+                      ],
                     ),
-                    // Badge 2: how well the crop matches the area.
-                    _Badge(
-                      text: s.cropBand(crop.band),
-                      color: cat.dark,
-                      background: cat.color.withValues(alpha: 0.18),
+                    const SizedBox(height: 10),
+                    Text(
+                      crop.name.of(context),
+                      style: AppText.display(context).copyWith(fontSize: 30),
                     ),
+                    // Why this crop was suggested
+                    if (reason != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        s.cropNote(reason),
+                        style: AppText.accent(context, size: 17),
+                      ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  crop.name.of(context),
-                  style: AppText.display(context).copyWith(fontSize: 32),
+              ),
+              const SizedBox(width: 8),
+              ExcludeSemantics(
+                child: Image.asset(
+                  _categoryPhoto(crop.category),
+                  width: 120,
+                  height: 120,
+                  cacheWidth: 400,
+                  filterQuality: FilterQuality.medium,
                 ),
-                // Why this crop was suggested
-                if (reason != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    s.cropNote(reason),
-                    style: AppText.accent(context, color: cat.dark, size: 18),
-                  ),
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1102,14 +970,12 @@ class _CareFacts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final cat = crop.category;
     // Read the crop's data. Some values can be missing (null or empty).
     final minTemp = crop.minTemp, maxTemp = crop.maxTemp;
     final water = s.cropWater(crop.waterNeed);
     final bestTime = s.monthRanges(crop.bestMonths);
     final harvest = crop.harvestDays;
     final height = crop.heightM;
-    final parts = s.cropParts(crop.edibleParts);
     final tip = crop.tip;
 
     // Build the list of facts, skipping any the crop doesn't have.
@@ -1146,14 +1012,10 @@ class _CareFacts extends StatelessWidget {
     Widget pair(_Fact a, _Fact? b) => Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: _FactTile(fact: a, category: cat),
-        ),
+        Expanded(child: _FactTile(fact: a)),
         const SizedBox(width: 14),
         Expanded(
-          child: b == null
-              ? const SizedBox.shrink()
-              : _FactTile(fact: b, category: cat),
+          child: b == null ? const SizedBox.shrink() : _FactTile(fact: b),
         ),
       ],
     );
@@ -1164,24 +1026,14 @@ class _CareFacts extends StatelessWidget {
           if (i > 0) const SizedBox(height: 16),
           pair(facts[i], i + 1 < facts.length ? facts[i + 1] : null),
         ],
-        // The care tip, in a yellow box.
+        // The care tip, in a soft green box.
         if (tip != null) ...[
           const SizedBox(height: 16),
           _NoteLine(
             icon: Icons.lightbulb_rounded,
             text: s.cropNote(tip),
-            color: AppColors.warning,
-            background: AppColors.warningTint,
-          ),
-        ],
-        // Which parts of the plant you eat.
-        if (parts.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          _NoteLine(
-            icon: Icons.restaurant_rounded,
-            text: '${s.cropYouEat}: $parts',
-            color: cat.dark,
-            background: cat.tint,
+            color: AppColors.forest,
+            background: AppColors.featureCard,
           ),
         ],
       ],
@@ -1274,14 +1126,12 @@ class _NoteLine extends StatelessWidget {
 
 /// One care fact: a round icon, a small label, and its value below.
 class _FactTile extends StatelessWidget {
-  const _FactTile({required this.fact, required this.category});
+  const _FactTile({required this.fact});
   final _Fact fact;
-  final CropCategory category;
 
   @override
   Widget build(BuildContext context) {
     final f = fact;
-    final cat = category;
     return MergeSemantics(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1289,8 +1139,11 @@ class _FactTile extends StatelessWidget {
           Container(
             width: 34,
             height: 34,
-            decoration: BoxDecoration(color: cat.tint, shape: BoxShape.circle),
-            child: Icon(f.icon, size: 18, color: cat.dark),
+            decoration: const BoxDecoration(
+              color: AppColors.featureCard,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(f.icon, size: 18, color: AppColors.forest),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1299,7 +1152,8 @@ class _FactTile extends StatelessWidget {
               children: [
                 Text(
                   f.label,
-                  style: AppText.small(context).copyWith(fontSize: 12),
+                  style: AppText.small(context, color: AppColors.earthBrown)
+                      .copyWith(fontSize: 12),
                 ),
                 const SizedBox(height: 1),
                 Text(
@@ -1307,7 +1161,7 @@ class _FactTile extends StatelessWidget {
                   // Keeps number ranges in the right order in Arabic.
                   textDirection: f.ltr ? TextDirection.ltr : null,
                   style: AppText.label(context)
-                      .copyWith(fontWeight: FontWeight.w600),
+                      .copyWith(fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -1318,98 +1172,6 @@ class _FactTile extends StatelessWidget {
   }
 }
 
-
-///Swipe up for more with up/down buttons; otherwise a one-time sideways hint.
-class _DeckStatus extends StatelessWidget {
-  const _DeckStatus({
-    required this.index,
-    required this.count,
-    required this.showSidewaysHint,
-    required this.onUp,
-    required this.onDown,
-  });
-  final int index;
-  final int count;
-  final bool showSidewaysHint;
-  final VoidCallback? onUp;
-  final VoidCallback? onDown;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    final stacked = count > 1;
-    final String text;
-    if (stacked) {
-      final position =
-          '${String.fromCharCode(0x2066)}${index + 1} / $count${String.fromCharCode(0x2069)}';
-      // Add "Swipe up for more" unless this is the last crop.
-      text = onDown != null ? '$position · ${s.cropSwipeUp}' : position;
-    } else {
-      // One crop: show the sideways hint until the user has swiped once.
-      text = showSidewaysHint ? s.cropSwipeHint : '';
-    }
-    return SizedBox(
-      height: 48,
-      child: Row(
-        children: [
-          if (stacked)
-            _StepButton(
-              icon: Icons.keyboard_arrow_up_rounded,
-              tooltip: s.cropPrev,
-              onPressed: onUp,
-            ),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Text(
-                text,
-                key: ValueKey(text),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppText.small(context),
-              ),
-            ),
-          ),
-          if (stacked)
-            _StepButton(
-              icon: Icons.keyboard_arrow_down_rounded,
-              tooltip: s.cropNext,
-              onPressed: onDown,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A round up/down arrow button.
-class _StepButton extends StatelessWidget {
-  const _StepButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-  });
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      style: IconButton.styleFrom(
-        minimumSize: const Size(48, 48),
-        backgroundColor: AppColors.forestTint,
-        foregroundColor: AppColors.forest,
-        disabledBackgroundColor: AppColors.forestTint.withValues(alpha: 0.45),
-        disabledForegroundColor: AppColors.textHint,
-      ),
-      icon: Icon(icon),
-    );
-  }
-}
 
 /// Packet outline: a crimped (zig-zag) top edge and rounded bottom corners.
 class _PacketClipper extends CustomClipper<Path> {
