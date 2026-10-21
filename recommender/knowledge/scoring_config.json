@@ -8,9 +8,9 @@
     "popularity": 0.25
   },
   "bands": {
-    "excellent": 0.8,
-    "good": 0.62,
-    "marginal": 0.42
+    "excellent": 0.9,
+    "good": 0.8,
+    "marginal": 0.7
   },
   "penalties": {
     "alkaline_mismatch": 0.85,

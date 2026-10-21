@@ -1050,27 +1050,26 @@ class _PacketFace extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // How well the crop matches the area, and the model's
+                    // score as a percentage. The planting months are in
+                    // the care facts ("Best time").
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        // Badge 1: "Plant now" or "Plant in <month>".
-                        _Badge(
-                          icon: crop.plantNow
-                              ? Icons.eco_rounded
-                              : Icons.event_rounded,
-                          text: crop.plantNow
-                              ? s.cropPlantNow
-                              : s.cropPlantIn(crop.plantMonth),
-                          color: AppColors.forest,
-                          background: AppColors.featureCard,
-                        ),
-                        // Badge 2: how well the crop matches the area.
                         _Badge(
                           text: s.cropBand(crop.band),
                           color: AppColors.earthBrown,
                           background: AppColors.backgroundAlt,
                         ),
+                        if (crop.scorePercent case final percent?)
+                          _Badge(
+                            // Keeps "87%" in this order in Arabic too.
+                            text: '${String.fromCharCode(0x2066)}$percent%'
+                                '${String.fromCharCode(0x2069)}',
+                            color: AppColors.forest,
+                            background: AppColors.featureCard,
+                          ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -1202,43 +1201,31 @@ class _CareFacts extends StatelessWidget {
   }
 }
 
-/// A small pill on the packet face, e.g. "Plant now" or "Great match".
+/// A small pill on the packet face, e.g. "Great match".
 class _Badge extends StatelessWidget {
   const _Badge({
     required this.text,
     required this.color,
     required this.background,
-    this.icon,
   });
   final String text;
   final Color color;
   final Color background;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final icon = this.icon;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 15, color: color),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            text,
-            style: AppText.small(
-              context,
-              color: color,
-            ).copyWith(fontWeight: FontWeight.w600),
-          ),
-        ],
+      child: Text(
+        text,
+        style: AppText.small(
+          context,
+          color: color,
+        ).copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }

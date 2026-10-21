@@ -54,7 +54,7 @@ DEFAULT_CONFIG = {
         "sunlight": 0.10, "water": 0.05, "popularity": 0.25,
     },
     # Minimum score for each band. Crops below "marginal" are not returned.
-    "bands": {"excellent": 0.80, "good": 0.62, "marginal": 0.42},
+    "bands": {"excellent": 0.90, "good": 0.80, "marginal": 0.70},
     "penalties": {
         "alkaline_mismatch": 0.85,   # pH far outside the crop's range
         "imputed_ph": 0.98,          # the crop's pH range was estimated

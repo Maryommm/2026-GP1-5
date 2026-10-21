@@ -106,8 +106,6 @@ class AppStrings {
     'cropDays': 'days',
     'cropMeters': 'm',
     'cropAllYear': 'All year',
-    'cropPlantNow': 'Plant now',
-    'cropPlantIn': 'Plant in {month}',
     'cropBand_excellent': 'Great match',
     'cropBand_good': 'Good match',
     'cropBand_fair': 'Fair match',
@@ -561,8 +559,6 @@ class AppStrings {
     'cropDays': 'يوم',
     'cropMeters': 'م',
     'cropAllYear': 'طوال السنة',
-    'cropPlantNow': 'ازرع الآن',
-    'cropPlantIn': 'ازرعه في {month}',
     'cropBand_excellent': 'توافق ممتاز',
     'cropBand_good': 'مناسب',
     'cropBand_fair': 'مناسب نوعًا ما',
@@ -1015,9 +1011,6 @@ class S {
   String get cropGrowsTo => t('cropGrowsTo');
   String get cropDays => t('cropDays');
   String get cropMeters => t('cropMeters');
-  String get cropPlantNow => t('cropPlantNow');
-  String cropPlantIn(int month) =>
-      t('cropPlantIn').replaceAll('{month}', monthName(month));
   String get cropNoCrops => t('cropNoCrops');
   String get cropError => t('cropError');
   String get cropErrorSignIn => t('cropErrorSignIn');

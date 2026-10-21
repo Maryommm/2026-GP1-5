@@ -42,7 +42,7 @@ void main() {
     expect(crop.name.ar, 'حمص');
     expect(crop.category, CropCategory.legume);
     expect(crop.band, MatchBand.excellent);
-    expect(crop.plantNow, isTrue);
+    expect(crop.scorePercent, 100);
     expect((crop.minTemp, crop.maxTemp), (15, 29));
     expect(crop.harvestDays, (min: 90, max: 180));
     expect(crop.reason?.code, 'temp_ok');

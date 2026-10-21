@@ -8,8 +8,6 @@ CropRecommendation _crop(int i) => CropRecommendation(
       name: BiText('Crop $i', 'محصول $i'),
       category: CropCategory.vegetable,
       band: MatchBand.good,
-      plantNow: true,
-      plantMonth: 10,
       bestMonths: const [10],
       minTemp: 15,
       maxTemp: 30,

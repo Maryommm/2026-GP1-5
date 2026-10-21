@@ -131,8 +131,7 @@ class CropRecommendation {
     required this.name,
     required this.category,
     required this.band,
-    required this.plantNow,
-    required this.plantMonth,
+    this.score,
     required this.bestMonths,
     required this.minTemp,
     required this.maxTemp,
@@ -165,13 +164,12 @@ class CropRecommendation {
     return CropRecommendation(
       name: BiText(english, arabic.isEmpty ? english : arabic),
       category: CropCategory.fromGroup(json['crop_group'] as String? ?? ''),
+      score: (json['score'] as num?)?.toDouble(),
       band: switch (json['band']) {
         'excellent' => MatchBand.excellent,
         'good' => MatchBand.good,
         _ => MatchBand.fair,
       },
-      plantNow: json['status'] == 'now',
-      plantMonth: (json['plant_month'] as num?)?.toInt() ?? 1,
       bestMonths: _ints(json['best_months']),
       minTemp: temps.isNotEmpty ? temps.first.round() : null,
       maxTemp: temps.length == 2 ? temps.last.round() : null,
@@ -196,11 +194,14 @@ class CropRecommendation {
   final CropCategory category;
   final MatchBand band;
 
-  /// True if the best time to plant is this month or next month.
-  final bool plantNow;
+  /// The model's score for this crop, 0 to 1 (null if the API sent none).
+  final double? score;
 
-  /// The nearest good month to plant (1-12).
-  final int plantMonth;
+  /// [score] as a whole percentage, e.g. 0.874 -> 87. Rounded down, so the
+  /// number always agrees with the badge (0.796 is a fair match: 79%).
+  int? get scorePercent => score == null
+      ? null
+      : (score!.clamp(0.0, 1.0) * 100).floor();
 
   /// Every good month to plant (1-12).
   final List<int> bestMonths;
