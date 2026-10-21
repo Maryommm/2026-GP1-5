@@ -454,9 +454,9 @@ class AppStrings {
     'errEmailInvalid':
         'البريد الإلكتروني غير صحيح. يجب ان يكون name@example.com',
     'errPasswordRequired': 'ادخل كلمة المرور',
-    'errPasswordNeeds': 'كلمة المرور يجب ان تحتوي:',
+    'errPasswordNeeds': 'كلمة المرور يجب ان تحتوي',
     'errPasswordLength': '٨ أحرف على الأقل',
-    'errPasswordUpper': 'حرف إنجليزي كبير',
+    'errPasswordUpper': 'حرف كبير',
     'errPasswordDigit': 'رقم',
     'errPasswordSpecial': 'رمز خاص (مثل ! أو @)',
     'showPassword': 'إظهار كلمة المرور',
