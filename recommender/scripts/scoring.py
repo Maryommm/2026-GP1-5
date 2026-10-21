@@ -620,6 +620,18 @@ def score_soil_texture(row, site: Site):
     return None
 
 
+def wet_soil_note(row):
+    """
+    Return a warning for a water plant (such as watercress) that ECOCROP says
+    needs soil saturated with water most of the year. Other water plants are
+    already removed by clean_dataset.py.
+    """
+    drainage = (_text(row, "ecocrop_dra") or "").strip()
+    if drainage == "poorly (saturated >50% of year)":
+        return _note("needs_wet_soil", "needs soil that stays wet; grow it in a pot standing in water")
+    return None
+
+
 def score_popularity(row, config: dict) -> float:
     """
     Give a higher score to crops that people really grow at home.
@@ -784,7 +796,7 @@ def score_species(row, climate, month: int, site: Site, config: dict):
     for reason in (rain_reason, ph_reason, sun_reason, water_reason):
         if reason:
             reasons.append(reason)
-    for warning in (rain_warn, ph_warn, sun_warn, texture_warn):
+    for warning in (rain_warn, ph_warn, sun_warn, texture_warn, wet_soil_note(row)):
         if warning:
             warnings.append(warning)
 

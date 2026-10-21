@@ -130,8 +130,6 @@ class AppStrings {
     'month11': 'Nov',
     'month12': 'Dec',
     'listJoin': ', ',
-    'part_inner bark': 'inner bark',
-    'part_apical bud': 'buds',
     // Reasons and warnings from the model (codes in recommender/scripts/scoring.py).
     'note_temp_ok': 'Your weather suits it all season',
     'note_rain_ok': 'Rain in your area covers its needs',
@@ -148,6 +146,8 @@ class AppStrings {
     'note_too_wet': 'Too much rain here: use raised beds or pots that drain',
     'note_too_dry': 'Your area is dry, so water it regularly',
     'note_needs_watering': 'Water it between rains',
+    'note_needs_wet_soil':
+        'Needs soil that stays wet. Grow it in a pot standing in water',
     'note_light_mismatch': 'Prefers a different amount of sun than you have',
     'cropSwipeHint': 'Swipe sideways for other crop types',
     'tryAgain': 'Try again',
@@ -552,6 +552,7 @@ class AppStrings {
         'المطر عندك كثير عليه، ازرعه في حوض مرتفع أو أصيص يصرّف الماء',
     'note_too_dry': 'منطقتك جافة، اسقه بانتظام',
     'note_needs_watering': 'اسقه بين الأمطار',
+    'note_needs_wet_soil': 'يحتاج تربة مبللة دائمًا. ازرعه في أصيص داخل صحن ماء',
     'note_light_mismatch': 'يفضّل كمية شمس غير اللي عندك',
     'cropSwipeHint': 'اسحب يمين ويسار لباقي الأنواع',
     'tryAgain': 'حاول مرة أخرى',
