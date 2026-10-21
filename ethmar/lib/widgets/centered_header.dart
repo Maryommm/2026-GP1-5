@@ -22,12 +22,16 @@ class EthmarCenteredHeader extends StatelessWidget {
   /// slot stays the same size, so the title stays centred.
   final bool showBack;
 
-  // Same width on both sides keeps the title truly centred.
-  static const _sideWidth = 108.0;
+  // Same width on both sides keeps the title truly centred. Wide enough for
+  // an action button (e.g. Profile's "Edit"); narrower when there is none,
+  // so long titles keep their full size.
+  static const _sideWidthWithAction = 108.0;
+  static const _sideWidthPlain = 64.0;
 
   @override
   Widget build(BuildContext context) {
     final end = trailing;
+    final sideWidth = end == null ? _sideWidthPlain : _sideWidthWithAction;
     return Padding(
       padding: EdgeInsetsDirectional.fromSTEB(
         16,
@@ -38,7 +42,7 @@ class EthmarCenteredHeader extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: _sideWidth,
+            width: sideWidth,
             // 48 keeps the header the same height with or without the button.
             height: 48,
             child: showBack
@@ -49,16 +53,20 @@ class EthmarCenteredHeader extends StatelessWidget {
                 : null,
           ),
           Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: AppText.title(context).copyWith(fontSize: 22),
+            // Long titles (e.g. "تعديل الملف الشخصي") shrink a little on
+            // narrow phones instead of being cut off.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: AppText.title(context).copyWith(fontSize: 22),
+              ),
             ),
           ),
           SizedBox(
-            width: _sideWidth,
+            width: sideWidth,
             child: end == null
                 ? null
                 : Align(

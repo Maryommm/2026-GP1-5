@@ -13,6 +13,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/backgrounds.dart';
+import '../widgets/centered_header.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
@@ -423,10 +424,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Column(
               children: [
                 // Edit Profile screen header.
-                AuthHeader(
-                  title: s.editProfile,
-                  character: 'ethmar_buddy_seedling',
-                ),
+                // Same header as Profile: back button and centred title.
+                EthmarCenteredHeader(title: s.editProfile),
 
                 Padding(
                   padding: EdgeInsetsDirectional.fromSTEB(

@@ -79,6 +79,6 @@ void main() {
     // Unknown codes fall back to the model's English sentence.
     const unknown = ModelNote(code: 'new_code', text: 'model text');
     expect(ar.cropNote(unknown), 'model text');
-    expect(ar.cropWater(['low', 'medium']), 'قليلة–متوسطة');
+    expect(ar.cropWater(['low', 'medium']), 'قليل–متوسط');
   });
 }

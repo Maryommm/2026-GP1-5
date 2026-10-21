@@ -9,6 +9,7 @@ import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/centered_header.dart';
 import '../widgets/entrance.dart';
+import '../widgets/ethmar_logo.dart' show parseSvgPath;
 
 /// Contact Ethmar: a short intro and two cards (email and X).
 class ContactScreen extends StatelessWidget {
@@ -58,17 +59,12 @@ class ContactScreen extends StatelessWidget {
                 ),
                 children: [
                   Entrance(
-                    child: Text(
-                      s.contactIntro,
-                      textAlign: TextAlign.center,
-                      style: AppText.body(context),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Entrance(
-                    delay: const Duration(milliseconds: 100),
                     child: _ContactCard(
-                      icon: Icons.mail_outline_rounded,
+                      icon: const Icon(
+                        Icons.mail_outline_rounded,
+                        size: 24,
+                        color: AppColors.forest,
+                      ),
                       title: s.contactEmailTitle,
                       detail: supportEmail,
                       onTap: () => _open(
@@ -81,9 +77,9 @@ class ContactScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Entrance(
-                    delay: const Duration(milliseconds: 160),
+                    delay: const Duration(milliseconds: 60),
                     child: _ContactCard(
-                      icon: Icons.alternate_email_rounded,
+                      icon: const _XLogo(size: 20),
                       title: s.contactXTitle,
                       detail: xHandle,
                       onTap: () => _open(
@@ -104,6 +100,51 @@ class ContactScreen extends StatelessWidget {
   }
 }
 
+/// The X (formerly Twitter) logo, drawn from X's official mark path.
+class _XLogo extends StatelessWidget {
+  const _XLogo({required this.size});
+  final double size;
+
+  // X's logo, viewBox 0 0 1200 1227.
+  static final _path = parseSvgPath(
+    'M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0'
+    'L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37'
+    'H1200L714.137 519.284H714.163Z'
+    'M569.165 687.828L521.697 619.934L144.011 79.6944H306.615'
+    'L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476'
+    'L569.165 687.854V687.828Z',
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: SizedBox(
+        width: size,
+        height: size * 1227 / 1200,
+        child: CustomPaint(painter: _XLogoPainter(_path)),
+      ),
+    );
+  }
+}
+
+class _XLogoPainter extends CustomPainter {
+  const _XLogoPainter(this.path);
+  final Path path;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.scale(size.width / 1200, size.height / 1227);
+    // evenOdd keeps the inner stroke of the X hollow, as in the logo.
+    canvas.drawPath(
+      path..fillType = PathFillType.evenOdd,
+      Paint()..color = AppColors.textPrimary,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_XLogoPainter old) => false;
+}
+
 // A tappable white card: icon, title and the address/handle.
 class _ContactCard extends StatelessWidget {
   const _ContactCard({
@@ -112,7 +153,7 @@ class _ContactCard extends StatelessWidget {
     required this.detail,
     required this.onTap,
   });
-  final IconData icon;
+  final Widget icon;
   final String title;
   final String detail;
   final VoidCallback onTap;
@@ -139,7 +180,7 @@ class _ContactCard extends StatelessWidget {
                     color: AppColors.featureCard,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, size: 24, color: AppColors.forest),
+                  child: icon,
                 ),
                 const SizedBox(width: 14),
                 Expanded(

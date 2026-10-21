@@ -139,6 +139,9 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
                   image: showingResults
                       ? 'assets/images/ethmar_recommender_background.png'
                       : LeafPrintBackground.asset,
+                  // Clouds and hills a little lower, leaving calmer space
+                  // behind the title.
+                  shiftDown: showingResults ? 0.04 : 0,
                   child: child,
                 ),
               ),
@@ -604,15 +607,81 @@ class _ResultsViewState extends State<_ResultsView> {
               16,
               MediaQuery.paddingOf(context).bottom + 8,
             ),
-            child: Text(
-              S.of(context).cropSwipeHint,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.small(context),
-            ),
+            child: const _SwipeHint(),
           ),
       ],
+    );
+  }
+}
+
+/// "Swipe to explore crop categories" with a left-right arrow at its start
+/// (right in Arabic), centred.
+///
+/// The text keeps its normal size when it fits on one line. On narrow
+/// screens it shrinks a little at a time, down to [_minFontSize], and if it
+/// still doesn't fit it wraps onto a second line. It is never cut off.
+/// Sizes are measured with the user's text scaling, so accessibility
+/// settings still apply.
+class _SwipeHint extends StatelessWidget {
+  const _SwipeHint();
+
+  static const _iconSize = 18.0;
+  static const _gap = 6.0;
+  static const _minFontSize = 11.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = S.of(context).cropSwipeHint;
+    final base = AppText.small(context, color: AppColors.earthBrown);
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    final locale = Localizations.localeOf(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth - _iconSize - _gap;
+
+        // Largest size (from the normal one down) that fits on one line.
+        var style = base;
+        var fitsOneLine = false;
+        for (var size = base.fontSize ?? 13;
+            size >= _minFontSize;
+            size -= 0.5) {
+          style = base.copyWith(fontSize: size);
+          final painter = TextPainter(
+            text: TextSpan(text: text, style: style),
+            textDirection: direction,
+            textScaler: scaler,
+            locale: locale,
+            maxLines: 1,
+          )..layout();
+          fitsOneLine = painter.width <= available;
+          painter.dispose();
+          if (fitsOneLine) break;
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.swap_horiz_rounded,
+              size: _iconSize,
+              color: AppColors.earthBrown,
+            ),
+            const SizedBox(width: _gap),
+            Flexible(
+              child: Text(
+                text,
+                // One line when it fits; otherwise wrap, never cut.
+                maxLines: fitsOneLine ? 1 : null,
+                softWrap: true,
+                textAlign: TextAlign.center,
+                style: style,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -820,67 +889,114 @@ class _CompactHeader extends StatelessWidget {
   const _CompactHeader({required this.conditions});
   final GrowingConditions conditions;
 
+  // Same as EthmarCenteredHeader without an action.
+  static const _sideWidth = 64.0;
+
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+    final titleStyle = AppText.title(context).copyWith(fontSize: 26);
     return Padding(
-      padding: EdgeInsetsDirectional.fromSTEB(
-        12,
-        MediaQuery.paddingOf(context).top + 4,
-        24,
-        0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top + 4),
+      child: Stack(
         children: [
-          // Back button on its own row at the top.
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: EthmarBackButton(tooltip: s.back),
+          // The original layout: a row for the back button, then the
+          // subtitle beside Thamoor, then the conditions. The title's old
+          // place is kept empty, so everything below stays where it was.
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 48),
+              const SizedBox(height: 18),
+              // Subtitle on one side, Thamoor on the other (in front of
+              // the hills in the background).
+              Padding(
+                padding: const EdgeInsetsDirectional.only(start: 24, end: 24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Entrance(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ExcludeSemantics(
+                              child: Visibility(
+                                visible: false,
+                                maintainSize: true,
+                                maintainAnimation: true,
+                                maintainState: true,
+                                child: Text(
+                                  s.cropTitle,
+                                  maxLines: 2,
+                                  style: titleStyle,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              s.cropAccent,
+                              style: AppText.accent(context, size: 17),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Entrance(
+                      delay: const Duration(milliseconds: 120),
+                      child: EthmarCharacter(
+                        name: _weatherCharacter(conditions),
+                        height: 96,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsetsDirectional.only(start: 24, end: 24),
+                child: _ConditionsRow(conditions: conditions),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          // Title and subtitle on one side, Thamoor on the other (in front
-          // of the hills in the background).
-          Padding(
-            padding: const EdgeInsetsDirectional.only(start: 12),
+          // Back button and the title on top, laid out like
+          // EthmarCenteredHeader (Profile, Edit Profile): equal slots on
+          // both sides keep the title centred on the screen. Takes no
+          // height of its own, so it doesn't push the layout above down.
+          Positioned(
+            top: 0,
+            left: 16,
+            right: 16,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                SizedBox(
+                  width: _sideWidth,
+                  height: 48,
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: EthmarBackButton(tooltip: s.back),
+                  ),
+                ),
                 Expanded(
-                  child: Entrance(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Center(
+                      child: Entrance(
+                        // Wraps onto a second line on narrow phones rather
+                        // than shrinking or being cut off.
+                        child: Text(
                           s.cropTitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.title(context).copyWith(fontSize: 26),
+                          textAlign: TextAlign.center,
+                          style: titleStyle,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          s.cropAccent,
-                          style: AppText.accent(context, size: 17),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Entrance(
-                  delay: const Duration(milliseconds: 120),
-                  child: EthmarCharacter(
-                    name: _weatherCharacter(conditions),
-                    height: 96,
-                  ),
-                ),
+                const SizedBox(width: _sideWidth),
               ],
             ),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(start: 12),
-            child: _ConditionsRow(conditions: conditions),
           ),
         ],
       ),
@@ -1023,7 +1139,6 @@ class _PacketFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final reason = crop.reason;
     return Stack(
       children: [
         // Soft earthy band along the zig-zag edge.
@@ -1041,7 +1156,9 @@ class _PacketFace extends StatelessWidget {
             20,
             _PacketClipper.crimp + 18,
             12,
-            14,
+            // Less space under the face now that the reason text is gone,
+            // so the dashed line sits a little higher.
+            6,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -1050,6 +1167,10 @@ class _PacketFace extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Matches the extra gap above the name: the column is
+                    // centred, so the badges stay put and the name moves
+                    // down by that gap.
+                    const SizedBox(height: 6),
                     // How well the crop matches the area, and the model's
                     // score as a percentage. The planting months are in
                     // the care facts ("Best time").
@@ -1072,19 +1193,11 @@ class _PacketFace extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 16),
                     Text(
                       crop.name.of(context),
                       style: AppText.display(context).copyWith(fontSize: 30),
                     ),
-                    // Why this crop was suggested
-                    if (reason != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        s.cropNote(reason),
-                        style: AppText.accent(context, size: 17),
-                      ),
-                    ],
                   ],
                 ),
               ),

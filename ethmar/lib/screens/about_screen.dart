@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
@@ -10,7 +9,7 @@ import '../widgets/entrance.dart';
 import '../widgets/ethmar_logo.dart';
 
 /// About Ethmar: logo and tagline, what Ethmar is, what it offers (three
-/// benefit cards), our goal, and the installed app version.
+/// feature cards) and our goal.
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
@@ -92,23 +91,15 @@ class AboutScreen extends StatelessWidget {
                       body: s.aboutCard3Body,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  // Honest note: some features are still early versions.
-                  Text(
-                    s.aboutPrototypeNote,
-                    textAlign: TextAlign.center,
-                    style: AppText.small(context),
-                  ),
                   const SizedBox(height: 24),
                   Entrance(
                     delay: const Duration(milliseconds: 300),
                     child: _TextSection(
+                      icon: Icons.flag_outlined,
                       title: s.aboutGoalTitle,
                       body: s.aboutGoalBody,
                     ),
                   ),
-                  const SizedBox(height: 28),
-                  const _AppVersion(),
                 ],
               ),
             ),
@@ -129,14 +120,17 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-// A heading and a paragraph in a white card.
+// A heading and a paragraph in a white card, with an optional icon at the
+// start of the heading.
 class _TextSection extends StatelessWidget {
-  const _TextSection({required this.title, required this.body});
+  const _TextSection({required this.title, required this.body, this.icon});
   final String title;
   final String body;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
+    final icon = this.icon;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -146,7 +140,26 @@ class _TextSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(title),
+          if (icon == null)
+            _SectionTitle(title)
+          else
+            Row(
+              children: [
+                // Same look as the feature cards' icons: a tinted circle.
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: AppColors.featureCard,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 24, color: AppColors.forest),
+                ),
+                const SizedBox(width: 12),
+                Flexible(child: _SectionTitle(title)),
+              ],
+            ),
           const SizedBox(height: 6),
           Text(body, style: AppText.body(context)),
         ],
@@ -209,37 +222,6 @@ class _OfferCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// The installed app version, read from the platform.
-class _AppVersion extends StatefulWidget {
-  const _AppVersion();
-
-  @override
-  State<_AppVersion> createState() => _AppVersionState();
-}
-
-class _AppVersionState extends State<_AppVersion> {
-  late final Future<PackageInfo> _info = PackageInfo.fromPlatform();
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<PackageInfo>(
-      future: _info,
-      builder: (context, snapshot) {
-        final version = snapshot.data?.version;
-        // Hide the line if the version can't be read.
-        if (version == null || version.isEmpty) {
-          return const SizedBox(height: 20);
-        }
-        return Text(
-          S.of(context).appVersion(version),
-          textAlign: TextAlign.center,
-          style: AppText.small(context, color: AppColors.textHint),
-        );
-      },
     );
   }
 }

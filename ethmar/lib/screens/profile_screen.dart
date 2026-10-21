@@ -268,7 +268,8 @@ class _UserInfo extends StatelessWidget {
   final String email;
   final DateTime? created;
 
-  static const _avatarSize = 88.0;
+  // Same size as on Edit Profile, so the photo doesn't jump between them.
+  static const _avatarSize = 96.0;
   static const _ring = 5.0;
 
   @override
@@ -309,7 +310,6 @@ class _UserInfo extends StatelessWidget {
         if (date != null) ...[
           const SizedBox(height: 4),
           _InfoRow(
-            icon: Icons.eco_outlined,
             text: s.memberSince(MaterialLocalizations.of(context)
                 .formatMonthYear(date.toLocal())),
             style: AppText.body(context)
@@ -460,24 +460,28 @@ class _StatCard extends StatelessWidget {
 // A small centred icon + text line under the username.
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
-    required this.icon,
+    this.icon,
     required this.text,
     required this.style,
     this.textDirection,
   });
-  final IconData icon;
+  /// Optional small icon before the text.
+  final IconData? icon;
   final String text;
   final TextStyle style;
   final TextDirection? textDirection;
 
   @override
   Widget build(BuildContext context) {
+    final icon = this.icon;
     return Row(
       mainAxisSize: MainAxisSize.min,
       textDirection: textDirection,
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
-        const SizedBox(width: 6),
+        if (icon != null) ...[
+          Icon(icon, size: 16, color: AppColors.textSecondary),
+          const SizedBox(width: 6),
+        ],
         Flexible(
           child: Text(
             text,
