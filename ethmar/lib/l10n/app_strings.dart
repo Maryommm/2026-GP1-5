@@ -22,7 +22,6 @@ class AppStrings {
     'alreadyHaveAccount': 'Already have an account?',
     'logInLink': 'Log in',
     'loginTitle': 'Welcome\nback!',
-    'loginAccent': 'your plants missed you',
     'forgotPassword': 'Forgot password?',
     'loginButton': 'Log in',
     'newHere': 'New to Ethmar?',
@@ -444,12 +443,11 @@ class AppStrings {
     'createButton': 'إنشاء الحساب',
     'alreadyHaveAccount': ' هل لديك حساب سابق؟',
     'logInLink': 'سجّل دخولك',
-    'loginTitle': 'أهلًا\nمن جديد!',
-    'loginAccent': 'نباتاتك اشتاقت لك',
+    'loginTitle': "تسجيل الدخول",
     'forgotPassword': 'نسيت كلمة المرور؟',
     'loginButton': 'تسجيل الدخول',
-    'newHere': 'جديد في إثمار؟',
-    'createAccountLink': 'أنشئ حساب',
+    'newHere': "ليس لديك حساب؟",
+    'createAccountLink': 'إنشاء حساب',
     'errUsernameRequired': 'اختر اسم مستخدم عشان نسلّم عليك',
     'errUsernameTaken': 'اسم المستخدم مستخدم بالفعل.',
     'errUsernameCheckFailed': 'تعذّر التحقق من اسم المستخدم. تأكد من اتصالك.',
@@ -854,7 +852,6 @@ class S {
   String get alreadyHaveAccount => t('alreadyHaveAccount');
   String get logInLink => t('logInLink');
   String get loginTitle => t('loginTitle');
-  String get loginAccent => t('loginAccent');
   String get forgotPassword => t('forgotPassword');
   String get loginButton => t('loginButton');
   String get newHere => t('newHere');

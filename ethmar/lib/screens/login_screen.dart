@@ -336,7 +336,6 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               AuthHeader(
                 title: s.loginTitle,
-                accent: s.loginAccent,
                 character: 'ethmar_buddy_waving',
               ),
               Padding(
@@ -386,7 +385,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           IgnorePointer(
                             ignoring: _loading,
                             child: Align(
-                              alignment: AlignmentDirectional.centerEnd,
+                              // Right side in both languages.
+                              alignment: Alignment.centerRight,
                               child: EthmarLink(
                                 label: s.forgotPassword,
                                 onTap: () => Navigator.of(context).push(
