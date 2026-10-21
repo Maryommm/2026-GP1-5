@@ -386,7 +386,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             children: [
               AuthHeader(
                 title: s.signUpTitle,
-                accent: s.signUpAccent,
                 character: 'ethmar_buddy_seedling',
               ),
               Padding(
@@ -441,7 +440,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             enabled: !_loading && !_hasVerificationAccount,
                             controller: _password,
                             isPassword: true,
-                            forceLtr: true,
                             textInputAction: TextInputAction.done,
                             autofillHints: const [AutofillHints.newPassword],
                             validator: (v) => Validators.password(v, s),

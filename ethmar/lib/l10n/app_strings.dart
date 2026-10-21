@@ -12,7 +12,6 @@ class AppStrings {
     'createAccount': 'Sign up',
     'haveAccount': 'Log in',
     'signUpTitle': 'Create your\naccount',
-    'signUpAccent': 'your farm is waiting',
     'username': 'Username',
     'usernameHint': 'noora_22',
     'email': 'Email',
@@ -23,7 +22,6 @@ class AppStrings {
     'alreadyHaveAccount': 'Already have an account?',
     'logInLink': 'Log in',
     'loginTitle': 'Welcome\nback!',
-    'loginAccent': 'your plants missed you',
     'forgotPassword': 'Forgot password?',
     'loginButton': 'Log in',
     'newHere': 'New to Ethmar?',
@@ -45,16 +43,10 @@ class AppStrings {
     'hidePassword': 'Hide password',
     'back': 'Back',
     'accountCreated': 'Account created. Welcome to Ethmar!',
-    'resetSoon': "Password reset is coming soon",
     'resetTitle': 'Forgot your\npassword?',
-    'resetAccent': "we'll get you back in",
     'sendResetLink': 'Send reset link',
     'backToLogin': 'Back to Login',
     'resetLinkSent': 'If an account exists for this email, you will receive a password reset link.',
-    'errEmailNotRegistered': "We couldn't find an account with that email",
-    'verifyEmail': 'Verify email',
-    'verifySoon': 'Email verification is coming soon',
-    'verificationLinkSent': 'Verification link sent! Check your inbox',
     'emailVerified': 'Your email has been verified',
     'verifyDialogTitle': 'Check your email',
     'verifyDialogBody': "We sent a verification link to {email}. Open it to verify your account. Can't find it? Check your spam folder.",
@@ -69,8 +61,6 @@ class AppStrings {
         "Your sign up wasn't finished, so it was cancelled. Please sign up again",
     'errSignUpUnfinishedLogIn':
         "Your sign up wasn't finished. Log in to continue",
-    'errVerifyEmailFirst':
-        'Verify your email first. Check your inbox for the link',
     'errEmailAlreadyInUse':
         'That email is already in use. Log in or reset your password',
     'errTooManyRequests':
@@ -82,7 +72,6 @@ class AppStrings {
     'errProfileCreate':
         "We couldn't finish setting up your profile. Please try again",
     'errProfileConflict': 'The registration data for this account is inconsistent. Please contact support',
-    'errProfileMissing': 'Your Ethmar profile is missing. Please complete account creation first',
     'errProfileLoad': "We couldn't load your Ethmar profile. Please try again",
     'errLogout': "We couldn't log you out. Please try again",
     'homeFriend': 'friend',
@@ -97,7 +86,6 @@ class AppStrings {
     'cropLoading1': 'Finding where you are…',
     'cropLoading2': "Checking your area's climate…",
     'cropLoading3': 'Picking your perfect crops…',
-    'cropYourArea': 'Your area',
     'cropTempRange': 'Best Temperature',
     'cropWaterNeed': 'Water Need',
     'cropBestTime': 'Best Time to Plant',
@@ -142,20 +130,8 @@ class AppStrings {
     'month11': 'Nov',
     'month12': 'Dec',
     'listJoin': ', ',
-    'part_seed': 'seeds',
-    'part_leaves': 'leaves',
-    'part_fruit': 'fruit',
-    'part_flowers': 'flowers',
-    'part_root': 'roots',
-    'part_shoots': 'shoots',
-    'part_seedpod': 'pods',
-    'part_stem': 'stems',
     'part_inner bark': 'inner bark',
-    'part_sap': 'sap',
-    'part_milk': 'milky sap',
     'part_apical bud': 'buds',
-    'part_pollen': 'pollen',
-    'part_nectar': 'nectar',
     // Reasons and warnings from the model (codes in recommender/scripts/scoring.py).
     'note_temp_ok': 'Your weather suits it all season',
     'note_rain_ok': 'Rain in your area covers its needs',
@@ -204,10 +180,7 @@ class AppStrings {
     'streakLostTitle': 'Streak lost',
     'streakLostHint': 'Take care of your plants and start your streak again.',
     'homeAddPlant': 'Add Plant',
-    'homeWhatToPlant': 'What to plant?',
-    'homeScanPlant': 'Scan plant',
     'homeNearMe': 'Near me',
-    'homeAskEthmar': 'Ask Ethmar',
     'navHome': 'Home',
     'navDailyTasks': 'Daily Tasks',
     // Daily Tasks screen
@@ -243,7 +216,6 @@ class AppStrings {
     'monthLong11': 'November',
     'monthLong12': 'December',
     'navVirtualFarm': 'Virtual Farm',
-    'navLeaderboard': 'Leaderboard',
     // Home feature cards and the Ask Thamoor tab (Thamoor is the mascot).
     'homeCardRecommended': 'Recommended',
     'homeCardNearMe': 'Near Me',
@@ -366,11 +338,6 @@ class AppStrings {
     'mapNursery': 'Nursery',
     'mapStore': 'Farm store',
     'mapKm': '{km} km',
-    'mapPermissionTitle': 'Allow location access?',
-    'mapPermissionBody':
-        'Ethmar uses your location to show nurseries and farm stores near you.',
-    'mapAllow': 'Allow',
-    'mapDontAllow': "Don't allow",
     'mapLocating': 'Finding your location…',
     'mapDeniedTitle': 'Location access needed',
     'mapDeniedBody':
@@ -400,7 +367,6 @@ class AppStrings {
     'addPlantLaterHint': 'Schedules are optional. You can set them later.',
     'schedIrrigation': 'Irrigation schedule',
     'schedFertilization': 'Fertilization schedule',
-    'schedRemind': 'Remind me',
     'schedRepetition': 'Repetition',
     'schedAlarmTime': 'Alarm time',
     'schedLessOften': 'Less often',
@@ -462,67 +428,57 @@ class AppStrings {
 
   static const Map<String, String> ar = {
     'languageSwitch': 'English',
-    'welcomeTitle': 'أهلًا بك في إثمار!',
-    'welcomeBody': 'ازرع مزرعتك الصغيرة، بذرة ورا بذرة.',
-    'createAccount': 'حساب جديد',
+    'welcomeTitle': 'أهلاً بك في إثمار!',
+    'welcomeBody': "إبدأ مزرعتك الصغيرة الآن!",
+    'createAccount': "إنشاء حساب",
     'haveAccount': 'تسجيل الدخول',
-    'signUpTitle': 'أنشئ\nحسابك',
-    'signUpAccent': 'مزرعتك بانتظارك',
+    'signUpTitle': "إنشاء حساب",
     'username': 'اسم المستخدم',
-    'usernameHint': 'noora_22',
+    'usernameHint': ' أدخل اسم المستخدم الخاص بك',
     'email': 'البريد الإلكتروني',
     'emailHint': 'name@example.com',
     'password': 'كلمة المرور',
-    'passwordHint': '٨ أحرف على الأقل',
+    'passwordHint': "أدخل كلمة المرور الخاصة بك",
     'createButton': 'إنشاء الحساب',
-    'alreadyHaveAccount': 'عندك حساب؟',
+    'alreadyHaveAccount': ' هل لديك حساب سابق؟',
     'logInLink': 'سجّل دخولك',
-    'loginTitle': 'أهلًا\nمن جديد!',
-    'loginAccent': 'نباتاتك اشتاقت لك',
+    'loginTitle': "تسجيل الدخول",
     'forgotPassword': 'نسيت كلمة المرور؟',
     'loginButton': 'تسجيل الدخول',
-    'newHere': 'جديد في إثمار؟',
-    'createAccountLink': 'أنشئ حساب',
-    'errUsernameRequired': 'اختر اسم مستخدم عشان نسلّم عليك',
+    'newHere': "ليس لديك حساب؟",
+    'createAccountLink': 'إنشاء حساب',
+    'errUsernameRequired': 'أدخل اسم المستخدم',
     'errUsernameTaken': 'اسم المستخدم مستخدم بالفعل.',
     'errUsernameCheckFailed': 'تعذّر التحقق من اسم المستخدم. تأكد من اتصالك.',
-    'errEmailRequired': 'اكتب بريدك الإلكتروني',
+    'errEmailRequired': 'ادخل بريدك الإلكتروني',
     'errEmailInvalid':
-        'البريد الإلكتروني غير صحيح. جرّب مثلًا name@example.com',
-    'errPasswordRequired': 'اكتب كلمة المرور',
-    'errPasswordNeeds': 'كلمة المرور تحتاج',
+        'البريد الإلكتروني غير صحيح. يجب ان يكون name@example.com',
+    'errPasswordRequired': 'ادخل كلمة المرور',
+    'errPasswordNeeds': 'كلمة المرور يجب ان تحتوي:',
     'errPasswordLength': '٨ أحرف على الأقل',
     'errPasswordUpper': 'حرف إنجليزي كبير',
     'errPasswordDigit': 'رقم',
     'errPasswordSpecial': 'رمز خاص (مثل ! أو @)',
     'showPassword': 'إظهار كلمة المرور',
     'hidePassword': 'إخفاء كلمة المرور',
-    'back': 'رجوع',
-    'accountCreated': 'تم إنشاء حسابك. أهلًا بك في إثمار!',
-    'resetSoon': 'استعادة كلمة المرور قريبًا',
-    'resetTitle': 'نسيت\nكلمة المرور؟',
-    'resetAccent': 'نرجّعك لمزرعتك',
-    'sendResetLink': 'أرسل رابط الاستعادة',
-    'backToLogin': 'رجوع لتسجيل الدخول',
+    'back': 'عودة',
+    'accountCreated': 'تم إنشاء حسابك بنجاح. مرحبًا بك في إثمار!',
+    'resetTitle': 'نسيت كلمة المرور؟',
+    'sendResetLink': "إعادة التعيين",
+    'backToLogin': 'عودة لتسجيل الدخول',
     'resetLinkSent': 'إذا كان هناك حساب مرتبط بهذا البريد الإلكتروني، فسيصلك رابط لإعادة تعيين كلمة المرور.',
-    'errEmailNotRegistered': 'ما لقينا حساب بهذا البريد الإلكتروني',
-    'verifyEmail': 'تأكيد البريد الإلكتروني',
-    'verifySoon': 'تأكيد البريد الإلكتروني قريبًا',
-    'verificationLinkSent': 'أرسلنا رابط التحقق! تحقق من بريدك الإلكتروني',
     'emailVerified': 'تم تأكيد بريدك الإلكتروني',
     'verifyDialogTitle': 'تحقق من بريدك',
-    'verifyDialogBody': 'أرسلنا رابط التحقق إلى {email}. افتحه لتأكيد حسابك. ما لقيته؟ شيّك على مجلد الرسائل غير المرغوب فيها (Spam).',
+    'verifyDialogBody': 'تم إرسال رابط التحقق إلى {email}. قم بفتحه لتأكيد حسابك. لم تجده؟ قم بالإطلاع على مجلد الرسائل غير المرغوب فيها',
     'verifyDialogWaiting': 'ننتظر تأكيد بريدك…',
-    'resendEmail': 'أعد إرسال الرابط',
-    'verificationResent': 'أرسلناه مرة ثانية! تحقق من بريدك',
+    'resendEmail': 'إعادة إرسال الرابط',
+    'verificationResent': 'قمنا بالإرسال مرة أخرى! تحقق من بريدك',
     'emailNotVerifiedTitle': 'البريد الإلكتروني غير مؤكّد',
     'verificationRecoveryBody': 'لم يتم تأكيد البريد الإلكتروني لهذا الحساب ({email}). قد تكون صلاحية الرابط السابق انتهت. أعد إرسال رسالة تحقق جديدة، ثم افتحها واضغط على التحقق والمتابعة.',
     'checkVerification': 'التحقق والمتابعة',
     'verificationStillPending': 'لم يتم تأكيد بريدك الإلكتروني بعد. افتح أحدث رسالة تحقق ثم حاول مرة أخرى.',
     'errSignUpUnfinished': 'لم يكتمل تسجيلك، لذلك تم إلغاؤه. سجّل من جديد',
     'errSignUpUnfinishedLogIn': 'لم يكتمل تسجيلك. سجّل الدخول للمتابعة',
-    'errVerifyEmailFirst':
-        'أكّد بريدك الإلكتروني أولًا. الرابط وصلك على الإيميل',
     'errEmailAlreadyInUse':
         'هذا البريد مستخدم بالفعل. سجّل الدخول أو استعد كلمة المرور',
     'errTooManyRequests': 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى',
@@ -534,8 +490,6 @@ class AppStrings {
         'البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة ثانية',
     'errProfileCreate': 'تعذّر إكمال إعداد ملفك الشخصي. حاول مرة أخرى',
     'errProfileConflict': 'بيانات تسجيل هذا الحساب غير متسقة. تواصل مع الدعم',
-    'errProfileMissing':
-        'ملفك الشخصي في إثمار غير موجود. أكمل إنشاء الحساب أولًا',
     'errProfileLoad': 'تعذّر تحميل ملفك الشخصي في إثمار. حاول مرة أخرى',
     'errLogout': 'تعذّر تسجيل الخروج. حاول مرة أخرى',
     'homeFriend': 'يا صديقي',
@@ -547,10 +501,9 @@ class AppStrings {
     'cropCatRoot': 'الخضروات الجذرية',
     'cropCatVegetable': 'الخضروات',
     'cropCatFruit': 'الفواكه',
-    'cropLoading1': 'نحدد موقعك…',
-    'cropLoading2': 'نشيّك على مناخ منطقتك…',
-    'cropLoading3': 'نختار لك أنسب المحاصيل…',
-    'cropYourArea': 'منطقتك',
+    'cropLoading1': 'جاري تحديد الموقع…',
+    'cropLoading2': 'جاري فحص مناخ منطقتك…',
+    'cropLoading3': 'جاري اختيار أنسب المحاصيل…',
     'cropTempRange': 'أفضل درجة حرارة',
     'cropWaterNeed': 'احتياج الماء',
     'cropBestTime': 'أفضل وقت للزراعة',
@@ -565,18 +518,19 @@ class AppStrings {
     'cropWater_low': 'قليلة',
     'cropWater_medium': 'متوسطة',
     'cropWater_high': 'عالية',
-    'cropNoCrops': 'ما فيه محاصيل تناسب منطقتك هذا الشهر. شيّك الشهر الجاي',
+    'cropNoCrops': 'لا يوجد محاصيل تناسب منطقتك هذا الشهر. حاول مرة أخرى قريبًا',
     'cropError': 'تعذّر جلب الاقتراحات. حاول مرة أخرى',
-    'cropErrorSignIn': 'سجّل دخولك مرة ثانية عشان تشوف الاقتراحات',
-    'cropErrorClimate': 'تعذّر الوصول لبيانات المناخ. حاول مرة ثانية بعدين',
-    'cropErrorOffline': 'أنت غير متصل بالإنترنت. حاول مرة ثانية بعدين',
+    'cropErrorSignIn': 'قم بتسجيل الدخول مرة أخرى للتمكن من الاطلاع على الاقتراحات',
+    'cropErrorClimate': 'تعذّر الوصول لبيانات المناخ. حاول مرة أخرى',
+    'cropErrorOffline': 'أنت غير متصل بالإنترنت. حاول مرة أخرى',
     'cropMoreFailed': 'تعذّر تحميل المزيد من المحاصيل',
     'cropLocationDenied':
-        'نحتاج موقعك عشان نقترح محاصيل تناسب منطقتك. اسمح بالوصول للموقع عشان تشوف الاقتراحات',
+        'لم نتمكن من الوصول لبيانات موقعك. قم بالسماح للتطبيق بالوصول لبيانات الموقع لتتمكن من الإطلاع على التوصيات',
     'cropLocationBlocked':
-        'إذن الموقع مقفل لإثمار. اسمح فيه من إعدادات جوالك عشان تشوف المحاصيل المناسبة لمنطقتك',
-    'cropLocationOff': 'الموقع مقفل في جوالك. شغّله عشان تشوف المحاصيل المناسبة لمنطقتك',
-    'cropLocationUnavailable': 'ما قدرنا نحدد موقعك. حاول مرة ثانية',
+        'أذونات الوصول للموقع مغلقة. قم بالسماح بالوصول لبيانات الموقع من الإعدادات لتتمكن من الاطلاع على التوصيات المناسبة لمنطقتك',
+    'cropLocationOff':
+        'خدمة الموقع مغلقة في جهازك. قم بتشغيلها لتتمكن من الاطلاع على التوصيات المناسبة لمنطقتك',
+    'cropLocationUnavailable': 'لم نتمكن من تحديد موقعك. قم بالمحاولة مرة أخرى',
     'cropOpenSettings': 'فتح الإعدادات',
     'month1': 'يناير',
     'month2': 'فبراير',
@@ -591,20 +545,8 @@ class AppStrings {
     'month11': 'نوفمبر',
     'month12': 'ديسمبر',
     'listJoin': '، ',
-    'part_seed': 'البذور',
-    'part_leaves': 'الأوراق',
-    'part_fruit': 'الثمار',
-    'part_flowers': 'الأزهار',
-    'part_root': 'الجذور',
-    'part_shoots': 'البراعم',
-    'part_seedpod': 'القرون',
-    'part_stem': 'السيقان',
     'part_inner bark': 'اللحاء الداخلي',
-    'part_sap': 'العصارة',
-    'part_milk': 'العصارة اللبنية',
     'part_apical bud': 'البراعم الطرفية',
-    'part_pollen': 'حبوب اللقاح',
-    'part_nectar': 'الرحيق',
     'note_temp_ok': 'جوّك يناسبه طول الموسم',
     'note_rain_ok': 'أمطار منطقتك تكفيه',
     'note_ph_ok': 'تربتك تناسبه',
@@ -646,10 +588,7 @@ class AppStrings {
     'streakLostTitle': 'انقطعت السلسلة',
     'streakLostHint': 'حافظ على نباتاتك وابدأ السلسلة من جديد.',
     'homeAddPlant': 'أضف نبتة',
-    'homeWhatToPlant': 'وش أزرع؟',
-    'homeScanPlant': 'افحص نبتتك',
     'homeNearMe': 'قريب مني',
-    'homeAskEthmar': 'اسأل إثمار',
     'navHome': 'الرئيسية',
     'navDailyTasks': 'المهام اليومية',
     // Daily Tasks screen
@@ -685,7 +624,6 @@ class AppStrings {
     'monthLong11': 'نوفمبر',
     'monthLong12': 'ديسمبر',
     'navVirtualFarm': 'المزرعة الافتراضية',
-    'navLeaderboard': 'المتصدرون',
     'homeCardRecommended': 'مقترح لك',
     'homeCardNearMe': 'قريب مني',
     'homeCardLeaderboard': 'لوحة الصدارة',
@@ -803,11 +741,6 @@ class AppStrings {
     'mapNursery': 'مشتل',
     'mapStore': 'متجر زراعي',
     'mapKm': '{km} كم',
-    'mapPermissionTitle': 'تسمح لنا نعرف موقعك؟',
-    'mapPermissionBody':
-        'إثمار يستخدم موقعك عشان يوريك المشاتل والمتاجر الزراعية القريبة منك.',
-    'mapAllow': 'السماح',
-    'mapDontAllow': 'عدم السماح',
     'mapLocating': 'نحدد موقعك…',
     'mapDeniedTitle': 'نحتاج إذن الموقع',
     'mapDeniedBody':
@@ -837,7 +770,6 @@ class AppStrings {
     'addPlantLaterHint': 'المواعيد اختيارية، تقدر تضبطها بعدين.',
     'schedIrrigation': 'جدول الري',
     'schedFertilization': 'جدول التسميد',
-    'schedRemind': 'ذكّرني',
     'schedRepetition': 'التكرار',
     'schedAlarmTime': 'وقت التنبيه',
     'schedLessOften': 'أقل تكرار',
@@ -909,7 +841,6 @@ class S {
   String get createAccount => t('createAccount');
   String get haveAccount => t('haveAccount');
   String get signUpTitle => t('signUpTitle');
-  String get signUpAccent => t('signUpAccent');
   String get username => t('username');
   String get usernameHint => t('usernameHint');
   String get email => t('email');
@@ -920,7 +851,6 @@ class S {
   String get alreadyHaveAccount => t('alreadyHaveAccount');
   String get logInLink => t('logInLink');
   String get loginTitle => t('loginTitle');
-  String get loginAccent => t('loginAccent');
   String get forgotPassword => t('forgotPassword');
   String get loginButton => t('loginButton');
   String get newHere => t('newHere');
@@ -953,16 +883,10 @@ class S {
   String get hidePassword => t('hidePassword');
   String get back => t('back');
   String get accountCreated => t('accountCreated');
-  String get resetSoon => t('resetSoon');
   String get resetTitle => t('resetTitle');
-  String get resetAccent => t('resetAccent');
   String get sendResetLink => t('sendResetLink');
   String get backToLogin => t('backToLogin');
   String get resetLinkSent => t('resetLinkSent');
-  String get errEmailNotRegistered => t('errEmailNotRegistered');
-  String get verifyEmail => t('verifyEmail');
-  String get verifySoon => t('verifySoon');
-  String get verificationLinkSent => t('verificationLinkSent');
   String get emailVerified => t('emailVerified');
   String get verifyDialogTitle => t('verifyDialogTitle');
   String verifyDialogBody(String email) =>
@@ -977,7 +901,6 @@ class S {
   String get verificationStillPending => t('verificationStillPending');
   String get errSignUpUnfinished => t('errSignUpUnfinished');
   String get errSignUpUnfinishedLogIn => t('errSignUpUnfinishedLogIn');
-  String get errVerifyEmailFirst => t('errVerifyEmailFirst');
   String get errEmailAlreadyInUse => t('errEmailAlreadyInUse');
   String get errTooManyRequests => t('errTooManyRequests');
   String get errNetwork => t('errNetwork');
@@ -986,7 +909,6 @@ class S {
   String get errInvalidCredentials => t('errInvalidCredentials');
   String get errProfileCreate => t('errProfileCreate');
   String get errProfileConflict => t('errProfileConflict');
-  String get errProfileMissing => t('errProfileMissing');
   String get errProfileLoad => t('errProfileLoad');
   String get errLogout => t('errLogout');
   String get homeFriend => t('homeFriend');
@@ -1003,7 +925,6 @@ class S {
     t('cropLoading2'),
     t('cropLoading3'),
   ];
-  String get cropYourArea => t('cropYourArea');
   String get cropTempRange => t('cropTempRange');
   String get cropWaterNeed => t('cropWaterNeed');
   String get cropBestTime => t('cropBestTime');
@@ -1059,12 +980,6 @@ class S {
     return known.length == 1 ? known.first : '${known.first}–${known.last}';
   }
 
-  /// Edible parts such as ["leaves", "seed"] -> "leaves, seeds".
-  String cropParts(List<String> parts) => [
-        for (final p in parts)
-          if (_map.containsKey('part_$p')) t('part_$p'),
-      ].join(t('listJoin'));
-
   /// The sentence for a reason or warning from the model. A code the app
   /// doesn't know yet falls back to the model's English text.
   String cropNote(ModelNote note) {
@@ -1085,8 +1000,6 @@ class S {
   String get homeGoodEvening => t('homeGoodEvening');
   /// Home slogan by its stable index (0, 1 or 2).
   String homeSlogan(int i) => t('homeSlogan${i + 1}');
-  String get homeStreakDays => t('homeStreakDays');
-  String get homeStreakHint => t('homeStreakHint');
   String get streakNotStartedTitle => t('streakNotStartedTitle');
   String get streakNotStartedHint => t('streakNotStartedHint');
   String get streakActiveHint => t('streakActiveHint');
@@ -1102,10 +1015,7 @@ class S {
         _ => t('streakActiveTitleMany').replaceAll('{n}', '$n'),
       };
   String get homeAddPlant => t('homeAddPlant');
-  String get homeWhatToPlant => t('homeWhatToPlant');
-  String get homeScanPlant => t('homeScanPlant');
   String get homeNearMe => t('homeNearMe');
-  String get homeAskEthmar => t('homeAskEthmar');
   String get navHome => t('navHome');
   String get navDailyTasks => t('navDailyTasks');
   String get dailyTasksSubtitle => t('dailyTasksSubtitle');
@@ -1128,7 +1038,6 @@ class S {
       .replaceAll('{month}', t('monthLong${d.month}'))
       .replaceAll('{day}', '${d.day}');
   String get navVirtualFarm => t('navVirtualFarm');
-  String get navLeaderboard => t('navLeaderboard');
   String get homeCardRecommended => t('homeCardRecommended');
   String get homeCardNearMe => t('homeCardNearMe');
   String get homeCardLeaderboard => t('homeCardLeaderboard');
@@ -1234,10 +1143,6 @@ class S {
   String get mapNursery => t('mapNursery');
   String get mapStore => t('mapStore');
   String mapKm(String km) => t('mapKm').replaceAll('{km}', km);
-  String get mapPermissionTitle => t('mapPermissionTitle');
-  String get mapPermissionBody => t('mapPermissionBody');
-  String get mapAllow => t('mapAllow');
-  String get mapDontAllow => t('mapDontAllow');
   String get mapLocating => t('mapLocating');
   String get mapDeniedTitle => t('mapDeniedTitle');
   String get mapDeniedBody => t('mapDeniedBody');
@@ -1266,7 +1171,6 @@ class S {
   String get addPlantLaterHint => t('addPlantLaterHint');
   String get schedIrrigation => t('schedIrrigation');
   String get schedFertilization => t('schedFertilization');
-  String get schedRemind => t('schedRemind');
   String get schedRepetition => t('schedRepetition');
   String get schedAlarmTime => t('schedAlarmTime');
   String get schedLessOften => t('schedLessOften');

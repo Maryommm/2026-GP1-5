@@ -114,7 +114,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             // Password reset screen header.
             AuthHeader(
               title: s.resetTitle,
-              accent: s.resetAccent,
               character: 'ethmar_buddy_thinking',
             ),
 

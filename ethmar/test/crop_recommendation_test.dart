@@ -80,6 +80,5 @@ void main() {
     const unknown = ModelNote(code: 'new_code', text: 'model text');
     expect(ar.cropNote(unknown), 'model text');
     expect(ar.cropWater(['low', 'medium']), 'قليلة–متوسطة');
-    expect(ar.cropParts(['leaves', 'seed']), 'الأوراق، البذور');
   });
 }
