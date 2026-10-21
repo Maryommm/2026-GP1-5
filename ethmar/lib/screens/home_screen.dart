@@ -15,6 +15,7 @@ import 'add_plant_screen.dart';
 import 'agri_map_screen.dart';
 import 'chat_screen.dart';
 import 'crop_recommendation_screen.dart';
+import 'daily_tasks_screen.dart';
 import 'leaderboard_screen.dart';
 import 'leaf_scan_screen.dart';
 import 'profile_screen.dart';
@@ -858,8 +859,12 @@ class _HomeBottomBar extends StatelessWidget {
                 label: s.navHome,
                 selected: true,
               ),
-              // TODO(daily-tasks): Open the Daily Tasks screen once it exists.
-              _NavItem(image: 'ethmar_tasks_icon', label: s.navDailyTasks),
+              _NavItem(
+                image: 'ethmar_tasks_icon',
+                label: s.navDailyTasks,
+                onTap: () => Navigator.of(context)
+                    .push(riseRoute(const DailyTasksScreen())),
+              ),
               _NavItem(
                 image: 'ethmar_virtual_farm_icon',
                 label: s.navVirtualFarm,

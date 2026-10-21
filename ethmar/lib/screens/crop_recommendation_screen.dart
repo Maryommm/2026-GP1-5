@@ -73,15 +73,15 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: LeafPrintBackground(
-        // Hills, clouds and leaves at the top, behind Thamoor.
-        image: 'assets/images/ethmar_recommender_background.png',
-        child: FutureBuilder<CropRecommendationResult>(
+      body: FutureBuilder<CropRecommendationResult>(
           future: _future,
           builder: (context, snap) {
+            final loading = snap.connectionState != ConnectionState.done;
+            // Only the results use the recommender's own background.
+            var showingResults = false;
             final Widget child;
             //show the loading animation.
-            if (snap.connectionState != ConnectionState.done) {
+            if (loading) {
               child = const _LoadingView();
               // The request failed: show the error message.
             } else if (snap.hasError || snap.data == null) {
@@ -96,17 +96,25 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
               // Success: show the seed packets.
             } else {
               child = _ResultsView(result: snap.data!);
+              showingResults = true;
             }
             return AnimatedSwitcher(
               duration: const Duration(milliseconds: 350),
               child: KeyedSubtree(
                 key: ValueKey(snap.connectionState),
-                child: child,
+                // The results use the recommender's own background, with the
+                // hills and clouds behind Thamoor. Loading, "no crops" and
+                // error messages use the shared inner background.
+                child: LeafPrintBackground(
+                  image: showingResults
+                      ? 'assets/images/ethmar_recommender_background.png'
+                      : LeafPrintBackground.asset,
+                  child: child,
+                ),
               ),
             );
           },
         ),
-      ),
     );
   }
 }

@@ -204,6 +204,38 @@ class AppStrings {
     'homeAskEthmar': 'Ask Ethmar',
     'navHome': 'Home',
     'navDailyTasks': 'Daily Tasks',
+    // Daily Tasks screen
+    'dailyTasksSubtitle': 'Care for your plants today',
+    'dailyProgress': 'Daily Progress',
+    'dailyProgressOf': '{done} of {total} tasks completed',
+    'todaysTasks': "Today's Tasks",
+    'taskWatering': 'Watering',
+    'taskFertilizing': 'Fertilizing',
+    'statusCompleted': 'Completed',
+    'statusOverdue': 'Overdue',
+    'statusUpcoming': 'Upcoming',
+    'taskMarkDone': 'Mark as done',
+    // Today's date, e.g. "Wednesday, October 21".
+    'todayDate': '{weekday}, {month} {day}',
+    'weekday1': 'Monday',
+    'weekday2': 'Tuesday',
+    'weekday3': 'Wednesday',
+    'weekday4': 'Thursday',
+    'weekday5': 'Friday',
+    'weekday6': 'Saturday',
+    'weekday7': 'Sunday',
+    'monthLong1': 'January',
+    'monthLong2': 'February',
+    'monthLong3': 'March',
+    'monthLong4': 'April',
+    'monthLong5': 'May',
+    'monthLong6': 'June',
+    'monthLong7': 'July',
+    'monthLong8': 'August',
+    'monthLong9': 'September',
+    'monthLong10': 'October',
+    'monthLong11': 'November',
+    'monthLong12': 'December',
     'navVirtualFarm': 'Virtual Farm',
     'navLeaderboard': 'Leaderboard',
     // Home feature cards and the Ask Thamoor tab (Thamoor is the mascot).
@@ -613,6 +645,38 @@ class AppStrings {
     'homeAskEthmar': 'اسأل إثمار',
     'navHome': 'الرئيسية',
     'navDailyTasks': 'المهام اليومية',
+    // Daily Tasks screen
+    'dailyTasksSubtitle': 'اعتنِ بنباتاتك اليوم',
+    'dailyProgress': 'التقدم اليومي',
+    'dailyProgressOf': 'أُنجزت {done} من {total} مهام',
+    'todaysTasks': 'مهام اليوم',
+    'taskWatering': 'الري',
+    'taskFertilizing': 'التسميد',
+    'statusCompleted': 'مكتملة',
+    'statusOverdue': 'متأخرة',
+    'statusUpcoming': 'قادمة',
+    'taskMarkDone': 'تحديد كمكتملة',
+    // تاريخ اليوم، مثل "الأربعاء، 21 أكتوبر".
+    'todayDate': '{weekday}، {day} {month}',
+    'weekday1': 'الاثنين',
+    'weekday2': 'الثلاثاء',
+    'weekday3': 'الأربعاء',
+    'weekday4': 'الخميس',
+    'weekday5': 'الجمعة',
+    'weekday6': 'السبت',
+    'weekday7': 'الأحد',
+    'monthLong1': 'يناير',
+    'monthLong2': 'فبراير',
+    'monthLong3': 'مارس',
+    'monthLong4': 'أبريل',
+    'monthLong5': 'مايو',
+    'monthLong6': 'يونيو',
+    'monthLong7': 'يوليو',
+    'monthLong8': 'أغسطس',
+    'monthLong9': 'سبتمبر',
+    'monthLong10': 'أكتوبر',
+    'monthLong11': 'نوفمبر',
+    'monthLong12': 'ديسمبر',
     'navVirtualFarm': 'المزرعة الافتراضية',
     'navLeaderboard': 'المتصدرون',
     'homeCardRecommended': 'مقترح لك',
@@ -1037,6 +1101,25 @@ class S {
   String get homeAskEthmar => t('homeAskEthmar');
   String get navHome => t('navHome');
   String get navDailyTasks => t('navDailyTasks');
+  String get dailyTasksSubtitle => t('dailyTasksSubtitle');
+  String get dailyProgress => t('dailyProgress');
+  String dailyProgressOf(int done, int total) => t('dailyProgressOf')
+      .replaceAll('{done}', '$done')
+      .replaceAll('{total}', '$total');
+  String get todaysTasks => t('todaysTasks');
+  String get taskWatering => t('taskWatering');
+  String get taskFertilizing => t('taskFertilizing');
+  String get statusCompleted => t('statusCompleted');
+  String get statusOverdue => t('statusOverdue');
+  String get statusUpcoming => t('statusUpcoming');
+  String get taskMarkDone => t('taskMarkDone');
+
+  /// Today's date without the year, e.g. "Wednesday, October 21" /
+  /// "الأربعاء، 21 أكتوبر".
+  String todayDate(DateTime d) => t('todayDate')
+      .replaceAll('{weekday}', t('weekday${d.weekday}'))
+      .replaceAll('{month}', t('monthLong${d.month}'))
+      .replaceAll('{day}', '${d.day}');
   String get navVirtualFarm => t('navVirtualFarm');
   String get navLeaderboard => t('navLeaderboard');
   String get homeCardRecommended => t('homeCardRecommended');
