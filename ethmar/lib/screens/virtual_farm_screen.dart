@@ -226,10 +226,12 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
             ),
             Align(
               alignment: Alignment.topCenter,
+              // A main tab: no back button.
               child: EthmarPageHeader(
                 title: s.farmTitle,
                 accent: s.farmAccent,
                 trailing: const _MyPlantsButton(),
+                showBack: false,
               ),
             ),
             Align(

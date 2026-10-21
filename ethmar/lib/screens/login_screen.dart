@@ -12,7 +12,7 @@ import '../widgets/email_verification_dialog.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
-import 'home_screen.dart';
+import 'main_shell.dart';
 import 'reset_password_screen.dart';
 import 'sign_up_screen.dart';
 import 'validators.dart';
@@ -272,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // Open Home after successful login.
     Navigator.of(context).pushAndRemoveUntil(
-      riseRoute(HomeScreen(username: username)),
+      riseRoute(MainShell(username: username)),
       (_) => false,
     );
   }

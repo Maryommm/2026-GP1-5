@@ -14,10 +14,14 @@ class EthmarPageHeader extends StatelessWidget {
     required this.title,
     this.accent,
     this.trailing,
+    this.showBack = true,
   });
   final String title;
   final String? accent;
   final Widget? trailing;
+
+  /// False on the main tabs, where there is nothing to go back to.
+  final bool showBack;
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +47,12 @@ class EthmarPageHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          EthmarBackButton(tooltip: S.of(context).back),
-          const SizedBox(width: 14),
+          if (showBack) ...[
+            EthmarBackButton(tooltip: S.of(context).back),
+            const SizedBox(width: 14),
+          ] else
+            // Keeps the header at least as tall as with the button.
+            const SizedBox(height: 48),
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,

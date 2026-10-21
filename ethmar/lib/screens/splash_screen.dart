@@ -6,8 +6,8 @@ import '../services/startup_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
-import 'home_screen.dart';
 import 'login_screen.dart';
+import 'main_shell.dart';
 import 'welcome_screen.dart';
 
 /// 3-second animated splash, matching the approved video preview:
@@ -72,7 +72,7 @@ class _SplashScreenState extends State<SplashScreen>
         resumePersistedSession: decision.resumePersistedSession,
         startupFailure: decision.failure,
       ),
-      StartupDestination.home => HomeScreen(username: decision.username),
+      StartupDestination.home => MainShell(username: decision.username),
     };
   }
 

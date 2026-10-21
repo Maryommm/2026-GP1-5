@@ -9,9 +9,18 @@ import 'ethmar_buttons.dart';
 /// and an optional action on the end side (Back left / action right in
 /// English, mirrored in Arabic).
 class EthmarCenteredHeader extends StatelessWidget {
-  const EthmarCenteredHeader({super.key, required this.title, this.trailing});
+  const EthmarCenteredHeader({
+    super.key,
+    required this.title,
+    this.trailing,
+    this.showBack = true,
+  });
   final String title;
   final Widget? trailing;
+
+  /// False on the main tabs, where there is nothing to go back to. The
+  /// slot stays the same size, so the title stays centred.
+  final bool showBack;
 
   // Same width on both sides keeps the title truly centred.
   static const _sideWidth = 108.0;
@@ -30,10 +39,14 @@ class EthmarCenteredHeader extends StatelessWidget {
         children: [
           SizedBox(
             width: _sideWidth,
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: EthmarBackButton(tooltip: S.of(context).back),
-            ),
+            // 48 keeps the header the same height with or without the button.
+            height: 48,
+            child: showBack
+                ? Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: EthmarBackButton(tooltip: S.of(context).back),
+                  )
+                : null,
           ),
           Expanded(
             child: Text(

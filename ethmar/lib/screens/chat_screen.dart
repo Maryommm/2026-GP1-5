@@ -7,7 +7,6 @@ import '../theme/app_theme.dart';
 import '../widgets/backgrounds.dart';
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
-import '../widgets/ethmar_buttons.dart';
 
 /// "Ask Ethmar"
 /// UI only for now: messages stay on this screen and the bot doesn't reply.
@@ -109,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-///screen look.
+/// Header of the Ask Thamoor tab (a main tab, so no back button).
 class _ChatHeader extends StatelessWidget {
   const _ChatHeader({required this.title});
   final String title;
@@ -129,8 +128,6 @@ class _ChatHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          EthmarBackButton(tooltip: S.of(context).back),
-          const SizedBox(width: 14),
           Expanded(
             child: Text(
               title,

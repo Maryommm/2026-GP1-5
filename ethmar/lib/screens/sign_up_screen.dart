@@ -15,8 +15,8 @@ import '../widgets/email_verification_dialog.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
-import 'home_screen.dart';
 import 'login_screen.dart';
+import 'main_shell.dart';
 import 'validators.dart';
 
 // Where the check for the typed username stands.
@@ -335,7 +335,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       showEthmarToast(context, s.accountCreated);
 
       Navigator.of(context).pushAndRemoveUntil(
-        riseRoute(HomeScreen(username: username)),
+        riseRoute(MainShell(username: username)),
         (_) => false,
       );
 
