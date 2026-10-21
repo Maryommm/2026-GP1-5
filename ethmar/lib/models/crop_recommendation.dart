@@ -254,9 +254,23 @@ class CropRecommendationResult {
   const CropRecommendationResult({
     required this.conditions,
     required this.crops,
-  });
+    int? total,
+    this.latitude = 0,
+    this.longitude = 0,
+  }) : _total = total;
   final GrowingConditions conditions;
+
+  /// The first page of crops, best first.
   final List<CropRecommendation> crops;
+
+  /// How many crops suit the area in all; more than [crops] when there are
+  /// further pages to load.
+  int get total => _total ?? crops.length;
+  final int? _total;
+
+  /// Where the crops were picked for, so the next pages use the same place.
+  final double latitude;
+  final double longitude;
 }
 
 List<int> _ints(Object? value) => [

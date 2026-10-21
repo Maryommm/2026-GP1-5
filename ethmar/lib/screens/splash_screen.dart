@@ -6,7 +6,6 @@ import '../services/startup_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
-import 'complete_registration_screen.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'welcome_screen.dart';
@@ -74,9 +73,6 @@ class _SplashScreenState extends State<SplashScreen>
         startupFailure: decision.failure,
       ),
       StartupDestination.home => HomeScreen(username: decision.username),
-      StartupDestination.completeRegistration => CompleteRegistrationScreen(
-        email: decision.email,
-      ),
     };
   }
 

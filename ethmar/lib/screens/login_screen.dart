@@ -12,7 +12,6 @@ import '../widgets/email_verification_dialog.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
-import 'complete_registration_screen.dart';
 import 'home_screen.dart';
 import 'reset_password_screen.dart';
 import 'sign_up_screen.dart';
@@ -251,17 +250,17 @@ class _LoginScreenState extends State<LoginScreen> {
       username = await _userService.getCurrentUsername();
 
     } on UserProfileMissingException {
-      // Open registration completion if the profile is missing.
-      if (!mounted) return;
+      // The sign up was never finished. Save the profile with the username
+      // chosen at sign up, or remove the account so the email can sign up
+      // again.
+      final finished = await _userService.finishUnfinishedSignUp();
 
-      Navigator.of(context).pushAndRemoveUntil(
-        riseRoute(
-          CompleteRegistrationScreen(email: currentUser.email ?? email),
-        ),
-        (_) => false,
-      );
+      if (finished == null) {
+        if (mounted) _showError(s.errSignUpUnfinished);
+        return;
+      }
 
-      return;
+      username = finished;
     }
 
     if (!mounted) return;
@@ -284,6 +283,8 @@ class _LoginScreenState extends State<LoginScreen> {
         StartupFailure.authentication => s.errAuthGeneral,
         StartupFailure.network => s.errNetwork,
         StartupFailure.profile => s.errProfileLoad,
+        StartupFailure.unfinishedSignUp => s.errSignUpUnfinished,
+        StartupFailure.logInToFinishSignUp => s.errSignUpUnfinishedLogIn,
       };
 
   // Show the correct message for Firebase Auth errors.

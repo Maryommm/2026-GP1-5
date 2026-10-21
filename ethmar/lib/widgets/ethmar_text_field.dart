@@ -29,6 +29,7 @@ class EthmarTextField extends StatefulWidget {
     this.onSubmitted,
     this.fieldKey,
     this.inputFormatters,
+    this.suffixIcon,
   });
 
   final String label;
@@ -50,6 +51,10 @@ class EthmarTextField extends StatefulWidget {
 
   /// Rules applied while typing, e.g. a length limit.
   final List<TextInputFormatter>? inputFormatters;
+
+  /// Small status icon at the end of the field, e.g. "checking" or "ok".
+  /// Password fields always show their show/hide toggle instead.
+  final Widget? suffixIcon;
 
   @override
   State<EthmarTextField> createState() => _EthmarTextFieldState();
@@ -155,7 +160,7 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
                       size: 22,
                     ),
                   )
-                : null,
+                : widget.suffixIcon,
             errorStyle: AppText.small(context, color: AppColors.error),
             // Room for a heading and a few bullet points.
             errorMaxLines: 6,

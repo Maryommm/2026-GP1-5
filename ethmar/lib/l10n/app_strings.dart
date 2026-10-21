@@ -30,6 +30,8 @@ class AppStrings {
     'createAccountLink': 'Create an account',
     'errUsernameRequired': 'Pick a username so we can say hi',
     'errUsernameTaken': 'Username is already taken.',
+    'errUsernameCheckFailed':
+        "We couldn't check this username. Check your connection.",
     'errEmailRequired': 'Enter your email',
     'errEmailInvalid':
         "That email doesn't look right. Try something like name@example.com",
@@ -63,10 +65,10 @@ class AppStrings {
     'verificationRecoveryBody': 'The email for this account ({email}) is not verified. The previous link may have expired. Resend a fresh verification email, open it, then check again.',
     'checkVerification': 'Check verification / continue',
     'verificationStillPending': 'Your email is still not verified. Open the latest verification email, then try again.',
-    'completeRegistrationTitle': 'Complete your\nregistration',
-    'completeRegistrationAccent': 'one last step',
-    'completeRegistrationBody': 'Your email is verified, but your Ethmar profile is not finished. Choose a username to continue.',
-    'completeRegistrationButton': 'Complete registration',
+    'errSignUpUnfinished':
+        "Your sign up wasn't finished, so it was cancelled. Please sign up again",
+    'errSignUpUnfinishedLogIn':
+        "Your sign up wasn't finished. Log in to continue",
     'errVerifyEmailFirst':
         'Verify your email first. Check your inbox for the link',
     'errEmailAlreadyInUse':
@@ -117,6 +119,9 @@ class AppStrings {
     'cropErrorSignIn': 'Please log in again to see your recommendations',
     'cropErrorClimate':
         "We couldn't reach the climate service. Please try again later",
+    'cropErrorOffline':
+        "You're not connected to the internet. Please try again later",
+    'cropMoreFailed': "We couldn't load more crops",
     'cropLocationDenied':
         'We need your location to suggest crops for your area. Allow location access to see your recommendations',
     'cropLocationBlocked':
@@ -179,6 +184,9 @@ class AppStrings {
     'note_soil_texture_mismatch': 'Your soil type is not ideal for it',
     'cropSwipeHint': 'Swipe sideways for other crop types',
     'tryAgain': 'Try again',
+    'startupErrorTitle': "We couldn't connect",
+    'startupErrorBody':
+        'Check your internet connection and try again in a moment.',
     'homeGoodMorning': 'Good morning,',
     'homeGoodAfternoon': 'Good afternoon,',
     'homeGoodEvening': 'Good evening,',
@@ -447,6 +455,7 @@ class AppStrings {
     'createAccountLink': 'أنشئ حساب',
     'errUsernameRequired': 'اختر اسم مستخدم عشان نسلّم عليك',
     'errUsernameTaken': 'اسم المستخدم مستخدم بالفعل.',
+    'errUsernameCheckFailed': 'تعذّر التحقق من اسم المستخدم. تأكد من اتصالك.',
     'errEmailRequired': 'اكتب بريدك الإلكتروني',
     'errEmailInvalid':
         'البريد الإلكتروني غير صحيح. جرّب مثلًا name@example.com',
@@ -480,10 +489,8 @@ class AppStrings {
     'verificationRecoveryBody': 'لم يتم تأكيد البريد الإلكتروني لهذا الحساب ({email}). قد تكون صلاحية الرابط السابق انتهت. أعد إرسال رسالة تحقق جديدة، ثم افتحها واضغط على التحقق والمتابعة.',
     'checkVerification': 'التحقق والمتابعة',
     'verificationStillPending': 'لم يتم تأكيد بريدك الإلكتروني بعد. افتح أحدث رسالة تحقق ثم حاول مرة أخرى.',
-    'completeRegistrationTitle': 'أكمل\nتسجيلك',
-    'completeRegistrationAccent': 'باقي خطوة واحدة',
-    'completeRegistrationBody': 'تم تأكيد بريدك الإلكتروني، لكن ملفك في إثمار غير مكتمل. اختر اسم مستخدم للمتابعة.',
-    'completeRegistrationButton': 'إكمال التسجيل',
+    'errSignUpUnfinished': 'لم يكتمل تسجيلك، لذلك تم إلغاؤه. سجّل من جديد',
+    'errSignUpUnfinishedLogIn': 'لم يكتمل تسجيلك. سجّل الدخول للمتابعة',
     'errVerifyEmailFirst':
         'أكّد بريدك الإلكتروني أولًا. الرابط وصلك على الإيميل',
     'errEmailAlreadyInUse':
@@ -534,6 +541,8 @@ class AppStrings {
     'cropError': 'تعذّر جلب الاقتراحات. حاول مرة أخرى',
     'cropErrorSignIn': 'سجّل دخولك مرة ثانية عشان تشوف الاقتراحات',
     'cropErrorClimate': 'تعذّر الوصول لبيانات المناخ. حاول مرة ثانية بعدين',
+    'cropErrorOffline': 'أنت غير متصل بالإنترنت. حاول مرة ثانية بعدين',
+    'cropMoreFailed': 'تعذّر تحميل المزيد من المحاصيل',
     'cropLocationDenied':
         'نحتاج موقعك عشان نقترح محاصيل تناسب منطقتك. اسمح بالوصول للموقع عشان تشوف الاقتراحات',
     'cropLocationBlocked':
@@ -591,6 +600,8 @@ class AppStrings {
     'note_soil_texture_mismatch': 'نوع تربتك مو مثالي له',
     'cropSwipeHint': 'اسحب يمين ويسار لباقي الأنواع',
     'tryAgain': 'حاول مرة أخرى',
+    'startupErrorTitle': 'تعذّر الاتصال',
+    'startupErrorBody': 'تأكد من اتصالك بالإنترنت وحاول مرة أخرى بعد قليل.',
     'homeGoodMorning': 'صباح الخير،',
     'homeGoodAfternoon': 'مساء الخير،',
     'homeGoodEvening': 'مساء الخير،',
@@ -856,6 +867,7 @@ class S {
   String get createAccountLink => t('createAccountLink');
   String get errUsernameRequired => t('errUsernameRequired');
   String get errUsernameTaken => t('errUsernameTaken');
+  String get errUsernameCheckFailed => t('errUsernameCheckFailed');
   String get errEmailRequired => t('errEmailRequired');
   String get errEmailInvalid => t('errEmailInvalid');
   String get errPasswordRequired => t('errPasswordRequired');
@@ -903,10 +915,8 @@ class S {
       t('verificationRecoveryBody').replaceAll('{email}', email);
   String get checkVerification => t('checkVerification');
   String get verificationStillPending => t('verificationStillPending');
-  String get completeRegistrationTitle => t('completeRegistrationTitle');
-  String get completeRegistrationAccent => t('completeRegistrationAccent');
-  String get completeRegistrationBody => t('completeRegistrationBody');
-  String get completeRegistrationButton => t('completeRegistrationButton');
+  String get errSignUpUnfinished => t('errSignUpUnfinished');
+  String get errSignUpUnfinishedLogIn => t('errSignUpUnfinishedLogIn');
   String get errVerifyEmailFirst => t('errVerifyEmailFirst');
   String get errEmailAlreadyInUse => t('errEmailAlreadyInUse');
   String get errTooManyRequests => t('errTooManyRequests');
@@ -948,6 +958,8 @@ class S {
   String get cropError => t('cropError');
   String get cropErrorSignIn => t('cropErrorSignIn');
   String get cropErrorClimate => t('cropErrorClimate');
+  String get cropErrorOffline => t('cropErrorOffline');
+  String get cropMoreFailed => t('cropMoreFailed');
   String get cropLocationDenied => t('cropLocationDenied');
   String get cropLocationBlocked => t('cropLocationBlocked');
   String get cropLocationOff => t('cropLocationOff');
@@ -1009,6 +1021,8 @@ class S {
 
   String get cropSwipeHint => t('cropSwipeHint');
   String get tryAgain => t('tryAgain');
+  String get startupErrorTitle => t('startupErrorTitle');
+  String get startupErrorBody => t('startupErrorBody');
   String get homeGoodMorning => t('homeGoodMorning');
   String get homeGoodAfternoon => t('homeGoodAfternoon');
   String get homeGoodEvening => t('homeGoodEvening');

@@ -125,8 +125,9 @@ service cloud.firestore {
     // Reserve unique usernames for verified users.
     match /usernames/{normalizedUsername} {
 
-      // Allow verified users to check username availability.
-      allow get: if hasVerifiedEmail();
+      // Anyone can check if a single username is taken, so sign up can warn
+      // before the account exists. Listing all usernames stays blocked.
+      allow get: if true;
 
       allow list: if false;
 

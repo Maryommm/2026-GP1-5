@@ -35,10 +35,49 @@ class CropRecommendationService {
     defaultValue: 'https://ethmar-lake.vercel.app',
   );
 
-  /// How many crops to ask for. The API sorts them best first.
-  static const _limit = 40;
+  /// How many crops to ask for per page. The API sorts them best first.
+  static const pageSize = 40;
 
+  /// The first page of crops for the phone's current location.
   Future<CropRecommendationResult> recommend() async {
+    final place = await _location();
+    final month = DateTime.now().month;
+
+    // The city name is only for the header, so look it up while the
+    // server works.
+    final city = _cityName(place.latitude, place.longitude);
+
+    final body = await _post(
+      latitude: place.latitude,
+      longitude: place.longitude,
+      month: month,
+      offset: 0,
+    );
+    return _result(body, place, month, await city);
+  }
+
+  /// The next page after [loaded] crops, for the same place and month as
+  /// [first], so the list stays one ranking even if the phone moved.
+  Future<List<CropRecommendation>> nextPage(
+    CropRecommendationResult first,
+    int loaded,
+  ) async {
+    final body = await _post(
+      latitude: first.latitude,
+      longitude: first.longitude,
+      month: first.conditions.month,
+      offset: loaded,
+    );
+    return _crops(body);
+  }
+
+  /// Sends one POST /api/recommend and returns the decoded 200 answer.
+  Future<Map<String, dynamic>> _post({
+    required double latitude,
+    required double longitude,
+    required int month,
+    required int offset,
+  }) async {
     if (baseUrl.isEmpty) {
       throw const CropRecommendationException(
           'NOT_CONFIGURED', 'API_BASE_URL is not set');
@@ -47,13 +86,18 @@ class CropRecommendationService {
     if (user == null) {
       throw const CropRecommendationException('UNAUTHENTICATED');
     }
-    final token = await user.getIdToken();
-    final place = await _location();
-    final month = DateTime.now().month;
 
-    // The city name is only for the header, so look it up while the
-    // server works.
-    final city = _cityName(place.latitude, place.longitude);
+    final String? token;
+    try {
+      token = await user.getIdToken();
+    } on FirebaseAuthException catch (e) {
+      // Offline, the token can't be refreshed. Any other failure means the
+      // sign-in itself is no longer valid.
+      throw CropRecommendationException(
+        e.code == 'network-request-failed' ? 'NETWORK' : 'UNAUTHENTICATED',
+        e.code,
+      );
+    }
 
     final http.Response response;
     try {
@@ -65,10 +109,11 @@ class CropRecommendationService {
               'Content-Type': 'application/json',
             },
             body: jsonEncode({
-              'latitude': place.latitude,
-              'longitude': place.longitude,
+              'latitude': latitude,
+              'longitude': longitude,
               'month': month,
-              'limit': _limit,
+              'limit': pageSize,
+              'offset': offset,
             }),
           )
           // The first request in an area also fetches its climate data.
@@ -83,24 +128,30 @@ class CropRecommendationService {
     try {
       body = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } on FormatException {
-      throw CropRecommendationException('INTERNAL', 'HTTP ${response.statusCode}');
+      throw CropRecommendationException(
+        response.statusCode == 401 ? 'UNAUTHENTICATED' : 'INTERNAL',
+        'HTTP ${response.statusCode}',
+      );
     }
     if (response.statusCode != 200) {
       final error = (body['error'] as Map?)?.cast<String, dynamic>() ?? {};
       throw CropRecommendationException(
-        error['status'] as String? ?? 'INTERNAL',
+        error['status'] as String? ??
+            (response.statusCode == 401 ? 'UNAUTHENTICATED' : 'INTERNAL'),
         error['message'] as String? ?? 'HTTP ${response.statusCode}',
       );
     }
-    return _result(body, month, await city);
+    return body;
   }
 
   CropRecommendationResult _result(
     Map<String, dynamic> body,
+    ({double latitude, double longitude}) place,
     int month,
     BiText city,
   ) {
     final climate = (body['climate'] as Map?)?.cast<String, dynamic>() ?? {};
+    final crops = _crops(body);
     return CropRecommendationResult(
       conditions: GrowingConditions(
         city: city,
@@ -109,13 +160,18 @@ class CropRecommendationService {
         tempHigh: (climate['temp_high_c'] as num? ?? 0).round(),
         rainMm: (climate['rain_mm'] as num? ?? 0).toDouble(),
       ),
-      crops: [
+      crops: crops,
+      total: (body['total'] as num?)?.toInt() ?? crops.length,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    );
+  }
+
+  static List<CropRecommendation> _crops(Map<String, dynamic> body) => [
         for (final item in (body['results'] as List? ?? const []))
           if (item is Map)
             CropRecommendation.fromJson(item.cast<String, dynamic>()),
-      ],
-    );
-  }
+      ];
 
   /// The phone's position. Throws a [CropRecommendationException] when it
   /// can't be read:
