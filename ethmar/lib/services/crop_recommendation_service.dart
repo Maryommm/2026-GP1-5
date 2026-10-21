@@ -288,7 +288,7 @@ class CropRecommendationService {
         waterNeed: ['medium', 'high'],
         harvestDays: (min: 40, max: 270),
         edibleParts: ['leaves'],
-        reason: ModelNote(code: 'ph_ok'),
+        reason: ModelNote(code: 'light_ok'),
         tip: ModelNote(code: 'needs_shade', months: [6, 7, 8]),
       ),
       CropRecommendation(

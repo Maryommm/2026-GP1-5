@@ -153,13 +153,14 @@ class CropRecommendation {
     final english = json['common_name'] as String? ?? '';
     final arabic = json['name_ar'] as String? ?? '';
 
-    // The plant-now badge already says when to plant, so those notes are
-    // skipped here.
+    // Skipped notes: the planting months are already shown as "Best time",
+    // and soil isn't talked about on the card. The next note is used instead.
     final reasons = _notes(json['reasons'])
-        .where((n) => n.code != 'plant_next_month')
+        .where((n) => !_hiddenNotes.contains(n.code))
         .toList();
-    final warnings =
-        _notes(json['warnings']).where((n) => n.code != 'plant_later').toList();
+    final warnings = _notes(json['warnings'])
+        .where((n) => !_hiddenNotes.contains(n.code))
+        .toList();
 
     return CropRecommendation(
       name: BiText(english, arabic.isEmpty ? english : arabic),
@@ -273,6 +274,16 @@ class CropRecommendationResult {
   final double latitude;
   final double longitude;
 }
+
+/// Model notes the crop card never shows (see CropRecommendation.fromJson).
+const _hiddenNotes = {
+  // When to plant: shown as "Best time" instead.
+  'plant_next_month', 'plant_later',
+  // Soil.
+  'ph_ok', 'soil_texture_mismatch',
+  'needs_acidic_soil', 'prefers_more_acidic',
+  'needs_alkaline_soil', 'prefers_more_alkaline',
+};
 
 List<int> _ints(Object? value) => [
       for (final v in (value as List? ?? const []))
