@@ -25,10 +25,13 @@ class _StartupHarness {
   Object? refreshError;
   Object? profileError;
   Object? signOutError;
+  String? finishedUsername;
+  Object? finishError;
   void Function()? afterProfileLoad;
   int refreshCount = 0;
   int profileLoadCount = 0;
   int signOutCount = 0;
+  int finishCount = 0;
 
   StartupService get service => StartupService.withDependencies(
     waitForSession: () async {
@@ -54,6 +57,12 @@ class _StartupHarness {
       signOutCount += 1;
       final error = signOutError;
       if (error != null) throw error;
+    },
+    finishUnfinishedSignUp: () async {
+      finishCount += 1;
+      final error = finishError;
+      if (error != null) throw error;
+      return finishedUsername;
     },
   );
 }
@@ -104,16 +113,49 @@ void main() {
   });
 
   test(
-    'routes a verified user with no profile to Complete Registration',
+    'finishes an unfinished sign up with the kept username and opens Home',
+    () async {
+      final harness = _StartupHarness()
+        ..profileError = const UserProfileMissingException()
+        ..finishedUsername = 'kept_name';
+
+      final decision = await harness.service.resolve();
+
+      expect(decision.destination, StartupDestination.home);
+      expect(decision.username, 'kept_name');
+      expect(harness.finishCount, 1);
+      expect(harness.signOutCount, 0);
+    },
+  );
+
+  test(
+    'routes to Login to sign up again when the unfinished account is removed',
     () async {
       final harness = _StartupHarness()
         ..profileError = const UserProfileMissingException();
 
       final decision = await harness.service.resolve();
 
-      expect(decision.destination, StartupDestination.completeRegistration);
+      expect(decision.destination, StartupDestination.login);
+      expect(decision.failure, StartupFailure.unfinishedSignUp);
       expect(decision.email, 'user@example.com');
-      expect(harness.signOutCount, 0);
+      expect(decision.resumePersistedSession, isFalse);
+    },
+  );
+
+  test(
+    'signs out and asks for a fresh login when removal needs one',
+    () async {
+      final harness = _StartupHarness()
+        ..profileError = const UserProfileMissingException()
+        ..finishError = FirebaseAuthException(code: 'requires-recent-login');
+
+      final decision = await harness.service.resolve();
+
+      expect(decision.destination, StartupDestination.login);
+      expect(decision.failure, StartupFailure.logInToFinishSignUp);
+      expect(decision.resumePersistedSession, isFalse);
+      expect(harness.signOutCount, 1);
     },
   );
 

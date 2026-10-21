@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/crop_recommendation.dart';
+import '../services/auth_service.dart';
 import '../services/crop_recommendation_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -19,13 +20,22 @@ import '../widgets/backgrounds.dart';
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
+import '../widgets/page_routes.dart';
+import 'login_screen.dart';
+
+/// Loads the crops after the first [loaded] ones, for the same request.
+typedef LoadMoreCrops = Future<List<CropRecommendation>> Function(
+    CropRecommendationResult first, int loaded);
 
 /// three states: loading, error, and results.
 class CropRecommendationScreen extends StatefulWidget {
-  const CropRecommendationScreen({super.key, this.load});
+  const CropRecommendationScreen({super.key, this.load, this.loadMore});
 
-  /// Loads the recommendations.
+  /// Loads the first page of recommendations.
   final Future<CropRecommendationResult> Function()? load;
+
+  /// Loads the next page when the user scrolls to the end of a list.
+  final LoadMoreCrops? loadMore;
 
   @override
   State<CropRecommendationScreen> createState() =>
@@ -34,7 +44,9 @@ class CropRecommendationScreen extends StatefulWidget {
 
 class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
   // fetches the data
-  late final _load = widget.load ?? CropRecommendationService().recommend;
+  late final _service = CropRecommendationService();
+  late final _load = widget.load ?? _service.recommend;
+  late final LoadMoreCrops _loadMore = widget.loadMore ?? _service.nextPage;
   late Future<CropRecommendationResult> _future = _load();
   // The braces matter: `() => _future = ...` would return the Future, which
   // setState doesn't allow.
@@ -70,6 +82,23 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
     CropRecommendationService.openLocationSettings(status);
   }
 
+  // The server no longer accepts the sign-in: sign out and open Login with
+  // the email filled in.
+  Future<void> _signInAgain() async {
+    final auth = AuthService();
+    final email = auth.currentSession?.email ?? '';
+    try {
+      await auth.signOut();
+    } catch (_) {
+      // Login signs in again either way.
+    }
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      riseRoute(LoginScreen(email: email)),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,13 +118,14 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
                 error: snap.error,
                 onRetry: _retry,
                 onOpenSettings: _openSettings,
+                onSignIn: _signInAgain,
               );
               // It worked but returned no crops: show the "no crops" message.
             } else if (snap.data!.crops.isEmpty) {
               child = _ErrorView(onRetry: _retry, empty: true);
               // Success: show the seed packets.
             } else {
-              child = _ResultsView(result: snap.data!);
+              child = _ResultsView(result: snap.data!, loadMore: _loadMore);
               showingResults = true;
             }
             return AnimatedSwitcher(
@@ -224,6 +254,7 @@ class _ErrorView extends StatelessWidget {
   const _ErrorView({
     required this.onRetry,
     this.onOpenSettings,
+    this.onSignIn,
     this.error,
     this.empty = false,
   });
@@ -231,6 +262,9 @@ class _ErrorView extends StatelessWidget {
 
   /// Opens the phone's settings for a LOCATION_OFF / LOCATION_BLOCKED error.
   final ValueChanged<String>? onOpenSettings;
+
+  /// Sends the user to Login for an UNAUTHENTICATED error.
+  final VoidCallback? onSignIn;
   final Object? error;
 
   /// The request worked but no crop suits the area this month.
@@ -247,6 +281,7 @@ class _ErrorView extends StatelessWidget {
     return switch (_status) {
       'UNAUTHENTICATED' => s.cropErrorSignIn,
       'UNAVAILABLE' => s.cropErrorClimate,
+      'NETWORK' => s.cropErrorOffline,
       'LOCATION_DENIED' => s.cropLocationDenied,
       'LOCATION_BLOCKED' => s.cropLocationBlocked,
       'LOCATION_OFF' => s.cropLocationOff,
@@ -259,6 +294,11 @@ class _ErrorView extends StatelessWidget {
   /// sends the user to the phone's settings.
   List<Widget> _actions(S s) {
     final status = _status;
+    // Trying again can't help until the user signs in again.
+    final signIn = onSignIn;
+    if (signIn != null && status == 'UNAUTHENTICATED') {
+      return [EthmarButton(label: s.loginButton, onPressed: signIn)];
+    }
     // Denied once: trying again shows the location prompt again.
     if (status == 'LOCATION_DENIED') {
       return [EthmarButton(label: s.mapAllowLocation, onPressed: onRetry)];
@@ -386,19 +426,97 @@ String _categoryPhoto(CropCategory cat) => switch (cat) {
 /// Swipe left/right between categories; each category's tickets scroll
 /// freely up and down.
 class _ResultsView extends StatefulWidget {
-  const _ResultsView({required this.result});
+  const _ResultsView({required this.result, required this.loadMore});
   final CropRecommendationResult result;
+  final LoadMoreCrops loadMore;
 
   @override
   State<_ResultsView> createState() => _ResultsViewState();
 }
 
 class _ResultsViewState extends State<_ResultsView> {
-  late final _groups = _groupByCategory(widget.result.crops);
+  // Every crop loaded so far, best first. Grows by one page each time the
+  // user scrolls to the end of a list.
+  late final _crops = [...widget.result.crops];
+  late var _groups = _groupByCategory(_crops);
   final _categoryPages = PageController(viewportFraction: 0.88);
-  late final _chipKeys = [for (final _ in _groups) GlobalKey()];
+  late var _chipKeys = [for (final _ in _groups) GlobalKey()];
   int _category = 0;
   bool _swipedSideways = false;
+
+  // Paging. A failed page waits for "Try again" instead of retrying on
+  // every scroll.
+  late int _total = widget.result.total;
+  bool _loadingMore = false;
+  bool _moreFailed = false;
+
+  bool get _hasMore => _crops.length < _total;
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || _moreFailed || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final page = await widget.loadMore(widget.result, _crops.length);
+      if (!mounted) return;
+      setState(() {
+        _loadingMore = false;
+        // An empty page means the list ended early; stop asking.
+        if (page.isEmpty) _total = _crops.length;
+        _crops.addAll(page);
+        // Existing categories keep their place; new ones join at the end.
+        _groups = _groupByCategory(_crops);
+        _chipKeys = [
+          ..._chipKeys,
+          for (var i = _chipKeys.length; i < _groups.length; i++) GlobalKey(),
+        ];
+      });
+    } catch (e) {
+      debugPrint('more crop recommendations failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _loadingMore = false;
+        _moreFailed = true;
+      });
+    }
+  }
+
+  void _retryMore() {
+    setState(() => _moreFailed = false);
+    _loadMore();
+  }
+
+  /// Shown under the last ticket of every list while a page loads or
+  /// after one failed.
+  Widget? _listFooter(S s) {
+    if (_loadingMore) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: SizedBox(
+            width: 26,
+            height: 26,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.6,
+              color: AppColors.forest,
+            ),
+          ),
+        ),
+      );
+    }
+    if (_moreFailed) {
+      return Column(
+        children: [
+          Text(
+            s.cropMoreFailed,
+            textAlign: TextAlign.center,
+            style: AppText.small(context),
+          ),
+          EthmarLink(label: s.tryAgain, onTap: _retryMore),
+        ],
+      );
+    }
+    return null;
+  }
 
   @override
   void dispose() {
@@ -440,6 +558,7 @@ class _ResultsViewState extends State<_ResultsView> {
   Widget build(BuildContext context) {
     final conditions = widget.result.conditions;
     final showSwipeHint = !_swipedSideways && _groups.length > 1;
+    final footer = _listFooter(S.of(context));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -466,7 +585,11 @@ class _ResultsViewState extends State<_ResultsView> {
               itemBuilder: (context, i) => _PacketSlot(
                 controller: _categoryPages,
                 index: i,
-                child: _CropList(crops: _groups[i].crops),
+                child: _CropList(
+                  crops: _groups[i].crops,
+                  footer: footer,
+                  onEndReached: _loadMore,
+                ),
               ),
             ),
           ),
@@ -497,8 +620,18 @@ class _ResultsViewState extends State<_ResultsView> {
 /// The tickets of one category, one under the other, scrolling freely.
 /// Kept alive so each category remembers where it was scrolled to.
 class _CropList extends StatefulWidget {
-  const _CropList({required this.crops});
+  const _CropList({
+    required this.crops,
+    required this.onEndReached,
+    this.footer,
+  });
   final List<CropRecommendation> crops;
+
+  /// Called when the user scrolls near the bottom, to load the next page.
+  final VoidCallback onEndReached;
+
+  /// The paging spinner or "Try again", under the last ticket.
+  final Widget? footer;
 
   @override
   State<_CropList> createState() => _CropListState();
@@ -508,24 +641,44 @@ class _CropListState extends State<_CropList>
     with AutomaticKeepAliveClientMixin {
   static const _gap = 16.0;
 
+  // Start the next page this far (in pixels) before the real end, so it is
+  // usually there before the user gets to the bottom.
+  static const _loadAhead = 600.0;
+
   @override
   bool get wantKeepAlive => true;
+
+  bool _onScroll(ScrollNotification n) {
+    if (n.metrics.axis == Axis.vertical &&
+        n.metrics.extentAfter < _loadAhead) {
+      widget.onEndReached();
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final crops = widget.crops;
-    return ListView.separated(
-      padding: EdgeInsets.only(
-        top: 4,
-        bottom: MediaQuery.paddingOf(context).bottom + 16,
-      ),
-      itemCount: crops.length,
-      separatorBuilder: (_, _) => const SizedBox(height: _gap),
-      itemBuilder: (context, j) => Semantics(
-        container: true,
-        label: '${j + 1} / ${crops.length}',
-        child: _SeedPacket(crop: crops[j]),
+    final footer = widget.footer;
+    return NotificationListener<ScrollNotification>(
+      onNotification: _onScroll,
+      child: ListView.separated(
+        // Lets a short list be pulled too, so the user can reach its end.
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.only(
+          top: 4,
+          bottom: MediaQuery.paddingOf(context).bottom + 16,
+        ),
+        itemCount: crops.length + (footer == null ? 0 : 1),
+        separatorBuilder: (_, _) => const SizedBox(height: _gap),
+        itemBuilder: (context, j) => j == crops.length
+            ? footer!
+            : Semantics(
+                container: true,
+                label: '${j + 1} / ${crops.length}',
+                child: _SeedPacket(crop: crops[j]),
+              ),
       ),
     );
   }

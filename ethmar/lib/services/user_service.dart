@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import 'pending_username_store.dart';
+
 // Store the current username and update the UI when it changes.
 final ValueNotifier<String> currentUsername = ValueNotifier('');
 
@@ -47,6 +49,20 @@ class UserService {
         id != '.' &&
         id != '..' &&
         !(id.startsWith('__') && id.endsWith('__'));
+  }
+
+  // Check if nobody has reserved this username yet. Works before sign up,
+  // so the sign-up screen can check the name while the user types.
+  // A name that can't be reserved at all also counts as unavailable.
+  Future<bool> isUsernameAvailable(String username) async {
+    final trimmedUsername = username.trim();
+    if (!_isAllowedUsername(trimmedUsername)) return false;
+
+    final snapshot = await _firestore
+        .collection('usernames')
+        .doc(trimmedUsername.toLowerCase())
+        .get(const GetOptions(source: Source.server));
+    return !snapshot.exists;
   }
 
   // Create a Firestore profile for the signed-in user.
@@ -140,8 +156,49 @@ class UserService {
       });
     });
 
+    // The profile is saved, so the name kept from sign up is no longer needed.
+    await PendingUsernameStore.clear(user.uid);
+
     // Update the username after saving the profile.
     currentUsername.value = trimmedUsername;
+  }
+
+  // For a verified account with no profile (the app closed during email
+  // verification). Saves the profile with the username kept from sign up and
+  // returns it. If that isn't possible, deletes the unfinished account so the
+  // email can sign up again, and returns null.
+  // Throws FirebaseAuthException 'requires-recent-login' if the account
+  // can't be deleted until the user logs in again.
+  Future<String?> finishUnfinishedSignUp() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw StateError('No authenticated user is available.');
+    }
+
+    final username = await PendingUsernameStore.read(user.uid);
+    if (username != null) {
+      try {
+        await createCurrentUserProfile(username: username);
+        return username.trim();
+      } on UsernameAlreadyTakenException {
+        // Someone took the name meanwhile; fall through and remove the account.
+      } on ArgumentError {
+        // The kept name can't be used; fall through and remove the account.
+      }
+    }
+
+    // Ask the server, not the cache, before deleting anything.
+    final profile = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .get(const GetOptions(source: Source.server));
+    if (profile.exists) {
+      throw const UserProfileConflictException();
+    }
+
+    await user.delete();
+    await PendingUsernameStore.clear(user.uid);
+    return null;
   }
 
   // Get the current user's username from Firestore.

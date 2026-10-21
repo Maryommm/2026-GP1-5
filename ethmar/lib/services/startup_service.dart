@@ -4,10 +4,18 @@ import 'auth_service.dart';
 import 'user_service.dart';
 
 // Define the possible screens after startup.
-enum StartupDestination { welcome, login, home, completeRegistration }
+enum StartupDestination { welcome, login, home }
 
 // Define the possible startup errors.
-enum StartupFailure { authentication, network, profile }
+// unfinishedSignUp: the account was removed, so the user must sign up again.
+// logInToFinishSignUp: removing it needs a fresh login first.
+enum StartupFailure {
+  authentication,
+  network,
+  profile,
+  unfinishedSignUp,
+  logInToFinishSignUp,
+}
 
 // Store the destination and information needed after startup.
 class StartupDecision {
@@ -35,9 +43,6 @@ class StartupDecision {
   const StartupDecision.home(String username)
     : this._(StartupDestination.home, username: username);
 
-  const StartupDecision.completeRegistration(String email)
-    : this._(StartupDestination.completeRegistration, email: email);
-
   final StartupDestination destination;
   final String email;
   final String username;
@@ -51,6 +56,7 @@ typedef EmailVerificationRefresher = Future<bool> Function();
 typedef CurrentSessionReader = AuthSession? Function();
 typedef UsernameLoader = Future<String> Function();
 typedef StartupSignOut = Future<void> Function();
+typedef UnfinishedSignUpFinisher = Future<String?> Function();
 
 // Restore the Firebase session and choose the first screen.
 class StartupService {
@@ -64,6 +70,7 @@ class StartupService {
       currentSession: () => auth.currentSession,
       loadUsername: users.getCurrentUsername,
       signOut: auth.signOut,
+      finishUnfinishedSignUp: users.finishUnfinishedSignUp,
     );
   }
 
@@ -73,17 +80,20 @@ class StartupService {
     required CurrentSessionReader currentSession,
     required UsernameLoader loadUsername,
     required StartupSignOut signOut,
+    required UnfinishedSignUpFinisher finishUnfinishedSignUp,
   }) : _waitForSession = waitForSession,
        _refreshEmailVerification = refreshEmailVerification,
        _currentSession = currentSession,
        _loadUsername = loadUsername,
-       _signOut = signOut;
+       _signOut = signOut,
+       _finishUnfinishedSignUp = finishUnfinishedSignUp;
 
   final StartupSessionLoader _waitForSession;
   final EmailVerificationRefresher _refreshEmailVerification;
   final CurrentSessionReader _currentSession;
   final UsernameLoader _loadUsername;
   final StartupSignOut _signOut;
+  final UnfinishedSignUpFinisher _finishUnfinishedSignUp;
 
   // Verify the restored session and profile before allowing Home access.
   Future<StartupDecision> resolve() async {
@@ -128,11 +138,33 @@ class StartupService {
         return StartupDecision.home(username);
 
       } on UserProfileMissingException {
-        // Check the session before completing registration.
+        // Check the session before finishing the sign up.
         _requireUnchangedVerifiedSession(restoredSession.uid);
 
-        // Open registration if the user profile is missing.
-        return StartupDecision.completeRegistration(email);
+        try {
+          // Save the profile with the username chosen at sign up.
+          final username = await _finishUnfinishedSignUp();
+          if (username != null) {
+            _requireUnchangedVerifiedSession(restoredSession.uid);
+            return StartupDecision.home(username);
+          }
+
+          // The unfinished account was removed; the user signs up again.
+          return StartupDecision.login(
+            email: email,
+            failure: StartupFailure.unfinishedSignUp,
+          );
+
+        } on FirebaseAuthException catch (error) {
+          if (error.code != 'requires-recent-login') rethrow;
+
+          // Removing the account needs a fresh login, which Login handles.
+          await _signOutQuietly();
+          return StartupDecision.login(
+            email: email,
+            failure: StartupFailure.logInToFinishSignUp,
+          );
+        }
       }
 
     } on UserProfileInvalidException {

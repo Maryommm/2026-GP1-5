@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'l10n/locale_controller.dart';
 import 'screens/splash_screen.dart';
+import 'screens/startup_error_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
@@ -13,7 +14,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase before building the app.
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final firebaseReady = await initFirebase();
 
   // Open the app in the language the user chose last time.
   await loadSavedLocale();
@@ -29,11 +30,28 @@ Future<void> main() async {
     ),
   );
 
-  runApp(const EthmarApp());
+  runApp(EthmarApp(firebaseReady: firebaseReady));
+}
+
+/// Starts Firebase and reports whether it worked. The error itself is
+/// swallowed on purpose so no configuration details are logged or shown.
+Future<bool> initFirebase() async {
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 class EthmarApp extends StatelessWidget {
-  const EthmarApp({super.key});
+  const EthmarApp({super.key, this.firebaseReady = true});
+
+  final bool firebaseReady;
 
   @override
   Widget build(BuildContext context) {
@@ -52,8 +70,11 @@ class EthmarApp extends StatelessWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
 
-        // Start with the splash screen to restore the user session.
-        home: const SplashScreen(),
+        // Start with the splash screen to restore the user session, or a
+        // generic error screen if Firebase could not start.
+        home: firebaseReady
+            ? const SplashScreen()
+            : const StartupErrorScreen(retry: initFirebase),
       ),
     );
   }

@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
 import '../services/auth_service.dart';
+import '../services/pending_username_store.dart';
 import '../services/user_service.dart';
+import '../theme/app_colors.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/backgrounds.dart';
 import '../widgets/entrance.dart';
@@ -14,6 +18,9 @@ import '../widgets/page_routes.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'validators.dart';
+
+// Where the check for the typed username stands.
+enum _UsernameStatus { unchecked, checking, available, taken, checkFailed }
 
 // Screen for creating a new user account.
 class SignUpScreen extends StatefulWidget {
@@ -39,13 +46,119 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _verificationAccountEmail;
   bool _verificationSent = false;
 
+  // Check the username while the user types, before any account exists.
+  final _usernameField = GlobalKey<FormFieldState<String>>();
+  _UsernameStatus _usernameStatus = _UsernameStatus.unchecked;
+  Timer? _usernameTimer;
+
+  // The name the latest check is for. Results for older names are ignored.
+  String _checkedUsername = '';
+
   // Check if there is an account waiting for verification.
   bool get _hasVerificationAccount =>
       _verificationAccountId != null && _verificationAccountEmail != null;
 
+  @override
+  void initState() {
+    super.initState();
+    _username.addListener(_onUsernameChanged);
+    // Redraw so the Create button lights up once every field is correct.
+    _email.addListener(_refresh);
+    _password.addListener(_refresh);
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  // Start a new availability check shortly after the user stops typing.
+  void _onUsernameChanged() {
+    final name = _username.text.trim().toLowerCase();
+
+    // The listener also fires when only the cursor moves.
+    if (name == _checkedUsername) return;
+
+    _checkedUsername = name;
+    _usernameTimer?.cancel();
+    setState(() {
+      _usernameStatus =
+          name.isEmpty ? _UsernameStatus.unchecked : _UsernameStatus.checking;
+    });
+    if (name.isEmpty) return;
+
+    _usernameTimer = Timer(
+      const Duration(milliseconds: 500),
+      () => _checkUsername(name),
+    );
+  }
+
+  // Ask Firestore if the name is free. Returns true only if it is free and
+  // still the name in the field.
+  Future<bool> _checkUsername(String name) async {
+    _UsernameStatus status;
+    try {
+      status = await _userService.isUsernameAvailable(name)
+          ? _UsernameStatus.available
+          : _UsernameStatus.taken;
+    } catch (_) {
+      status = _UsernameStatus.checkFailed;
+    }
+
+    if (!mounted || name != _checkedUsername) return false;
+
+    setState(() => _usernameStatus = status);
+
+    // Show "taken" right away instead of waiting for the field's own check.
+    if (status != _UsernameStatus.available) {
+      _usernameField.currentState?.validate();
+    }
+    return status == _UsernameStatus.available;
+  }
+
+  // The field rules plus the result of the availability check.
+  String? _usernameError(String? v, S s) {
+    final error = Validators.username(v, s);
+    if (error != null) return error;
+
+    return switch (_usernameStatus) {
+      _UsernameStatus.taken => s.errUsernameTaken,
+      _UsernameStatus.checkFailed => s.errUsernameCheckFailed,
+      _ => null,
+    };
+  }
+
+  // True only when every field is correct and the username is free.
+  bool _allFieldsValid(S s) =>
+      _usernameStatus == _UsernameStatus.available &&
+      Validators.username(_username.text, s) == null &&
+      Validators.email(_email.text, s) == null &&
+      Validators.password(_password.text, s) == null;
+
+  // A spinner while checking the username, a tick once it is free.
+  Widget? _usernameStatusIcon() => switch (_usernameStatus) {
+        _UsernameStatus.checking => const Padding(
+            padding: EdgeInsets.all(15),
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        _UsernameStatus.available => const Icon(
+            Icons.check_circle_rounded,
+            color: AppColors.forest,
+            size: 22,
+          ),
+        _ => null,
+      };
+
   // Clear the text controllers when the screen closes.
   @override
   void dispose() {
+    _usernameTimer?.cancel();
     _username.dispose();
     _email.dispose();
     _password.dispose();
@@ -105,10 +218,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final username = _username.text.trim();
     final s = S.of(context);
 
+    // Never create the account while the username is taken or unchecked.
+    if (!_allFieldsValid(s)) return;
+
     // Show the loading state while registration is running.
     setState(() => _loading = true);
 
     try {
+      // Check the username once more, in case someone just took it.
+      // Nothing is created and no email is sent if it is no longer free.
+      if (!await _checkUsername(_checkedUsername)) return;
+
       final existingAccountEmail = _verificationAccountEmail;
 
       // Create a new account if one was not created earlier.
@@ -147,6 +267,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _showError(s.errAuthSessionMismatch);
         return;
       }
+
+      // Keep the username on this device, so the profile can still be saved
+      // if the app closes before the email is verified.
+      await PendingUsernameStore.save(_verificationAccountId!, username);
 
       // Skip email verification if the user is already verified.
       if (!await _authService.isEmailVerified()) {
@@ -286,10 +410,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             hint: s.usernameHint,
                             enabled: !_loading,
                             controller: _username,
+                            fieldKey: _usernameField,
                             keyboardType: TextInputType.text,
                             autofillHints: const [AutofillHints.newUsername],
                             inputFormatters: Validators.usernameFormatters,
-                            validator: (v) => Validators.username(v, s),
+                            validator: (v) => _usernameError(v, s),
+                            suffixIcon: _usernameStatusIcon(),
                           ),
 
                           const SizedBox(height: 20),
@@ -324,12 +450,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                           const SizedBox(height: 36),
 
-                          // Create account button.
+                          // Create account button. Dimmed until every field
+                          // is correct and the username is free.
                           EthmarButton(
                             label: s.createButton,
                             showArrow: true,
                             loading: _loading,
-                            onPressed: _loading ? null : _submit,
+                            onPressed: _loading || !_allFieldsValid(s)
+                                ? null
+                                : _submit,
                           ),
 
                           const SizedBox(height: 12),

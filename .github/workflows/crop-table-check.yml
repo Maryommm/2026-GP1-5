@@ -1,0 +1,37 @@
+# Checks the crop table that Vercel deploys (data/processed/ethmar_recommendable.csv)
+# with recommender/scripts/load_check.py. Any FAIL turns this check red.
+#
+# To stop a failing table from reaching production, make this check required
+# for main: GitHub > Settings > Branches > branch protection rule for main >
+# "Require status checks to pass before merging" > select "crop-table-check".
+#
+# It runs on every push and pull request (no path filter), so a required
+# check is never left waiting on a pull request that doesn't touch the data.
+
+name: crop-table-check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  crop-table-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: recommender/requirements.txt
+
+      - name: Install the data pipeline libraries
+        run: pip install -r recommender/requirements.txt
+
+      - name: Validate the crop table
+        run: python recommender/scripts/load_check.py
