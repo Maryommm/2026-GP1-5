@@ -13,21 +13,16 @@ import '../widgets/page_routes.dart';
 import '../widgets/user_avatar.dart';
 import 'add_plant_screen.dart';
 import 'agri_map_screen.dart';
-import 'chat_screen.dart';
 import 'crop_recommendation_screen.dart';
-import 'daily_tasks_screen.dart';
 import 'leaderboard_screen.dart';
 import 'leaf_scan_screen.dart';
 import 'profile_screen.dart';
-import 'virtual_farm_screen.dart';
 
 /// Home: logo and avatar on top, a time-of-day greeting, the weather card,
 /// the streak card, then five feature cards (Add Plant, Disease Diagnosis,
 /// Near Me, Recommended, Leaderboard).
-/// The bottom bar holds Home, Daily Tasks, Virtual Farm and Ask Thamoor.
 ///
-/// Every card and tab opens its existing screen, except Daily Tasks, which
-/// does nothing until that feature is built.
+/// It is the first tab of MainShell, which draws the shared bottom bar.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, this.username = ''});
   final String username;
@@ -98,7 +93,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const _HomeBottomBar(),
     );
   }
 }
@@ -813,138 +807,6 @@ class _FeatureCard extends StatelessWidget {
                 const ExcludeSemantics(
                   child: Icon(Icons.chevron_right_rounded,
                       size: 18, color: AppColors.featureCardText),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Bottom bar: Home (selected), Daily Tasks, Virtual Farm, Ask Thamoor, in the
-// same order in both languages. The selected tab sits on a pale-yellow pill.
-// ---------------------------------------------------------------------------
-
-class _HomeBottomBar extends StatelessWidget {
-  const _HomeBottomBar();
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: const Border(top: BorderSide(color: AppColors.border)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.forest.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          // Same tab order in both languages.
-          child: Row(
-            textDirection: TextDirection.ltr,
-            children: [
-              _NavItem(
-                image: 'ethmar_homepage_icon',
-                label: s.navHome,
-                selected: true,
-              ),
-              _NavItem(
-                image: 'ethmar_tasks_icon',
-                label: s.navDailyTasks,
-                onTap: () => Navigator.of(context)
-                    .push(riseRoute(const DailyTasksScreen())),
-              ),
-              _NavItem(
-                image: 'ethmar_virtual_farm_icon',
-                label: s.navVirtualFarm,
-                onTap: () => Navigator.of(context)
-                    .push(riseRoute(const VirtualFarmScreen())),
-              ),
-              _NavItem(
-                image: 'ethmar_chatbot_icon',
-                label: s.navAskThamoor,
-                onTap: () => Navigator.of(context)
-                    .push(riseRoute(const ChatScreen())),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.image,
-    required this.label,
-    this.selected = false,
-    this.onTap,
-  });
-
-  /// Line-art icon in assets/images/ (without .png), tinted dark green.
-  final String image;
-  final String label;
-  final bool selected;
-
-  /// Null for tabs whose screen isn't built yet (tapping does nothing).
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Semantics(
-        selected: selected,
-        button: true,
-        child: InkWell(
-          onTap: onTap ?? () {},
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Pale-yellow pill behind the selected tab's icon.
-                Container(
-                  width: 56,
-                  height: 32,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.sunTint : null,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Image.asset(
-                    'assets/images/$image.png',
-                    width: 24,
-                    height: 24,
-                    fit: BoxFit.contain,
-                    color: AppColors.forest,
-                    colorBlendMode: BlendMode.srcIn,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    style: AppText.small(context, color: AppColors.textPrimary)
-                        .copyWith(
-                      fontSize: 12,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                  ),
                 ),
               ],
             ),

@@ -53,7 +53,8 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            EthmarCenteredHeader(title: s.navDailyTasks),
+            // A main tab: no back button.
+            EthmarCenteredHeader(title: s.navDailyTasks, showBack: false),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.fromLTRB(
