@@ -12,7 +12,6 @@ class AppStrings {
     'createAccount': 'Sign up',
     'haveAccount': 'Log in',
     'signUpTitle': 'Create your\naccount',
-    'signUpAccent': 'your farm is waiting',
     'username': 'Username',
     'usernameHint': 'noora_22',
     'email': 'Email',
@@ -431,20 +430,19 @@ class AppStrings {
 
   static const Map<String, String> ar = {
     'languageSwitch': 'English',
-    'welcomeTitle': 'أهلًا بك في إثمار!',
-    'welcomeBody': 'ازرع مزرعتك الصغيرة، بذرة ورا بذرة.',
-    'createAccount': 'حساب جديد',
+    'welcomeTitle': 'أهلاً بك في إثمار!',
+    'welcomeBody': "إبدأ مزرعتك الصغيرة الآن!",
+    'createAccount': "إنشاء حساب",
     'haveAccount': 'تسجيل الدخول',
-    'signUpTitle': 'أنشئ\nحسابك',
-    'signUpAccent': 'مزرعتك بانتظارك',
+    'signUpTitle': "إنشاء حساب",
     'username': 'اسم المستخدم',
-    'usernameHint': 'noora_22',
+    'usernameHint': ' أدخل اسم المستخدم الخاص بك',
     'email': 'البريد الإلكتروني',
     'emailHint': 'name@example.com',
     'password': 'كلمة المرور',
-    'passwordHint': '٨ أحرف على الأقل',
+    'passwordHint': "أدخل كلمة المرور الخاصة بك",
     'createButton': 'إنشاء الحساب',
-    'alreadyHaveAccount': 'عندك حساب؟',
+    'alreadyHaveAccount': ' هل لديك حساب سابق؟',
     'logInLink': 'سجّل دخولك',
     'loginTitle': 'أهلًا\nمن جديد!',
     'loginAccent': 'نباتاتك اشتاقت لك',
@@ -846,7 +844,6 @@ class S {
   String get createAccount => t('createAccount');
   String get haveAccount => t('haveAccount');
   String get signUpTitle => t('signUpTitle');
-  String get signUpAccent => t('signUpAccent');
   String get username => t('username');
   String get usernameHint => t('usernameHint');
   String get email => t('email');

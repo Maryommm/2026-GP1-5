@@ -374,7 +374,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             enabled: !_loading,
                             controller: _password,
                             isPassword: true,
-                            forceLtr: true,
                             textInputAction: TextInputAction.done,
                             autofillHints: const [AutofillHints.password],
                             validator: (v) => Validators.passwordRequired(v, s),
