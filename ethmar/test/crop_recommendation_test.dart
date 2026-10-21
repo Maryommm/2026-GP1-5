@@ -65,6 +65,23 @@ void main() {
     expect(crop.reason, isNull);
   });
 
+  test('soil notes are skipped in favour of the next note', () {
+    final crop = CropRecommendation.fromJson({
+      'common_name': 'Mint',
+      'crop_group': 'leafy_herb',
+      'reasons': [
+        {'code': 'ph_ok', 'text': 'soil pH suits it'},
+        {'code': 'light_ok', 'text': 'sunlight suits it'},
+      ],
+      'warnings': [
+        {'code': 'needs_acidic_soil', 'text': 'needs acidic soil'},
+        {'code': 'soil_texture_mismatch', 'text': 'soil type is not ideal'},
+      ],
+    });
+    expect(crop.reason?.code, 'light_ok');
+    expect(crop.tip, isNull);
+  });
+
   test('month ranges wrap around the year', () {
     expect(en.monthRanges([1, 2, 10, 11, 12]), 'Oct–Feb');
     expect(ar.monthRanges([1, 2, 10, 11, 12]), 'أكتوبر–فبراير');

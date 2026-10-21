@@ -1,0 +1,97 @@
+canonical_binomial,decision,note
+ricinus communis,exclude_toxic,seeds contain ricin
+jatropha curcas,exclude_toxic,seeds contain curcin and phorbol esters
+nicotiana tabacum,exclude_toxic,contains nicotine; not a food crop
+calotropis procera,exclude_toxic,latex contains cardiac glycosides
+catharanthus roseus,exclude_toxic,contains vinca alkaloids
+aleurites fordii,exclude_toxic,seeds and oil are poisonous
+papaver somniferum,exclude_toxic,contains opium alkaloids; controlled plant
+erythroxylum coca,exclude_toxic,contains cocaine; controlled plant
+cannabis sativa,exclude_toxic,controlled plant
+apocynum cannabinum,exclude_toxic,contains cardiac glycosides
+ailanthus altissima,exclude_toxic,toxic leaves and bark; invasive tree
+sapium sebiferum,exclude_toxic,toxic sap and berries
+robinia pseudoacacia,exclude_toxic,bark seeds and leaves contain robin (toxic lectin)
+ruta graveolens,exclude_toxic,causes skin burns in sunlight; toxic in large amounts
+senna siamea,exclude_toxic,leaves are toxic to the liver
+senna alata,exclude_toxic,strong laxative; medicinal only
+cassia fistula,exclude_toxic,strong laxative; ornamental tree
+crotalaria juncea,exclude_toxic,contains pyrrolizidine alkaloids
+phytolacca acinosa,exclude_toxic,pokeweed; roots and berries are poisonous
+phytolacca esculenta,exclude_toxic,pokeweed; roots and berries are poisonous
+phytolacca dioica,exclude_toxic,pokeweed tree; poisonous sap and berries
+asclepias incarnata,exclude_toxic,milkweed; contains cardiac glycosides
+asclepias speciosa,exclude_toxic,milkweed; contains cardiac glycosides
+asclepias lanceolata,exclude_toxic,milkweed; contains cardiac glycosides
+aesculus indica,exclude_toxic,horse chestnut; nuts contain aesculin
+solanum nigrum,exclude_toxic,unripe berries and leaves contain solanine
+caltha palustris,exclude_toxic,contains protoanemonin
+areca catechu,exclude_toxic,betel nut; carcinogenic to humans
+duboisia myoporoides,exclude_toxic,contains tropane alkaloids
+castanospermum australe,exclude_toxic,seeds are poisonous without long processing
+macadamia ternifolia,exclude_toxic,Gympie nut; cyanogenic and not edible
+dipteryx odorata,exclude_toxic,tonka bean; high coumarin content
+mentha pulegium,exclude_toxic,pennyroyal; pulegone damages the liver
+aquilegia canadensis,exclude_toxic,seeds and roots are poisonous
+citrullus colocynthis,exclude_toxic,colocynth; cucurbitacins are poisonous
+acorus calamus,exclude_toxic,contains beta-asarone (carcinogenic)
+blighia sapida,exclude_toxic,ackee; unripe fruit contains hypoglycin
+dioscorea bulbifera,exclude_toxic,air potato; wild forms are poisonous
+gliricidia sepium,exclude_toxic,used as a rat poison
+melilotus officinalis,exclude_toxic,sweet clover; coumarin; forage only
+melilotus suaveolens,exclude_toxic,sweet clover; coumarin; forage only
+melilotus albus,exclude_toxic,sweet clover; coumarin; forage only
+mimosa pudica,exclude_toxic,contains mimosine
+leucaena leucocephala,exclude_toxic,contains mimosine; forage tree
+cinchona pubescens,exclude_toxic,quinine bark; medicinal drug only
+cinchona officinalis,exclude_toxic,quinine bark; medicinal drug only
+cinchona calisaya,exclude_toxic,quinine bark; medicinal drug only
+indigofera arrecta,exclude_toxic,dye plant; not a food crop
+schinus molle,exclude_toxic,berries are irritant in large amounts
+aloe ferox,exclude_not_food,bitter aloe; strong laxative
+aloe arborescens,exclude_not_food,ornamental and medicinal aloe
+panax ginseng,exclude_not_food,medicinal root
+cananga odorata,exclude_not_food,perfume tree
+genista tinctoria,exclude_not_food,dye plant
+trichanthera gigantea,exclude_not_food,forage shrub
+cinnamomum camphora,exclude_not_food,camphor tree; camphor is toxic when eaten
+gossypium herbaceum,exclude_not_food,fibre crop
+azadirachta indica,exclude_not_food,medicinal and pesticide tree
+symphyotrichum cordifolium,exclude_not_food,ornamental aster
+lotus corniculatus,exclude_not_food,forage legume
+girardinia diversifolia,exclude_not_food,fibre nettle
+cyperus rotundus,exclude_not_food,weed
+trifolium pratense,exclude_not_food,forage clover
+valeriana officinalis,exclude_not_food,medicinal sedative
+echinacea purpurea,exclude_not_food,medicinal and ornamental
+andrographis paniculata,exclude_not_food,bitter medicinal herb
+rhodiola rosea,exclude_not_food,medicinal root
+serenoa repens,exclude_not_food,medicinal palm
+myrsine africana,exclude_not_food,medicinal shrub
+cnicus benedictus,exclude_not_food,medicinal thistle
+silybum marianum,exclude_not_food,medicinal thistle
+terminalia chebula,exclude_not_food,medicinal and tanning tree
+sinapis alba,keep_food,white mustard
+helianthus annuus,keep_food,sunflower
+anthriscus cerefolium,keep_food,chervil
+ipomoea batatas,keep_food,sweet potato
+mentha arvensis,keep_food,field mint
+mentha spicata,keep_food,mint
+pyrus pyrifolia,keep_food,Asian pear
+cymbopogon citratus,keep_food,lemongrass
+brassica nigra,keep_food,black mustard
+saccharum officinarum,keep_food,sugarcane
+sesamum indicum,keep_food,sesame
+vitis labrusca,keep_food,fox grape
+macadamia tetraphylla,keep_food,macadamia nut
+crambe cordifolia,keep_food,sea kale
+brosimum alicastrum,keep_food,Maya nut
+pandanus julianettii,keep_food,karuka nut
+borassus flabellifer,keep_food,palmyra palm fruit and sap
+argania spinosa,keep_food,argan oil
+vitellaria paradoxa,keep_food,shea butter and fruit
+ceratonia siliqua,keep_food,carob pods
+bixa orellana,keep_food,annatto food colouring
+pithecellobium dulce,keep_food,Manila tamarind fruit
+nasturtium officinale,keep_food,watercress; grows in pots kept wet
+ipomoea aquatica,keep_food,water spinach; grows in pots kept wet

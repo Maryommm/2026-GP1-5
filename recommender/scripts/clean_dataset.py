@@ -19,7 +19,8 @@ Steps:
     4. Merge all rows of the same species into one row.
     5. Fix climate ranges where the minimum is larger than the maximum.
     6. Add the crop groups used by the app filter.
-    7. Split the result into the two tables and print a report.
+    7. Move toxic, aquatic and non-food plants to the reference table, split
+       the result into the two tables and print a report.
 
 The raw file is never changed. Run the script again after any change to the
 rules and both tables are built again from the beginning.
@@ -45,6 +46,7 @@ RECOMMENDABLE_PATH = PROCESSED_DIR / "ethmar_recommendable.csv"
 REFERENCE_PATH = PROCESSED_DIR / "ethmar_reference.csv"
 COMMON_CROPS_PATH = ROOT / "recommender" / "knowledge" / "common_crops.csv"
 CROP_NAMES_PATH = ROOT / "recommender" / "knowledge" / "crop_names.csv"
+PLANT_REVIEW_PATH = ROOT / "recommender" / "knowledge" / "plant_review.csv"
 
 # --------------------------------------------------------------------------- #
 # Column groups
@@ -104,6 +106,15 @@ FOOD_USE_TOKENS = re.compile(
     r"flavou?r|nut|herb|salad|grain|cereal|legume|pulse|condiment",
     re.I,
 )
+
+# ECOCROP categories that mean the plant is grown as food.
+FOOD_CATEGORY = re.compile(r"vegetables|roots/tubers|pulses|cereals|fruits? & nuts", re.I)
+MEDICINAL_CATEGORY = re.compile(r"medicinals? & aromatic", re.I)
+FOREST_CATEGORY = re.compile(r"forest/wood", re.I)
+
+# ECOCROP drainage for plants that live in water or in soil that is
+# saturated most of the year (ponds, marshes, rice fields).
+WATERLOGGED_DRAINAGE = "poorly (saturated >50% of year)"
 
 NULL_TOKENS = {"", "na", "n/a", "null", "none", "nan"}
 
@@ -615,29 +626,78 @@ def _has_climate(row: pd.Series) -> bool:
     return bool(temp_ok and rain_ok)
 
 
+def _load_plant_review() -> dict:
+    """Read the hand-reviewed decisions: canonical_binomial -> decision."""
+    if not PLANT_REVIEW_PATH.exists():
+        return {}
+    review = pd.read_csv(PLANT_REVIEW_PATH)
+    return dict(zip(review["canonical_binomial"].str.strip().str.lower(),
+                    review["decision"].str.strip()))
+
+
+def unsuitable_reason(row: pd.Series, review: dict) -> str | None:
+    """
+    Return why an edible plant with climate data is still not suitable for a
+    home farmer, or None if it is suitable.
+
+    The "edible" flag from Permapeople is set when any part of a plant can be
+    eaten, even rarely (for example pine seeds or clover leaves). So three
+    more checks are needed:
+      * toxic      - the plant is on the reviewed list of poisonous or
+                     controlled plants (plant_review.csv).
+      * aquatic    - ECOCROP says it needs soil saturated with water most of
+                     the year, so it only grows in a pond or marsh.
+      * not_food   - ECOCROP grows it only for wood, forage, fibre or as an
+                     ornamental, or only as a medicinal tree.
+    A plant marked keep_food in the review list skips the last two checks.
+    """
+    decision = review.get(row.get("canonical_binomial"))
+    if decision == "exclude_toxic":
+        return "toxic"
+    if decision == "exclude_not_food":
+        return "not_food"
+    if decision == "keep_food":
+        return None
+
+    if str(row.get("ecocrop_dra") or "").strip() == WATERLOGGED_DRAINAGE:
+        return "aquatic"
+
+    category = _to_null(row.get("ecocrop_category")) or ""
+    if row.get("is_common") == 1 or FOOD_CATEGORY.search(category):
+        return None
+    if not MEDICINAL_CATEGORY.search(category) or FOREST_CATEGORY.search(category):
+        return "not_food"
+    return None
+
+
 def split_tables(df: pd.DataFrame):
     """
     Put each species in the recommendation table or the reference table.
 
-    A species is recommendable only if it is productive, edible and has
-    climate data. If its pH range is missing, a neutral range (6.0-7.0) is
-    used and ph_imputed is set to 1, so the model can lower its score a
-    little.
+    A species is recommendable only if it is productive, edible, has climate
+    data and passes the checks in unsuitable_reason. If its pH range is
+    missing, a neutral range (6.0-7.0) is used and ph_imputed is set to 1,
+    so the model can lower its score a little.
 
     Returns:
         (recommendable, reference, counts of exclusion reasons, number of imputed pH)
     """
     recommendable_rows, reference_rows = [], []
-    reasons = {"no_climate": 0, "not_productive": 0, "no_edible_evidence": 0}
+    reasons = {"no_climate": 0, "not_productive": 0, "no_edible_evidence": 0,
+               "toxic": 0, "aquatic": 0, "not_food": 0}
     ph_imputed = 0
+    review = _load_plant_review()
 
     for _, row in df.iterrows():
         row = row.copy()
         productive = row["ethmar_relevant"] == 1
         edible_ok = row["edible"] == 1
         climate_ok = _has_climate(row)
+        unsuitable = (unsuitable_reason(row, review)
+                      if productive and edible_ok and climate_ok else None)
+        row["excluded_reason"] = unsuitable
 
-        if productive and edible_ok and climate_ok:
+        if productive and edible_ok and climate_ok and unsuitable is None:
             if pd.isna(row["ecocrop_ph_opt_min"]) or pd.isna(row["ecocrop_ph_opt_max"]):
                 row["ecocrop_ph_opt_min"] = 6.0
                 row["ecocrop_ph_opt_max"] = 7.0
@@ -652,11 +712,12 @@ def split_tables(df: pd.DataFrame):
             recommendable_rows.append(row)
         else:
             if not climate_ok:
-                reasons["no_climate"] += 1
+                row["excluded_reason"] = "no_climate"
             elif not productive:
-                reasons["not_productive"] += 1
-            else:
-                reasons["no_edible_evidence"] += 1
+                row["excluded_reason"] = "not_productive"
+            elif not edible_ok:
+                row["excluded_reason"] = "no_edible_evidence"
+            reasons[row["excluded_reason"]] += 1
             reference_rows.append(row)
 
     recommendable = pd.DataFrame(recommendable_rows).reset_index(drop=True)
