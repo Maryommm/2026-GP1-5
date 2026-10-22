@@ -65,7 +65,7 @@ void main() {
     expect(crop.reason, isNull);
   });
 
-  test('soil notes are skipped in favour of the next note', () {
+  test('small pH notes are skipped, a serious pH note is shown', () {
     final crop = CropRecommendation.fromJson({
       'common_name': 'Mint',
       'crop_group': 'leafy_herb',
@@ -74,12 +74,12 @@ void main() {
         {'code': 'light_ok', 'text': 'sunlight suits it'},
       ],
       'warnings': [
+        {'code': 'prefers_more_acidic', 'text': 'prefers more acidic soil'},
         {'code': 'needs_acidic_soil', 'text': 'needs acidic soil'},
-        {'code': 'soil_texture_mismatch', 'text': 'soil type is not ideal'},
       ],
     });
     expect(crop.reason?.code, 'light_ok');
-    expect(crop.tip, isNull);
+    expect(crop.tip?.code, 'needs_acidic_soil');
   });
 
   test('an unexpected field type does not stop the crop from loading', () {

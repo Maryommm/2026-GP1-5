@@ -16,7 +16,6 @@ Request fields:
                   6 or more, 3 to 6, less than 3)
     water         "low" | "medium" | "high", required (how often the user will
                   water: weekly or less, a few times a week, daily)
-    soil_texture  "sandy" | "medium" | "clay"       (default "medium")
     groups        list of crop groups to keep, e.g. ["leafy_herb"] (optional)
     limit         how many crops to return, 1-1000  (default 50)
     offset        how many crops to skip, for paging (default 0)
@@ -140,7 +139,6 @@ def recommend_crops(data, cache) -> dict:
         site = scoring.Site(
             sunlight=data["sunlight"],
             water=data["water"],
-            soil_texture=data.get("soil_texture", "medium"),
             ph=POT_SOIL_PH if planting == "pot" else None,
         )
     except ValueError as exc:

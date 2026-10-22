@@ -91,7 +91,6 @@ MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
 
 SUNLIGHT_VALUES = ("full", "partial", "shade")
 WATER_VALUES = ("low", "medium", "high")
-SOIL_TEXTURE_VALUES = ("sandy", "medium", "clay")
 
 
 # --------------------------------------------------------------------------- #
@@ -107,7 +106,6 @@ class Site:
 
     sunlight: str = "full"         # full | partial | shade
     water: str = "medium"          # low | medium | high
-    soil_texture: str = "medium"   # sandy | medium | clay
     ph: float | None = None        # replaces the location's pH (e.g. potting mix)
 
     def __post_init__(self):
@@ -117,8 +115,6 @@ class Site:
             raise ValueError(f"sunlight must be one of {SUNLIGHT_VALUES}")
         if self.water not in WATER_VALUES:
             raise ValueError(f"water must be one of {WATER_VALUES}")
-        if self.soil_texture not in SOIL_TEXTURE_VALUES:
-            raise ValueError(f"soil_texture must be one of {SOIL_TEXTURE_VALUES}")
         if self.ph is not None and not 0 <= self.ph <= 14:
             raise ValueError("ph must be between 0 and 14")
 
@@ -577,8 +573,8 @@ def score_soil_ph(row, ph: float, config: dict):
         if abs_max is not None and ph > abs_max:
             return score, None, _note(
                 "needs_acidic_soil",
-                "needs acidic soil; your soil is alkaline - grow it in a pot "
-                "with potting mix or amend the soil",
+                "your soil is too alkaline for it; grow it in a pot with "
+                "potting soil, or mix garden sulfur into the soil",
             )
         return score, None, _note(
             "prefers_more_acidic", "prefers slightly more acidic soil than yours")
@@ -586,7 +582,8 @@ def score_soil_ph(row, ph: float, config: dict):
     score = max(0.0, 1.0 - (opt_min - ph) / width)
     if abs_min is not None and ph < abs_min:
         return score, None, _note(
-            "needs_alkaline_soil", "needs more alkaline soil than yours")
+            "needs_alkaline_soil",
+            "needs less acidic soil than yours; mix garden lime into the soil")
     return score, None, _note(
         "prefers_more_alkaline", "prefers slightly more alkaline soil than yours")
 
@@ -700,19 +697,6 @@ def score_water(row, site: Site, config: dict):
     return 1.0, suits, None
 
 
-def score_soil_texture(row, site: Site):
-    """Return a warning if the crop does not like the user's soil type."""
-    flags = {
-        "sandy": _number(row, "soil_light_sandy"),
-        "medium": _number(row, "soil_medium"),
-        "clay": _number(row, "soil_heavy_clay"),
-    }
-    if flags.get(site.soil_texture) == 0:
-        return _note("soil_texture_mismatch", "your soil texture is not ideal for it",
-                     soil=site.soil_texture)
-    return None
-
-
 def wet_soil_note(row):
     """
     Return a warning for a water plant (such as watercress) that ECOCROP says
@@ -731,10 +715,9 @@ def wet_soil_note(row):
 WARNING_ORDER = [
     "plant_later",
     "needs_wet_soil", "needs_shade", "needs_cover", "water_more_often",
-    "needs_acidic_soil", "needs_alkaline_soil", "too_wet", "too_dry",
+    "needs_acidic_soil", "needs_acidic_mix", "needs_alkaline_soil", "too_wet", "too_dry",
     "too_hot", "too_cool", "light_too_strong", "water_less_often",
     "prefers_more_acidic", "prefers_more_alkaline", "needs_watering",
-    "soil_texture_mismatch",
 ]
 
 
@@ -856,9 +839,13 @@ def score_species(row, climate, month: int, site: Site, config: dict):
     # month, so they are combined once into one factor.
     ph = site.ph if site.ph is not None else climate.soil_ph
     ph_score, ph_reason, ph_warn = score_soil_ph(row, ph, config)
+    if site.ph is not None and ph_warn and ph_warn["code"] == "needs_acidic_soil":
+        # The user already grows in potting soil, so the advice is a more
+        # acidic mix (for crops such as blueberries).
+        ph_warn = _note("needs_acidic_mix",
+                        "needs an acidic potting mix made for acid-loving plants")
     sun_factor, sun_reason, sun_warn = score_sunlight(row, site, config)
     water_factor, water_reason, water_warn = score_water(row, site, config)
-    texture_warn = score_soil_texture(row, site)
     factor = soil_ph_factor(ph_score, ph_warn, config) * sun_factor * water_factor
     if _number(row, "ph_imputed") == 1:
         factor *= config["adjustments"]["imputed_ph"]
@@ -921,8 +908,7 @@ def score_species(row, climate, month: int, site: Site, config: dict):
     for reason in (rain_reason, ph_reason, sun_reason, water_reason):
         if reason:
             reasons.append(reason)
-    for warning in (rain_warn, ph_warn, sun_warn, water_warn, texture_warn,
-                    wet_soil_note(row)):
+    for warning in (rain_warn, ph_warn, sun_warn, water_warn, wet_soil_note(row)):
         if warning:
             warnings.append(warning)
     warnings = _by_seriousness(warnings)

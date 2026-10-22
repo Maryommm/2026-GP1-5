@@ -165,6 +165,12 @@ class AppStrings {
         'Needs watering a few times a week, more often than you plan',
     'note_water_less_often':
         'Likes dry soil: let the soil dry out between waterings',
+    'note_needs_acidic_soil':
+        'Your soil is too alkaline for it: grow it in a pot with potting soil, or mix garden sulfur into the soil',
+    'note_needs_acidic_mix':
+        'Needs an acidic potting mix made for acid-loving plants',
+    'note_needs_alkaline_soil':
+        'Needs less acidic soil than yours: mix garden lime into the soil',
     'note_plant_next_month': 'Best planted next month, in {month}',
     'note_plant_later': 'Best planted in {month}',
     'note_needs_shade':
@@ -596,6 +602,12 @@ class AppStrings {
     'note_water_ok': 'معدل سقيك يناسب احتياجه من الماء',
     'note_water_more_often': 'يحتاج سقيًا عدة مرات في الأسبوع، أكثر مما تخطط له',
     'note_water_less_often': 'يفضّل التربة الجافة: اترك التربة تجف بين كل سقية وأخرى',
+    'note_needs_acidic_soil':
+        'تربة منطقتك قلوية أكثر مما يتحمّل: ازرعه في أصيص بتربة زراعية جاهزة، أو أضف الكبريت الزراعي إلى التربة',
+    'note_needs_acidic_mix':
+        'يحتاج تربة زراعية حمضية مخصصة للنباتات المحبة للحموضة',
+    'note_needs_alkaline_soil':
+        'يحتاج تربة أقل حموضة من تربتك: أضف الجير الزراعي إلى التربة',
     'note_plant_next_month': 'أفضل وقت لزراعته الشهر القادم، في {month}',
     'note_plant_later': 'أفضل وقت لزراعته في {month}',
     'note_needs_shade':

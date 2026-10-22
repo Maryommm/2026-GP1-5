@@ -327,10 +327,9 @@ class CropRecommendationResult {
 const _hiddenNotes = {
   // When to plant: shown as "Best time" instead.
   'plant_next_month', 'plant_later',
-  // Soil.
-  'ph_ok', 'soil_texture_mismatch',
-  'needs_acidic_soil', 'prefers_more_acidic',
-  'needs_alkaline_soil', 'prefers_more_alkaline',
+  // Soil pH: only the small mismatches are hidden. A pH beyond what the
+  // crop survives (needs_acidic_soil, needs_alkaline_soil) is shown.
+  'ph_ok', 'prefers_more_acidic', 'prefers_more_alkaline',
 };
 
 /// The numbers in a JSON list. Anything that isn't a list gives an empty
