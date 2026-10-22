@@ -24,8 +24,9 @@ class CropRecommendationException implements Exception {
 ///
 /// 1. Reads the phone's location. Without it there is nothing to suggest,
 ///    so it stops with a LOCATION_* error (see [_location]).
-/// 2. Sends it with the current month to POST /api/recommend, signed in
-///    with the user's Firebase ID token.
+/// 2. Sends it with the current month and the user's answers (pot or
+///    ground, sunlight, watering) to POST /api/recommend, signed in with the
+///    user's Firebase ID token.
 /// 3. Turns the answer into a [CropRecommendationResult].
 class CropRecommendationService {
   /// The API server (Vercel). For the local server on the Android emulator:
@@ -39,7 +40,7 @@ class CropRecommendationService {
   static const pageSize = 40;
 
   /// The first page of crops for the phone's current location.
-  Future<CropRecommendationResult> recommend() async {
+  Future<CropRecommendationResult> recommend(GrowingSetup setup) async {
     final place = await _location();
     final month = DateTime.now().month;
 
@@ -51,9 +52,10 @@ class CropRecommendationService {
       latitude: place.latitude,
       longitude: place.longitude,
       month: month,
+      setup: setup,
       offset: 0,
     );
-    return _result(body, place, month, await city);
+    return _result(body, place, month, setup, await city);
   }
 
   /// The next page after [loaded] crops, for the same place and month as
@@ -66,6 +68,7 @@ class CropRecommendationService {
       latitude: first.latitude,
       longitude: first.longitude,
       month: first.conditions.month,
+      setup: first.setup,
       offset: loaded,
     );
     return _crops(body);
@@ -76,6 +79,7 @@ class CropRecommendationService {
     required double latitude,
     required double longitude,
     required int month,
+    required GrowingSetup setup,
     required int offset,
   }) async {
     if (baseUrl.isEmpty) {
@@ -112,6 +116,7 @@ class CropRecommendationService {
               'latitude': latitude,
               'longitude': longitude,
               'month': month,
+              ...setup.toJson(),
               'limit': pageSize,
               'offset': offset,
             }),
@@ -148,6 +153,7 @@ class CropRecommendationService {
     Map<String, dynamic> body,
     ({double latitude, double longitude}) place,
     int month,
+    GrowingSetup setup,
     BiText city,
   ) {
     final climate = (body['climate'] as Map?)?.cast<String, dynamic>() ?? {};
@@ -164,6 +170,7 @@ class CropRecommendationService {
       total: (body['total'] as num?)?.toInt() ?? crops.length,
       latitude: place.latitude,
       longitude: place.longitude,
+      setup: setup,
     );
   }
 

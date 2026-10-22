@@ -85,7 +85,8 @@ class ClimateProfile:
     longitude: float
     monthly: list                   # 12 MonthClimate objects, index 0 = January
     soil_ph: float
-    soil_ph_source: str             # "soilgrids", "soilgrids_nearby_11km" (or 28km, 55km) or "default"
+    soil_ph_source: str             # "soilgrids", "soilgrids_nearby_11km" (or 28km, 55km),
+                                    # "default" (SoilGrids failed) or "not_fetched" (not needed yet)
     elevation_m: float | None       # real ground elevation of the point
     grid_elevation_m: float | None  # elevation that NASA used for its grid cell
     temp_adjust_c: float            # correction added to every NASA temperature
@@ -395,17 +396,22 @@ def fetch_soil_ph(latitude: float, longitude: float):
 # Main function
 # --------------------------------------------------------------------------- #
 
-def lookup(latitude: float, longitude: float, cache=None) -> ClimateProfile:
+def lookup(latitude: float, longitude: float, cache=None,
+           with_soil: bool = True) -> ClimateProfile:
     """
     Return the climate profile of a location.
 
     The location is rounded to the centre of its ~11 km area first. The cache is used when possible.
-    Otherwise the three services are called at the same time, the
+    Otherwise the services are called at the same time, the
     temperatures are corrected for elevation, and the result is saved in
     the cache.
 
     Parameters:
-        cache  where profiles are saved; a FileCache by default.
+        cache      where profiles are saved; a FileCache by default.
+        with_soil  False when the user grows in pots: the soil of the area
+                   is not used, so the slow SoilGrids service is skipped and
+                   soil_ph_source is "not_fetched". A later request with
+                   with_soil=True for the same area fetches it then.
 
     Raises:
         ValueError if the latitude or longitude is out of range.
@@ -423,7 +429,7 @@ def lookup(latitude: float, longitude: float, cache=None) -> ClimateProfile:
         # last time. We try again instead of keeping the placeholder for
         # the whole 30 days.
         changed = False
-        if cached.soil_ph_source == "default":
+        if with_soil and cached.soil_ph_source in ("default", "not_fetched"):
             soil_ph, ph_source = fetch_soil_ph(latitude, longitude)
             if ph_source != "default":
                 cached.soil_ph, cached.soil_ph_source = soil_ph, ph_source
@@ -439,15 +445,15 @@ def lookup(latitude: float, longitude: float, cache=None) -> ClimateProfile:
             _write_cache(cache, cached)
         return cached
 
-    # The three services do not depend on each other, so they are called at
-    # the same time. The total wait is the time of the slowest one.
+    # The services do not depend on each other, so they are called at the
+    # same time. The total wait is the time of the slowest one.
     with ThreadPoolExecutor(max_workers=3) as pool:
         nasa_job = pool.submit(fetch_nasa_power, latitude, longitude)
         elevation_job = pool.submit(fetch_elevation, latitude, longitude)
-        soil_job = pool.submit(fetch_soil_ph, latitude, longitude)
+        soil_job = pool.submit(fetch_soil_ph, latitude, longitude) if with_soil else None
         monthly, grid_elevation = nasa_job.result()
         elevation = elevation_job.result()
-        soil_ph, ph_source = soil_job.result()
+        soil_ph, ph_source = soil_job.result() if soil_job else (7.0, "not_fetched")
 
     if monthly is None:
         raise RuntimeError(

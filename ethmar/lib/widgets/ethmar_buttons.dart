@@ -146,8 +146,11 @@ class EthmarLink extends StatelessWidget {
 /// forest arrow. The arrow flips in Arabic, and [Navigator.maybePop] keeps
 /// each screen's own back handling (PopScope) working.
 class EthmarBackButton extends StatelessWidget {
-  const EthmarBackButton({super.key, required this.tooltip});
+  const EthmarBackButton({super.key, required this.tooltip, this.onPressed});
   final String tooltip;
+
+  /// What a tap does; closes the screen when null.
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +159,7 @@ class EthmarBackButton extends StatelessWidget {
       shape: const CircleBorder(),
       child: IconButton(
         tooltip: tooltip,
-        onPressed: () => Navigator.of(context).maybePop(),
+        onPressed: onPressed ?? () => Navigator.of(context).maybePop(),
         style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
         icon: const Icon(Icons.arrow_back_rounded, color: AppColors.forest),
       ),

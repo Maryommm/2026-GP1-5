@@ -9,8 +9,13 @@ Request fields:
     latitude      number, required
     longitude     number, required
     month         1-12, required (the user's current month on the phone)
-    sunlight      "full" | "partial" | "shade"     (default "full")
-    water         "low" | "medium" | "high"         (default "medium")
+    planting      "pot" | "ground", required. Pots are filled with bought
+                  potting soil, so a neutral pH is used and the soil of the
+                  area is not fetched. "ground" uses the soil pH of the area.
+    sunlight      "full" | "partial" | "shade", required (hours of direct sun:
+                  6 or more, 3 to 6, less than 3)
+    water         "low" | "medium" | "high", required (how often the user will
+                  water: weekly or less, a few times a week, daily)
     soil_texture  "sandy" | "medium" | "clay"       (default "medium")
     groups        list of crop groups to keep, e.g. ["leafy_herb"] (optional)
     limit         how many crops to return, 1-1000  (default 50)
@@ -18,7 +23,8 @@ Request fields:
 
 Response fields:
     month, location (centre of the ~11 km area),
-    climate (this month's average temp_high_c, temp_low_c and rain_mm), soil_ph,
+    climate (this month's average temp_high_c, temp_low_c and rain_mm),
+    planting, soil_ph (the pH used for scoring),
     total (number of crops that can be grown), total_now,
     offset, results (list of crops, see scoring.Recommendation.to_dict)
 """
@@ -27,6 +33,10 @@ from __future__ import annotations
 
 import climate
 import scoring
+
+PLANTING_VALUES = ("pot", "ground")
+# Bought potting soil is close to neutral, whatever the soil of the area.
+POT_SOIL_PH = 7.0
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 1000
@@ -111,6 +121,15 @@ def recommend_crops(data, cache) -> dict:
     limit = _integer(data, "limit", DEFAULT_LIMIT, 1, MAX_LIMIT)
     offset = _integer(data, "offset", 0, 0, 100000)
 
+    # The user's setup is asked in the app before the recommendations, so
+    # these fields are required instead of being guessed.
+    planting = data.get("planting")
+    if planting not in PLANTING_VALUES:
+        raise _invalid('planting is required and must be "pot" or "ground"')
+    for name in ("sunlight", "water"):
+        if name not in data:
+            raise _invalid(f"{name} is required")
+
     groups = data.get("groups")
     if groups is not None and (not isinstance(groups, list)
                                or not all(isinstance(g, str) for g in groups)):
@@ -118,16 +137,18 @@ def recommend_crops(data, cache) -> dict:
 
     try:
         site = scoring.Site(
-            sunlight=data.get("sunlight", "full"),
-            water=data.get("water", "medium"),
+            sunlight=data["sunlight"],
+            water=data["water"],
             soil_texture=data.get("soil_texture", "medium"),
+            ph=POT_SOIL_PH if planting == "pot" else None,
         )
     except ValueError as exc:
         raise _invalid(str(exc))
 
     # 2. Get the climate of the area (from the cache when possible).
     try:
-        profile = climate.lookup(latitude, longitude, cache=cache)
+        profile = climate.lookup(latitude, longitude, cache=cache,
+                                 with_soil=planting == "ground")
     except ValueError as exc:
         raise _invalid(str(exc))
     except Exception as exc:  # a climate service is down or too slow
@@ -151,7 +172,8 @@ def recommend_crops(data, cache) -> dict:
             "temp_low_c": round(this_month.temp_low_c, 1),
             "rain_mm": round(this_month.rain_mm, 1),
         },
-        "soil_ph": profile.soil_ph,
+        "planting": planting,
+        "soil_ph": site.ph if site.ph is not None else profile.soil_ph,
         "total": len(results),
         "total_now": sum(1 for r in results if r.status == "now"),
         "offset": offset,

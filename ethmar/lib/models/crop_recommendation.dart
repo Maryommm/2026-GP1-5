@@ -106,6 +106,7 @@ class ModelNote {
     required this.code,
     this.month,
     this.months = const [],
+    this.hours,
     this.text = '',
   });
 
@@ -113,6 +114,7 @@ class ModelNote {
         code: json['code'] as String? ?? '',
         month: (json['month'] as num?)?.toInt(),
         months: _ints(json['months']),
+        hours: (json['hours'] as num?)?.toInt(),
         text: json['text'] as String? ?? '',
       );
 
@@ -123,6 +125,9 @@ class ModelNote {
 
   /// Months the note is about, e.g. the hot months that need shade.
   final List<int> months;
+
+  /// Hours of direct sun a day the crop needs (light_too_weak).
+  final int? hours;
   final String text;
 }
 
@@ -252,6 +257,46 @@ class GrowingConditions {
   final double rainMm;
 }
 
+/// Where the user will grow the crops. The server uses it to pick the soil
+/// pH: bought potting soil is neutral, garden soil is the area's soil.
+enum Planting { pot, ground }
+
+/// Hours of direct sun the plants get: full (6+), partial (3-6), shade (<3).
+enum Sunlight { full, partial, shade }
+
+/// How often the user will water: low (weekly or less), medium (a few times
+/// a week), high (daily, soil kept moist).
+enum Watering { low, medium, high }
+
+/// The user's answers before the recommendations. The enum names are the
+/// values the API expects.
+class GrowingSetup {
+  const GrowingSetup({
+    required this.planting,
+    required this.sunlight,
+    required this.water,
+  });
+  final Planting planting;
+  final Sunlight sunlight;
+  final Watering water;
+
+  Map<String, String> toJson() => {
+        'planting': planting.name,
+        'sunlight': sunlight.name,
+        'water': water.name,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is GrowingSetup &&
+      other.planting == planting &&
+      other.sunlight == sunlight &&
+      other.water == water;
+
+  @override
+  int get hashCode => Object.hash(planting, sunlight, water);
+}
+
 class CropRecommendationResult {
   const CropRecommendationResult({
     required this.conditions,
@@ -259,6 +304,11 @@ class CropRecommendationResult {
     int? total,
     this.latitude = 0,
     this.longitude = 0,
+    this.setup = const GrowingSetup(
+      planting: Planting.pot,
+      sunlight: Sunlight.full,
+      water: Watering.medium,
+    ),
   }) : _total = total;
   final GrowingConditions conditions;
 
@@ -273,6 +323,9 @@ class CropRecommendationResult {
   /// Where the crops were picked for, so the next pages use the same place.
   final double latitude;
   final double longitude;
+
+  /// The user's answers, so the next pages use the same setup.
+  final GrowingSetup setup;
 }
 
 /// Model notes the crop card never shows (see CropRecommendation.fromJson).

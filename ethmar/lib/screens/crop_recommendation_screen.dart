@@ -2,7 +2,8 @@
 //
 // The file is in four parts:
 //   1. CropRecommendationScreen - loads the data and picks which view to show.
-//   2. _LoadingView / _ErrorView - shown while waiting or when it fails.
+//   2. _SetupView / _LoadingView / _ErrorView - the three questions about
+//      the user's setup, then waiting, or the error when it fails.
 //   3. _ResultsView and its pieces - the category buttons and the tickets.
 //   4. Drawing helpers - the ticket outline and the dashed line.
 
@@ -27,12 +28,13 @@ import 'login_screen.dart';
 typedef LoadMoreCrops = Future<List<CropRecommendation>> Function(
     CropRecommendationResult first, int loaded);
 
-/// three states: loading, error, and results.
+/// Asks about the user's setup (pot or ground, sunlight, watering), then
+/// shows three states: loading, error, and results.
 class CropRecommendationScreen extends StatefulWidget {
   const CropRecommendationScreen({super.key, this.load, this.loadMore});
 
-  /// Loads the first page of recommendations.
-  final Future<CropRecommendationResult> Function()? load;
+  /// Loads the first page of recommendations for the user's answers.
+  final Future<CropRecommendationResult> Function(GrowingSetup setup)? load;
 
   /// Loads the next page when the user scrolls to the end of a list.
   final LoadMoreCrops? loadMore;
@@ -47,11 +49,20 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
   late final _service = CropRecommendationService();
   late final _load = widget.load ?? _service.recommend;
   late final LoadMoreCrops _loadMore = widget.loadMore ?? _service.nextPage;
-  late Future<CropRecommendationResult> _future = _load();
+  // Nothing is loaded until the user answers the questions, so the server
+  // uses their real setup instead of guessing it.
+  GrowingSetup? _setup;
+  Future<CropRecommendationResult>? _future;
+
+  void _start(GrowingSetup setup) => setState(() {
+        _setup = setup;
+        _future = _load(setup);
+      });
+
   // The braces matter: `() => _future = ...` would return the Future, which
   // setState doesn't allow.
   void _retry() => setState(() {
-        _future = _load();
+        _future = _load(_setup!);
       });
 
   // True after we send the user to the phone's settings to allow location,
@@ -72,7 +83,7 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
   }
 
   void _onResume() {
-    if (!_sentToSettings) return;
+    if (!_sentToSettings || _setup == null) return;
     _sentToSettings = false;
     _retry();
   }
@@ -101,9 +112,16 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final future = _future;
+    // The questions can't be skipped: the only way out is the back button.
+    if (future == null) {
+      return Scaffold(
+        body: LeafPrintBackground(child: _SetupView(onDone: _start)),
+      );
+    }
     return Scaffold(
       body: FutureBuilder<CropRecommendationResult>(
-          future: _future,
+          future: future,
           builder: (context, snap) {
             final loading = snap.connectionState != ConnectionState.done;
             // Only the results use the recommender's own background.
@@ -148,6 +166,196 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
             );
           },
         ),
+    );
+  }
+}
+
+/// One question about the user's setup and its answers.
+class _Question {
+  const _Question(this.text, this.options);
+  final String text;
+  final List<_Answer> options;
+}
+
+class _Answer {
+  const _Answer(this.icon, this.title, this.hint);
+  final IconData icon;
+  final String title;
+  final String hint;
+}
+
+/// Asks three questions, one per page, before anything is loaded:
+///   1. pot or ground - a pot has bought potting soil, so the server uses a
+///      neutral pH; the ground uses the soil of the user's area;
+///   2. hours of direct sun;
+///   3. how often the user will water.
+/// The back button returns to the previous question, or leaves the screen
+/// from the first one.
+class _SetupView extends StatefulWidget {
+  const _SetupView({required this.onDone});
+  final ValueChanged<GrowingSetup> onDone;
+
+  @override
+  State<_SetupView> createState() => _SetupViewState();
+}
+
+class _SetupViewState extends State<_SetupView> {
+  // The index of the chosen answer for each question, in order.
+  final _answers = <int>[];
+
+  void _answer(int index) {
+    final answers = [..._answers, index];
+    if (answers.length < 3) {
+      setState(() => _answers.add(index));
+      return;
+    }
+    widget.onDone(GrowingSetup(
+      planting: Planting.values[answers[0]],
+      sunlight: Sunlight.values[answers[1]],
+      water: Watering.values[answers[2]],
+    ));
+  }
+
+  void _back() => setState(() => _answers.removeLast());
+
+  List<_Question> _questions(S s) => [
+        _Question(s.cropPlantingQuestion, [
+          _Answer(Icons.local_florist_rounded, s.cropPlantingPot,
+              s.cropPlantingPotHint),
+          _Answer(Icons.grass_rounded, s.cropPlantingGround,
+              s.cropPlantingGroundHint),
+        ]),
+        _Question(s.cropSunQuestion, [
+          _Answer(Icons.wb_sunny_rounded, s.cropSunFull, s.cropSunFullHint),
+          _Answer(Icons.wb_cloudy_rounded, s.cropSunPartial,
+              s.cropSunPartialHint),
+          _Answer(Icons.nights_stay_rounded, s.cropSunShade,
+              s.cropSunShadeHint),
+        ]),
+        _Question(s.cropWaterQuestion, [
+          _Answer(Icons.water_drop_outlined, s.cropWaterLow,
+              s.cropWaterLowHint),
+          _Answer(Icons.water_drop_rounded, s.cropWaterMedium,
+              s.cropWaterMediumHint),
+          _Answer(Icons.waves_rounded, s.cropWaterHigh, s.cropWaterHighHint),
+        ]),
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final step = _answers.length;
+    final question = _questions(s)[step];
+    return PopScope(
+      // The phone's back gesture also goes to the previous question.
+      canPop: step == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _back();
+      },
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.only(start: 12, top: 8),
+              child: EthmarBackButton(
+                tooltip: s.back,
+                onPressed: step == 0 ? null : _back,
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Entrance(
+                    key: ValueKey(step),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const EthmarCharacter(
+                          name: 'ethmar_buddy_thinking',
+                          height: 130,
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          s.cropSetupStep(step + 1),
+                          textAlign: TextAlign.center,
+                          style: AppText.small(context),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          question.text,
+                          textAlign: TextAlign.center,
+                          style: AppText.title(context).copyWith(fontSize: 24),
+                        ),
+                        if (step == 0) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            s.cropSetupWhy,
+                            textAlign: TextAlign.center,
+                            style: AppText.body(context),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        for (var i = 0; i < question.options.length; i++) ...[
+                          if (i > 0) const SizedBox(height: 12),
+                          _SetupOption(
+                            answer: question.options[i],
+                            onTap: () => _answer(i),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One answer, as a large tappable card.
+class _SetupOption extends StatelessWidget {
+  const _SetupOption({required this.answer, required this.onTap});
+  final _Answer answer;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.featureCard,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          child: Row(
+            children: [
+              Icon(answer.icon, size: 34, color: AppColors.forest),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      answer.title,
+                      style: AppText.title(context).copyWith(fontSize: 18),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(answer.hint, style: AppText.small(context)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.forest),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

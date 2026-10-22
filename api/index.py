@@ -8,7 +8,8 @@ The Flutter app sends a POST request to /api/recommend with a JSON body
     Authorization: Bearer <Firebase ID token>
     Content-Type: application/json
 
-    {"latitude": 24.71, "longitude": 46.67, "month": 10}
+    {"latitude": 24.71, "longitude": 46.67, "month": 10,
+     "planting": "pot", "sunlight": "full", "water": "medium"}
 
 Responses:
     200  the recommendations

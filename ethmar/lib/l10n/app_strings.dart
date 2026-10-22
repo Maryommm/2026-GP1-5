@@ -117,6 +117,27 @@ class AppStrings {
     'cropLocationUnavailable':
         "We couldn't find your location. Please try again",
     'cropOpenSettings': 'Open settings',
+    'cropPlantingQuestion': 'Where will you plant?',
+    'cropSetupWhy': 'Your answers help us pick crops that suit you',
+    'cropSetupStep': 'Question {n} of 3',
+    'cropPlantingPot': 'In a pot',
+    'cropPlantingPotHint': 'With bought potting soil',
+    'cropPlantingGround': 'In the ground',
+    'cropPlantingGroundHint': 'In your garden or yard soil',
+    'cropSunQuestion': 'How much sun will they get?',
+    'cropSunFull': 'Full sun',
+    'cropSunFullHint': '6 hours or more of direct sun a day',
+    'cropSunPartial': 'Partial sun',
+    'cropSunPartialHint': '3 to 6 hours of direct sun a day',
+    'cropSunShade': 'Mostly shade',
+    'cropSunShadeHint': 'Less than 3 hours of direct sun a day',
+    'cropWaterQuestion': 'How often will you water?',
+    'cropWaterLow': 'Low',
+    'cropWaterLowHint': 'Once a week or less',
+    'cropWaterMedium': 'Medium',
+    'cropWaterMediumHint': 'A few times a week',
+    'cropWaterHigh': 'High',
+    'cropWaterHighHint': 'Every day, keeping the soil moist',
     'month1': 'Jan',
     'month2': 'Feb',
     'month3': 'Mar',
@@ -131,24 +152,27 @@ class AppStrings {
     'month12': 'Dec',
     'listJoin': ', ',
     // Reasons and warnings from the model (codes in recommender/scripts/scoring.py).
-    'note_temp_ok': 'Your weather suits it all season',
-    'note_rain_ok': 'Rain in your area covers its needs',
-    'note_light_ok': 'Happy with your sunlight',
-    'note_water_ok': 'Its water needs fit your routine',
+    'note_temp_ok': 'The weather in your area suits it all season',
+    'note_rain_ok': 'The rain in your area covers its water needs',
+    'note_light_ok': 'The sunlight in your spot suits it',
+    'note_water_ok': 'How often you water suits it',
     'note_plant_next_month': 'Best planted next month, in {month}',
     'note_plant_later': 'Best planted in {month}',
     'note_needs_shade':
         'Shade it in {months}: use shade cloth or move the pot inside',
     'note_needs_cover':
         'Cover it on cold nights in {months}, or bring the pot inside',
-    'note_too_cool': 'Grows slower in {months}, when it is cooler',
-    'note_too_hot': 'Give it afternoon shade in {months}',
+    'note_too_cool': 'Grows slowly in {months}, when it is cooler than it likes',
+    'note_too_hot': 'Hotter than it likes in {months}: give it afternoon shade',
     'note_too_wet': 'Too much rain here: use raised beds or pots that drain',
-    'note_too_dry': 'Your area is dry, so water it regularly',
-    'note_needs_watering': 'Water it between rains',
+    'note_too_dry': 'Your area is dry, so it needs regular watering',
+    'note_needs_watering': 'Needs watering between rains',
     'note_needs_wet_soil':
         'Needs soil that stays wet. Grow it in a pot standing in water',
-    'note_light_mismatch': 'Prefers a different amount of sun than you have',
+    'note_light_too_weak':
+        'Needs at least {hours} hours of direct sun a day, more than your spot gets',
+    'note_light_too_strong':
+        'Your spot is too sunny for it: shade it, especially in the afternoon',
     'cropSwipeHint': 'Swipe to explore crop categories',
     'tryAgain': 'Try again',
     'startupErrorTitle': "We couldn't connect",
@@ -520,6 +544,27 @@ class AppStrings {
         'خدمة الموقع مغلقة في جهازك. قم بتشغيلها لتتمكن من الاطلاع على التوصيات المناسبة لمنطقتك',
     'cropLocationUnavailable': 'لم نتمكن من تحديد موقعك. قم بالمحاولة مرة أخرى',
     'cropOpenSettings': 'فتح الإعدادات',
+    'cropPlantingQuestion': 'أين ستزرع؟',
+    'cropSetupWhy': 'إجاباتك تساعدنا في اختيار محاصيل تناسبك',
+    'cropSetupStep': 'السؤال {n} من 3',
+    'cropPlantingPot': 'في أصيص',
+    'cropPlantingPotHint': 'بتربة زراعية جاهزة',
+    'cropPlantingGround': 'في الأرض',
+    'cropPlantingGroundHint': 'في تربة الحديقة أو الحوش',
+    'cropSunQuestion': 'كم ستحصل النباتات على شمس؟',
+    'cropSunFull': 'شمس كاملة',
+    'cropSunFullHint': '6 ساعات أو أكثر من الشمس المباشرة يوميًا',
+    'cropSunPartial': 'شمس جزئية',
+    'cropSunPartialHint': 'من 3 إلى 6 ساعات من الشمس المباشرة يوميًا',
+    'cropSunShade': 'ظل في أغلب اليوم',
+    'cropSunShadeHint': 'أقل من 3 ساعات من الشمس المباشرة يوميًا',
+    'cropWaterQuestion': 'كم مرة ستسقي؟',
+    'cropWaterLow': 'قليل',
+    'cropWaterLowHint': 'مرة في الأسبوع أو أقل',
+    'cropWaterMedium': 'متوسط',
+    'cropWaterMediumHint': 'عدة مرات في الأسبوع',
+    'cropWaterHigh': 'كثير',
+    'cropWaterHighHint': 'يوميًا مع إبقاء التربة رطبة',
     'month1': 'يناير',
     'month2': 'فبراير',
     'month3': 'مارس',
@@ -533,22 +578,27 @@ class AppStrings {
     'month11': 'نوفمبر',
     'month12': 'ديسمبر',
     'listJoin': '، ',
-    'note_temp_ok': 'جوّك يناسبه طول الموسم',
-    'note_rain_ok': 'أمطار منطقتك تكفيه',
-    'note_light_ok': 'يرتاح مع كمية الشمس عندك',
-    'note_water_ok': 'احتياجه للماء يناسبك',
-    'note_plant_next_month': 'الأفضل تزرعه الشهر الجاي، في {month}',
-    'note_plant_later': 'الأفضل تزرعه في {month}',
-    'note_needs_shade': 'ظلّله في {months} بقماش تظليل أو دخّل الأصيص',
-    'note_needs_cover': 'غطّه في الليالي الباردة في {months} أو دخّل الأصيص',
-    'note_too_cool': 'ينمو أبطأ في {months} لأن الجو أبرد',
-    'note_too_hot': 'وفّر له ظل العصر في {months}',
+    'note_temp_ok': 'الطقس في منطقتك يناسبه طوال الموسم',
+    'note_rain_ok': 'أمطار منطقتك تكفي احتياجه من الماء',
+    'note_light_ok': 'كمية الشمس في مكانك تناسبه',
+    'note_water_ok': 'معدل سقيك يناسب احتياجه من الماء',
+    'note_plant_next_month': 'أفضل وقت لزراعته الشهر القادم، في {month}',
+    'note_plant_later': 'أفضل وقت لزراعته في {month}',
+    'note_needs_shade':
+        'يحتاج تظليلًا في {months}: استخدم قماش تظليل أو انقل الأصيص إلى الداخل',
+    'note_needs_cover':
+        'يحتاج تغطية في الليالي الباردة في {months}: استخدم غطاء صقيع أو انقل الأصيص إلى الداخل',
+    'note_too_cool': 'ينمو ببطء في {months} لأن الجو أبرد مما يفضّل',
+    'note_too_hot': 'الجو أحر مما يفضّل في {months}: وفّر له ظلًا وقت العصر',
     'note_too_wet':
-        'المطر عندك كثير عليه، ازرعه في حوض مرتفع أو أصيص يصرّف الماء',
-    'note_too_dry': 'منطقتك جافة، اسقه بانتظام',
-    'note_needs_watering': 'اسقه بين الأمطار',
-    'note_needs_wet_soil': 'يحتاج تربة مبللة دائمًا. ازرعه في أصيص داخل صحن ماء',
-    'note_light_mismatch': 'يفضّل كمية شمس غير اللي عندك',
+        'الأمطار في منطقتك أكثر من حاجته: ازرعه في حوض مرتفع أو أصيص يصرّف الماء',
+    'note_too_dry': 'منطقتك جافة، لذلك يحتاج سقيًا منتظمًا',
+    'note_needs_watering': 'يحتاج سقيًا بين فترات المطر',
+    'note_needs_wet_soil': 'يحتاج تربة مبللة دائمًا: ازرعه في أصيص داخل صحن ماء',
+    'note_light_too_weak':
+        'يحتاج {hours} ساعات على الأقل من الشمس المباشرة يوميًا، وهذا أكثر مما يصل إلى مكانك',
+    'note_light_too_strong':
+        'الشمس في مكانك أقوى مما يتحمّل: ظلّله، خاصة وقت العصر',
     'cropSwipeHint': 'اسحب للتنقل بين أنواع المحاصيل',
     'tryAgain': 'حاول مرة أخرى',
     'startupErrorTitle': 'تعذّر الاتصال',
@@ -921,6 +971,27 @@ class S {
   String get cropLocationOff => t('cropLocationOff');
   String get cropLocationUnavailable => t('cropLocationUnavailable');
   String get cropOpenSettings => t('cropOpenSettings');
+  String get cropPlantingQuestion => t('cropPlantingQuestion');
+  String get cropSetupWhy => t('cropSetupWhy');
+  String cropSetupStep(int n) => t('cropSetupStep').replaceAll('{n}', '$n');
+  String get cropPlantingPot => t('cropPlantingPot');
+  String get cropPlantingPotHint => t('cropPlantingPotHint');
+  String get cropPlantingGround => t('cropPlantingGround');
+  String get cropPlantingGroundHint => t('cropPlantingGroundHint');
+  String get cropSunQuestion => t('cropSunQuestion');
+  String get cropSunFull => t('cropSunFull');
+  String get cropSunFullHint => t('cropSunFullHint');
+  String get cropSunPartial => t('cropSunPartial');
+  String get cropSunPartialHint => t('cropSunPartialHint');
+  String get cropSunShade => t('cropSunShade');
+  String get cropSunShadeHint => t('cropSunShadeHint');
+  String get cropWaterQuestion => t('cropWaterQuestion');
+  String get cropWaterLow => t('cropWaterLow');
+  String get cropWaterLowHint => t('cropWaterLowHint');
+  String get cropWaterMedium => t('cropWaterMedium');
+  String get cropWaterMediumHint => t('cropWaterMediumHint');
+  String get cropWaterHigh => t('cropWaterHigh');
+  String get cropWaterHighHint => t('cropWaterHighHint');
 
   /// Month 1-12 by name, e.g. "Oct" / "أكتوبر".
   String monthName(int month) => t('month$month');
@@ -966,7 +1037,8 @@ class S {
     final month = note.month;
     return t(key)
         .replaceAll('{month}', month == null ? '' : monthName(month))
-        .replaceAll('{months}', monthRanges(note.months));
+        .replaceAll('{months}', monthRanges(note.months))
+        .replaceAll('{hours}', '${note.hours ?? ''}');
   }
 
   String get cropSwipeHint => t('cropSwipeHint');

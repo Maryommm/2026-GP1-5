@@ -18,7 +18,7 @@ void main() {
       GlobalCupertinoLocalizations.delegate,
     ],
     home: CropRecommendationScreen(
-      load: () async => CropRecommendationService.sample,
+      load: (_) async => CropRecommendationService.sample,
     ),
   ));
 }

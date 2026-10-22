@@ -44,7 +44,17 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(
       home: CropRecommendationScreen(
-        load: () async => first,
+        load: (setup) async {
+          expect(
+            setup,
+            const GrowingSetup(
+              planting: Planting.pot,
+              sunlight: Sunlight.partial,
+              water: Watering.medium,
+            ),
+          );
+          return first;
+        },
         loadMore: (result, loaded) async {
           expect(result, same(first));
           offsets.add(loaded);
@@ -53,6 +63,13 @@ void main() {
       ),
     ));
     await _settle(tester);
+
+    // Nothing loads until the user answers the three questions.
+    for (final answer in ['In a pot', 'Partial sun', 'Medium']) {
+      expect(find.text('Crop 0'), findsNothing);
+      await tester.tap(find.text(answer));
+      await _settle(tester);
+    }
     expect(find.text('Crop 0'), findsOneWidget);
     expect(find.text('Crop 7'), findsNothing);
 

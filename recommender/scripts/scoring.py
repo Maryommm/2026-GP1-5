@@ -585,11 +585,35 @@ def score_sunlight(row, site: Site):
     if wanted is None:
         return 0.6, None, None
     if wanted == 1:
-        return 1.0, _note("light_ok", "tolerates your light level"), None
-    return 0.3, None, _note(
-        "light_mismatch", f"prefers different light than {site.sunlight} sun",
-        light=site.sunlight,
-    )
+        return 1.0, _note("light_ok", "the sunlight in your spot suits it"), None
+    return 0.3, None, _light_note(flags, site.sunlight)
+
+
+# Light levels from most to least sun, with the hours of direct sun a day
+# that each level starts at (the usual garden definition: full sun is 6
+# hours or more, partial sun 3 to 6 hours).
+LIGHT_ORDER = ("full", "partial", "shade")
+LIGHT_HOURS = {"full": 6, "partial": 3}
+
+
+def _light_note(flags: dict, user_light: str) -> dict | None:
+    """
+    Explain a light mismatch in a way the user can act on: the crop needs
+    more sun (and how many hours), or it needs less sun than the spot gets.
+    The nearest light level the crop accepts decides which one.
+    """
+    accepted = [level for level in LIGHT_ORDER if flags.get(level) == 1]
+    if not accepted:
+        return None
+    position = LIGHT_ORDER.index(user_light)
+    nearest = min(accepted, key=lambda level: abs(LIGHT_ORDER.index(level) - position))
+    if LIGHT_ORDER.index(nearest) < position:
+        hours = LIGHT_HOURS[nearest]
+        return _note("light_too_weak",
+                     f"needs at least {hours} hours of direct sun a day, "
+                     "more than your spot gets", hours=hours)
+    return _note("light_too_strong",
+                 "your spot is too sunny for it; shade it, especially in the afternoon")
 
 
 def score_water(row, site: Site):
