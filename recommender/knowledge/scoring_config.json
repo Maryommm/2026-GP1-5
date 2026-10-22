@@ -1,25 +1,24 @@
 {
-  "weights": {
-    "temperature": 0.42,
-    "soil_ph": 0.1,
-    "rainfall": 0.08,
-    "sunlight": 0.1,
-    "water": 0.05,
-    "popularity": 0.25
-  },
   "bands": {
-    "excellent": 0.9,
-    "good": 0.8,
-    "marginal": 0.7
+    "excellent": 0.8,
+    "good": 0.6,
+    "marginal": 0.4
   },
-  "penalties": {
-    "alkaline_mismatch": 0.85,
+  "adjustments": {
+    "ph_outside_optimal": 0.7,
+    "ph_outside_absolute": 0.6,
+    "too_much_sun": 0.9,
+    "less_water_than_needed": 0.75,
+    "more_water_than_needed": 0.9,
     "imputed_ph": 0.98
+  },
+  "ranking": {
+    "popularity_weight": 0.2
   },
   "popularity": {
     "common": 1.0,
-    "home_garden": 0.7,
-    "other": 0.4
+    "home_garden": 0.6,
+    "other": 0.2
   },
   "season": {
     "default_annual_days": 120,
@@ -30,6 +29,6 @@
   "protection": {
     "heat_margin_c": 3.0,
     "cold_margin_c": 2.0,
-    "month_score": 0.25
+    "month_score": 0.4
   }
 }

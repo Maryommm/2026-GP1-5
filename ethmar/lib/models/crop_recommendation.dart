@@ -333,9 +333,12 @@ const _hiddenNotes = {
   'needs_alkaline_soil', 'prefers_more_alkaline',
 };
 
+/// The numbers in a JSON list. Anything that isn't a list gives an empty
+/// list, so one unexpected field can't stop the whole page from loading.
 List<int> _ints(Object? value) => [
-      for (final v in (value as List? ?? const []))
-        if (v is num) v.toInt(),
+      if (value is List)
+        for (final v in value)
+          if (v is num) v.toInt(),
     ];
 
 /// Numbers from a list such as `[15.0, 29.0]`; empty if any value is missing.

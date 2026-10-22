@@ -22,13 +22,22 @@ How the model works
    crop's optimal range, 0 outside its absolute range, and a value between
    0 and 1 in between. An annual crop gets the score of its worst month,
    because one bad month is enough to lose the crop.
-3. Other factors (soil pH, rainfall, sunlight, watering and how common the
-   crop is in home gardens) are added as a weighted sum. The weights are in
-   recommender/knowledge/scoring_config.json.
+3. The score shown to the user is the crop's suitability, from 0 to 1.
+   Climate factors that the user cannot change (temperature and too much
+   rain) are combined by taking the lowest one, as ECOCROP does: a crop
+   grows only as well as its most limiting factor allows (Liebig's law of
+   the minimum). Factors that a home grower can correct (soil pH, too much
+   sun, how often they water) then multiply the score by a value a little
+   below 1, so they lower it without removing the crop.
 4. Home growers can water their plants, so low rainfall only gives a
-   watering warning. Too much rain cannot be removed, so it lowers the score.
-5. The table and the rules are the same for every country. The difference
-   between locations comes only from their climate data.
+   watering note. Too much rain cannot be removed, so it lowers the score.
+   Too little sun cannot be added either, so those crops are removed.
+5. How common a crop is in home gardens is not part of the suitability. It
+   is only used to order the list, so a beginner sees tomato before a wild
+   plant with the same suitability.
+6. The table and the rules are the same for every country. The difference
+   between locations comes only from their climate data. All the numbers
+   are in recommender/knowledge/scoring_config.json.
 
 
 """
@@ -48,20 +57,23 @@ CONFIG_PATH = ROOT / "recommender" / "knowledge" / "scoring_config.json"
 
 # Default settings. Any value in scoring_config.json replaces the one here.
 DEFAULT_CONFIG = {
-    # Weight of each factor in the final score (they add up to 1.0).
-    "weights": {
-        "temperature": 0.42, "soil_ph": 0.10, "rainfall": 0.08,
-        "sunlight": 0.10, "water": 0.05, "popularity": 0.25,
+    # Minimum suitability for each band, in steps of 0.2 like the ECOCROP
+    # suitability classes. Crops below "marginal" are not returned.
+    "bands": {"excellent": 0.80, "good": 0.60, "marginal": 0.40},
+    # Factors a home grower can correct. Each one multiplies the suitability.
+    "adjustments": {
+        "ph_outside_optimal": 0.70,     # factor at the crop's pH limit (1.0 inside the optimum)
+        "ph_outside_absolute": 0.60,    # pH beyond what the crop survives: needs potting mix
+        "too_much_sun": 0.90,           # can be fixed with shade cloth
+        "less_water_than_needed": 0.75, # the user plans to water less than the crop needs
+        "more_water_than_needed": 0.90, # a dry-soil crop watered often can rot
+        "imputed_ph": 0.98,             # the crop's pH range was estimated
     },
-    # Minimum score for each band. Crops below "marginal" are not returned.
-    "bands": {"excellent": 0.90, "good": 0.80, "marginal": 0.70},
-    "penalties": {
-        "alkaline_mismatch": 0.85,   # pH far outside the crop's range
-        "imputed_ph": 0.98,          # the crop's pH range was estimated
-    },
-    # Popularity score: crops from our reviewed list, crops that ECOCROP
-    # marks as grown in home gardens, and all other crops.
-    "popularity": {"common": 1.0, "home_garden": 0.7, "other": 0.4},
+    # Order of the list: (1 - weight) x suitability + weight x popularity.
+    "ranking": {"popularity_weight": 0.20},
+    # Popularity: crops from our reviewed list, crops that ECOCROP marks as
+    # grown in home gardens, and all other crops.
+    "popularity": {"common": 1.0, "home_garden": 0.6, "other": 0.2},
     "season": {
         "default_annual_days": 120,  # growing days when the data has none (see season_length)
         "best_month_ratio": 0.85,    # a "best" month scores at least 85% of the top month
@@ -69,8 +81,9 @@ DEFAULT_CONFIG = {
         "plant_now_months": 2,       # 2 = "now" means this month or next month
     },
     # A crop may still be grown a little outside its temperature limits if
-    # the user protects it with shade cloth or a frost cover.
-    "protection": {"heat_margin_c": 3.0, "cold_margin_c": 2.0, "month_score": 0.25},
+    # the user protects it with shade cloth or a frost cover. Such a month
+    # scores 0.4, the lowest "marginal" value: possible, but with effort.
+    "protection": {"heat_margin_c": 3.0, "cold_margin_c": 2.0, "month_score": 0.40},
 }
 
 MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -125,7 +138,7 @@ class Recommendation:
     common_name: str
     name_ar: str
     crop_group: str
-    score: float           # score when planted in plant_month (0 to 1)
+    score: float           # suitability when planted in plant_month (0 to 1)
     band: str              # excellent | good | marginal
     status: str            # "now" (this month or next) or "later"
     plant_month: int       # the nearest best month to plant, 1-12
@@ -136,6 +149,7 @@ class Recommendation:
     reasons: list = field(default_factory=list)      # notes, see _note()
     warnings: list = field(default_factory=list)     # notes, see _note()
     details: dict = field(default_factory=dict)      # see crop_details()
+    rank: float = 0.0      # order in the list: suitability and popularity
 
     def to_dict(self) -> dict:
         return {
@@ -495,7 +509,7 @@ def months_until(month: int, targets: list) -> int:
 # Other factors
 # --------------------------------------------------------------------------- #
 
-def score_rainfall(row, window: list):
+def score_rainfall(row, window: list, site: Site | None = None):
     """
     Compare the rain in the season with the crop's needs.
 
@@ -503,8 +517,9 @@ def score_rainfall(row, window: list):
     tree per year, which is the same period as the window in both cases.
 
     The rule is not symmetric on purpose: low rain is solved by watering, so
-    it only gives a warning, but too much rain cannot be removed, so it
-    lowers the score.
+    it only gives a note, but too much rain cannot be removed, so it lowers
+    the score. The note about low rain is only given to a user who plans to
+    water rarely; the others already water regularly.
 
     Returns:
         (score, reason or None, warning or None)
@@ -526,6 +541,8 @@ def score_rainfall(row, window: list):
 
     if rain >= opt_min:
         return 1.0, _note("rain_ok", "natural rainfall covers its needs"), None
+    if site is not None and site.water != "low":
+        return 1.0, None, None
     if abs_min is not None and rain < abs_min:
         return 1.0, None, _note(
             "too_dry", "your area is too dry for it without regular watering")
@@ -537,7 +554,8 @@ def score_soil_ph(row, ph: float, config: dict):
     Compare the soil pH with the crop's range.
 
     pH can be changed (for example by using potting mix), so a mismatch
-    lowers the score and gives a warning, but never removes the crop.
+    lowers the score and gives a warning, but never removes the crop. The
+    score here is turned into a factor by soil_ph_factor.
 
     Returns:
         (score, reason or None, warning or None)
@@ -553,12 +571,11 @@ def score_soil_ph(row, ph: float, config: dict):
         return 1.0, _note("ph_ok", "soil pH suits it"), None
 
     width = max(opt_max - opt_min, 0.5)
-    penalty = config["penalties"]["alkaline_mismatch"]
 
     if ph > opt_max:
         score = max(0.0, 1.0 - (ph - opt_max) / width)
         if abs_max is not None and ph > abs_max:
-            return score * penalty, None, _note(
+            return score, None, _note(
                 "needs_acidic_soil",
                 "needs acidic soil; your soil is alkaline - grow it in a pot "
                 "with potting mix or amend the soil",
@@ -568,7 +585,7 @@ def score_soil_ph(row, ph: float, config: dict):
 
     score = max(0.0, 1.0 - (opt_min - ph) / width)
     if abs_min is not None and ph < abs_min:
-        return score * penalty, None, _note(
+        return score, None, _note(
             "needs_alkaline_soil", "needs more alkaline soil than yours")
     return score, None, _note(
         "prefers_more_alkaline", "prefers slightly more alkaline soil than yours")
@@ -614,33 +631,73 @@ def needs_more_sun(row, site: Site) -> bool:
     return LIGHT_ORDER.index(nearest) < position
 
 
-def score_sunlight(row, site: Site):
+def soil_ph_factor(ph_score: float, ph_warn, config: dict) -> float:
+    """
+    Turn the pH score into a factor for the suitability: 1.0 inside the
+    optimal range, down to ph_outside_optimal at the crop's pH limit, and
+    ph_outside_absolute beyond it, where the user would need potting mix.
+    """
+    adjust = config["adjustments"]
+    if ph_warn and ph_warn["code"] in ("needs_acidic_soil", "needs_alkaline_soil"):
+        return adjust["ph_outside_absolute"]
+    low = adjust["ph_outside_optimal"]
+    return low + (1 - low) * ph_score
+
+
+def score_sunlight(row, site: Site, config: dict):
     """
     Check if the crop accepts the user's light level (Permapeople flags).
 
     Crops that need more sun are already removed by needs_more_sun, so a
     mismatch here means the spot is too sunny, which shade can fix.
+
+    Returns:
+        (factor, reason or None, warning or None)
     """
     if site.sunlight in accepted_light(row):
         return 1.0, _note("light_ok", "the sunlight in your spot suits it"), None
-    return 0.3, None, _note(
+    return config["adjustments"]["too_much_sun"], None, _note(
         "light_too_strong",
         "your spot is too sunny for it; shade it, especially in the afternoon")
 
 
-def score_water(row, site: Site):
-    """Check if the crop accepts the user's watering level (Permapeople flags)."""
-    flags = {
-        "low": _number(row, "water_dry"),
-        "medium": _number(row, "water_moist"),
-        "high": _number(row, "water_wet"),
-    }
-    wanted = flags.get(site.water)
-    if wanted is None:
-        return 0.6, None
-    if wanted == 1:
-        return 1.0, _note("water_ok", "watering needs fit your setup")
-    return 0.35, None
+def score_water(row, site: Site, config: dict):
+    """
+    Compare how often the user will water with the soil moisture the crop
+    likes (Permapeople flags: dry, moist and wet soil).
+
+    Watering is the user's own choice, so a mismatch never removes a crop.
+    It lowers the score a little and tells the user how to water instead:
+      * "low" (weekly or less) suits crops that tolerate dry soil. Other
+        crops need watering a few times a week.
+      * "medium" and "high" suit almost every crop, because extra water
+        drains out of a pot or a garden bed. The exception is a crop that
+        only likes dry soil, which can rot when it is watered often.
+      * A crop that needs soil that stays wet is only satisfied by "high".
+
+    Returns:
+        (factor, reason or None, warning or None)
+    """
+    adjust = config["adjustments"]
+    dry = _number(row, "water_dry") == 1
+    moist = _number(row, "water_moist") == 1
+    wet = _number(row, "water_wet") == 1
+    if not (dry or moist or wet):
+        return 1.0, None, None
+
+    suits = _note("water_ok", "how often you water suits it")
+    if site.water == "low":
+        if dry:
+            return 1.0, suits, None
+        return adjust["less_water_than_needed"], None, _note(
+            "water_more_often", "needs watering a few times a week, more often than you plan")
+    if dry and not moist and not wet:
+        return adjust["more_water_than_needed"], None, _note(
+            "water_less_often", "likes dry soil; let the soil dry out between waterings")
+    if wet and not moist and not dry and site.water != "high":
+        return adjust["less_water_than_needed"], None, _note(
+            "needs_wet_soil", "needs soil that stays wet; grow it in a pot standing in water")
+    return 1.0, suits, None
 
 
 def score_soil_texture(row, site: Site):
@@ -666,6 +723,33 @@ def wet_soil_note(row):
     if drainage == "poorly (saturated >50% of year)":
         return _note("needs_wet_soil", "needs soil that stays wet; grow it in a pot standing in water")
     return None
+
+
+# Warnings from the most to the least serious, because the app shows the
+# first one. First what kills the plant, then what lowers the harvest, then
+# simple care tips.
+WARNING_ORDER = [
+    "plant_later",
+    "needs_wet_soil", "needs_shade", "needs_cover", "water_more_often",
+    "needs_acidic_soil", "needs_alkaline_soil", "too_wet", "too_dry",
+    "too_hot", "too_cool", "light_too_strong", "water_less_often",
+    "prefers_more_acidic", "prefers_more_alkaline", "needs_watering",
+    "soil_texture_mismatch",
+]
+
+
+def _by_seriousness(notes: list) -> list:
+    """
+    Sort warnings by WARNING_ORDER (unknown codes go last) and keep one
+    note per code, because two checks can give the same advice.
+    """
+    def rank(note):
+        code = note["code"]
+        return WARNING_ORDER.index(code) if code in WARNING_ORDER else len(WARNING_ORDER)
+    unique = {}
+    for note in notes:
+        unique.setdefault(note["code"], note)
+    return sorted(unique.values(), key=rank)
 
 
 def score_popularity(row, config: dict) -> float:
@@ -762,25 +846,22 @@ def score_species(row, climate, month: int, site: Site, config: dict):
     if needs_more_sun(row, site):
         return None
 
-    weights = config["weights"]
     protection = config["protection"]
     reasons, warnings = [], []
 
     length = season_length(row, config)
     woody = stays_in_ground(row)
 
-    # These factors do not depend on the planting month.
+    # Factors the user can correct. They do not depend on the planting
+    # month, so they are combined once into one factor.
     ph = site.ph if site.ph is not None else climate.soil_ph
     ph_score, ph_reason, ph_warn = score_soil_ph(row, ph, config)
-    sun_score, sun_reason, sun_warn = score_sunlight(row, site)
-    water_score, water_reason = score_water(row, site)
+    sun_factor, sun_reason, sun_warn = score_sunlight(row, site, config)
+    water_factor, water_reason, water_warn = score_water(row, site, config)
     texture_warn = score_soil_texture(row, site)
-    popularity = score_popularity(row, config)
-    fixed = (ph_score * weights["soil_ph"]
-             + sun_score * weights["sunlight"]
-             + water_score * weights["water"]
-             + popularity * weights["popularity"])
-    factor = config["penalties"]["imputed_ph"] if _number(row, "ph_imputed") == 1 else 1.0
+    factor = soil_ph_factor(ph_score, ph_warn, config) * sun_factor * water_factor
+    if _number(row, "ph_imputed") == 1:
+        factor *= config["adjustments"]["imputed_ph"]
 
     def window_for(start: int) -> list:
         # Trees are checked on the whole year, annual crops on their season.
@@ -798,10 +879,10 @@ def score_species(row, climate, month: int, site: Site, config: dict):
         if temp_score <= 0:
             continue
         rain_score, _, _ = score_rainfall(row, window)
-        total = (fixed + temp_score * weights["temperature"]
-                 + rain_score * weights["rainfall"]) * factor
-        if total >= config["bands"]["marginal"]:
-            totals[start] = total
+        # The climate allows only as much as its most limiting factor.
+        suitability = min(temp_score, rain_score) * factor
+        if suitability >= config["bands"]["marginal"]:
+            totals[start] = suitability
     if woody and totals:
         totals = {start: totals[1] for start in range(1, 13)}
     if not totals:
@@ -817,7 +898,9 @@ def score_species(row, climate, month: int, site: Site, config: dict):
         warnings.append(_note(
             "plant_later",
             f"best planted in {MONTH_NAMES[plant_month - 1]} ({wait} months from now)",
-            month=plant_month, months=wait,
+            # "months" is always a list of months in a note, so the wait
+            # has its own name.
+            month=plant_month, months_away=wait,
         ))
     elif wait > 0:
         reasons.append(_note(
@@ -831,14 +914,21 @@ def score_species(row, climate, month: int, site: Site, config: dict):
     temp_reasons, temp_warnings, protect = temperature_notes(row, window, woody, protection)
     reasons += temp_reasons
     warnings += temp_warnings
-    _, rain_reason, rain_warn = score_rainfall(row, window)
+    _, rain_reason, rain_warn = score_rainfall(row, window, site)
+    if water_warn:
+        rain_warn = None   # the watering note already says how to water
 
     for reason in (rain_reason, ph_reason, sun_reason, water_reason):
         if reason:
             reasons.append(reason)
-    for warning in (rain_warn, ph_warn, sun_warn, texture_warn, wet_soil_note(row)):
+    for warning in (rain_warn, ph_warn, sun_warn, water_warn, texture_warn,
+                    wet_soil_note(row)):
         if warning:
             warnings.append(warning)
+    warnings = _by_seriousness(warnings)
+
+    weight = config["ranking"]["popularity_weight"]
+    rank = (1 - weight) * score + weight * score_popularity(row, config)
 
     return Recommendation(
         species=str(_value(row, "canonical_binomial") or ""),
@@ -856,6 +946,7 @@ def score_species(row, climate, month: int, site: Site, config: dict):
         reasons=reasons,
         warnings=warnings,
         details=crop_details(row),
+        rank=rank,
     )
 
 
@@ -865,8 +956,9 @@ def recommend(climate, month: int, site: Site | None = None, preferences=None,
     Return every crop that can be grown at the location.
 
     Order of the list:
-      1. crops to plant now (this month or next), highest score first;
+      1. crops to plant now (this month or next), highest rank first;
       2. crops to plant later, nearest planting month first.
+    The rank mixes suitability with how common the crop is at home.
 
     Parameters:
         climate      a ClimateProfile from climate.py
@@ -890,7 +982,7 @@ def recommend(climate, month: int, site: Site | None = None, preferences=None,
 
     results.sort(key=lambda r: (r.status != "now",
                                 r.months_until if r.status != "now" else 0,
-                                -r.score, r.species))
+                                -r.rank, r.species))
     return results if limit is None else results[:limit]
 
 

@@ -82,6 +82,21 @@ void main() {
     expect(crop.tip, isNull);
   });
 
+  test('an unexpected field type does not stop the crop from loading', () {
+    // Older servers sent the wait of plant_later as a number in "months".
+    final crop = CropRecommendation.fromJson({
+      'common_name': 'Okra',
+      'crop_group': 'fruiting',
+      'warnings': [
+        {'code': 'plant_later', 'text': 'best planted in March', 'month': 3,
+         'months': 5},
+        {'code': 'too_hot', 'text': 'hotter than it likes', 'months': [7, 8]},
+      ],
+    });
+    expect(crop.tip?.code, 'too_hot');
+    expect(crop.tip?.months, [7, 8]);
+  });
+
   test('month ranges wrap around the year', () {
     expect(en.monthRanges([1, 2, 10, 11, 12]), 'Oct–Feb');
     expect(ar.monthRanges([1, 2, 10, 11, 12]), 'أكتوبر–فبراير');

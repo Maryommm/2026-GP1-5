@@ -161,6 +161,10 @@ class AppStrings {
     'note_rain_ok': 'The rain in your area covers its water needs',
     'note_light_ok': 'The sunlight in your spot suits it',
     'note_water_ok': 'How often you water suits it',
+    'note_water_more_often':
+        'Needs watering a few times a week, more often than you plan',
+    'note_water_less_often':
+        'Likes dry soil: let the soil dry out between waterings',
     'note_plant_next_month': 'Best planted next month, in {month}',
     'note_plant_later': 'Best planted in {month}',
     'note_needs_shade':
@@ -590,6 +594,8 @@ class AppStrings {
     'note_rain_ok': 'أمطار منطقتك تكفي احتياجه من الماء',
     'note_light_ok': 'كمية الشمس في مكانك تناسبه',
     'note_water_ok': 'معدل سقيك يناسب احتياجه من الماء',
+    'note_water_more_often': 'يحتاج سقيًا عدة مرات في الأسبوع، أكثر مما تخطط له',
+    'note_water_less_often': 'يفضّل التربة الجافة: اترك التربة تجف بين كل سقية وأخرى',
     'note_plant_next_month': 'أفضل وقت لزراعته الشهر القادم، في {month}',
     'note_plant_later': 'أفضل وقت لزراعته في {month}',
     'note_needs_shade':

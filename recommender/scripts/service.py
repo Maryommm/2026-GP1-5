@@ -10,7 +10,7 @@ Request fields:
     longitude     number, required
     month         1-12, required (the user's current month on the phone)
     planting      "pot" | "ground", required. Pots are filled with bought
-                  potting soil, so a neutral pH is used and the soil of the
+                  potting soil, so pH 6.5 is used and the soil of the
                   area is not fetched. "ground" uses the soil pH of the area.
     sunlight      "full" | "partial" | "shade", required (hours of direct sun:
                   6 or more, 3 to 6, less than 3)
@@ -35,8 +35,9 @@ import climate
 import scoring
 
 PLANTING_VALUES = ("pot", "ground")
-# Bought potting soil is close to neutral, whatever the soil of the area.
-POT_SOIL_PH = 7.0
+# Bought potting soil is usually pH 5.5-6.5, whatever the soil of the area.
+# 6.5 is the top of that range, close to neutral.
+POT_SOIL_PH = 6.5
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 1000
