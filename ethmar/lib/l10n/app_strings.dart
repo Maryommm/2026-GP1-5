@@ -568,7 +568,7 @@ class AppStrings {
     'cropPlantingPot': 'في أصيص',
     'cropPlantingPotHint': 'بتربة زراعية جاهزة',
     'cropPlantingGround': 'في الأرض',
-    'cropPlantingGroundHint': 'في تربة الحديقة أو الحوش',
+    'cropPlantingGroundHint': 'في تربة الحديقة أو الفناء',
     'cropSunQuestion': 'كم ستحصل النباتات على شمس؟',
     'cropSunFull': 'شمس كاملة',
     'cropSunFullHint': '6 ساعات أو أكثر من الشمس المباشرة يوميًا',
