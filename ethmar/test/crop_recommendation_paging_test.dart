@@ -88,6 +88,54 @@ void main() {
     expect(offsets, [5]);
   });
 
+  testWidgets('the tip pill shows the most serious tip and opens to the rest',
+      (tester) async {
+    final crop = CropRecommendation(
+      name: const BiText('Mint', 'نعناع'),
+      category: CropCategory.herb,
+      band: MatchBand.good,
+      bestMonths: const [10],
+      minTemp: 15,
+      maxTemp: 25,
+      waterNeed: const ['medium'],
+      tips: const [
+        ModelNote(code: 'needs_shade', months: [6, 7, 8]),
+        ModelNote(code: 'too_cool', months: [1]),
+        ModelNote(code: 'needs_watering'),
+      ],
+    );
+    await tester.pumpWidget(MaterialApp(
+      home: CropRecommendationScreen(
+        load: (setup) async => CropRecommendationResult(
+          conditions: _conditions,
+          crops: [crop],
+        ),
+      ),
+    ));
+    await _settle(tester);
+    for (final answer in ['In a pot', 'Partial sun', 'Medium']) {
+      await tester.tap(find.text(answer));
+      await _settle(tester);
+    }
+
+    final first = find.textContaining('Shade it in Jun–Aug');
+    final others = find.textContaining('Needs watering between rains');
+    expect(first, findsOneWidget);
+    expect(find.text('${String.fromCharCode(0x2066)}+2${String.fromCharCode(0x2069)}'), findsOneWidget);
+    expect(others, findsNothing);
+
+    // Opens to all three tips, then closes again.
+    await tester.ensureVisible(first);
+    await tester.tap(first);
+    await _settle(tester);
+    expect(others, findsOneWidget);
+    expect(find.textContaining('Grows slowly in Jan'), findsOneWidget);
+
+    await tester.tap(first);
+    await _settle(tester);
+    expect(others, findsNothing);
+  });
+
   testWidgets('with little sun, the app says the light is the reason',
       (tester) async {
     var crops = <CropRecommendation>[];

@@ -188,6 +188,8 @@ class AppStrings {
         'Your spot is too sunny for it: shade it, especially in the afternoon',
     'cropSwipeHint': 'Swipe to explore crop categories',
     'tryAgain': 'Try again',
+    'cropShowTips': 'Show {n} more tips',
+    'cropHideTips': 'Show fewer tips',
     'startupErrorTitle': "We couldn't connect",
     'startupErrorBody':
         'Check your internet connection and try again in a moment.',
@@ -625,6 +627,8 @@ class AppStrings {
         'الشمس في مكانك أقوى مما يتحمّل: ظلّله، خاصة وقت العصر',
     'cropSwipeHint': 'اسحب للتنقل بين أنواع المحاصيل',
     'tryAgain': 'حاول مرة أخرى',
+    'cropShowTips': 'اعرض {n} نصائح أخرى',
+    'cropHideTips': 'اعرض نصائح أقل',
     'startupErrorTitle': 'تعذّر الاتصال',
     'startupErrorBody': 'تأكد من اتصالك بالإنترنت وحاول مرة أخرى بعد قليل.',
     'homeGoodMorning': 'صباح الخير،',
@@ -1069,6 +1073,8 @@ class S {
 
   String get cropSwipeHint => t('cropSwipeHint');
   String get tryAgain => t('tryAgain');
+  String cropShowTips(int n) => t('cropShowTips').replaceAll('{n}', '$n');
+  String get cropHideTips => t('cropHideTips');
   String get startupErrorTitle => t('startupErrorTitle');
   String get startupErrorBody => t('startupErrorBody');
   String get homeGoodMorning => t('homeGoodMorning');

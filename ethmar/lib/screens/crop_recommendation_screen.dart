@@ -1498,7 +1498,7 @@ class _CareFacts extends StatelessWidget {
     final bestTime = s.monthRanges(crop.bestMonths);
     final harvest = crop.harvestDays;
     final height = crop.heightM;
-    final tip = crop.tip;
+    final tips = crop.tips;
 
     // Build the list of facts, skipping any the crop doesn't have.
     final facts = [
@@ -1548,15 +1548,10 @@ class _CareFacts extends StatelessWidget {
           if (i > 0) const SizedBox(height: 16),
           pair(facts[i], i + 1 < facts.length ? facts[i + 1] : null),
         ],
-        // The care tip, in a soft green box.
-        if (tip != null) ...[
+        // The care tips, most serious first, in a soft green box.
+        if (tips.isNotEmpty) ...[
           const SizedBox(height: 16),
-          _NoteLine(
-            icon: Icons.lightbulb_rounded,
-            text: s.cropNote(tip),
-            color: AppColors.forest,
-            background: AppColors.featureCard,
-          ),
+          _TipsPill(tips: [for (final tip in tips) s.cropNote(tip)]),
         ],
       ],
     );
@@ -1630,6 +1625,103 @@ class _NoteLine extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The crop's care tips. Shows the most serious one; when there are more,
+/// a "+2" and an arrow invite a tap that opens the rest below it.
+class _TipsPill extends StatefulWidget {
+  const _TipsPill({required this.tips});
+
+  /// Already in the app language, most serious first. Never empty.
+  final List<String> tips;
+
+  @override
+  State<_TipsPill> createState() => _TipsPillState();
+}
+
+class _TipsPillState extends State<_TipsPill> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final tips = widget.tips;
+    final more = tips.length - 1;
+    final style = AppText.small(context, color: AppColors.textPrimary)
+        .copyWith(fontWeight: FontWeight.w500);
+
+    Widget line(String text) => Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.lightbulb_rounded, size: 16, color: AppColors.forest),
+            const SizedBox(width: 8),
+            Expanded(child: Text(text, style: style)),
+          ],
+        );
+
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: AnimatedSize(
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        alignment: AlignmentDirectional.topStart,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: line(tips.first)),
+                if (more > 0) ...[
+                  const SizedBox(width: 6),
+                  // "+2" while closed, then just the arrow.
+                  if (!_open)
+                    Text(
+                      '${String.fromCharCode(0x2066)}+$more'
+                      '${String.fromCharCode(0x2069)}',
+                      style: AppText.small(context, color: AppColors.forest)
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  Icon(
+                    _open
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: AppColors.forest,
+                  ),
+                ],
+              ],
+            ),
+            if (_open)
+              for (final tip in tips.skip(1)) ...[
+                const SizedBox(height: 8),
+                line(tip),
+              ],
+          ],
+        ),
+      ),
+    );
+
+    const radius = BorderRadius.all(Radius.circular(14));
+    return Material(
+      color: AppColors.featureCard,
+      borderRadius: radius,
+      clipBehavior: Clip.antiAlias,
+      child: more == 0
+          ? content
+          : Semantics(
+              button: true,
+              expanded: _open,
+              hint: _open ? s.cropHideTips : s.cropShowTips(more),
+              child: InkWell(
+                onTap: () => setState(() => _open = !_open),
+                child: content,
+              ),
+            ),
     );
   }
 }

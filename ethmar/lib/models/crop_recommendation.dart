@@ -140,7 +140,7 @@ class CropRecommendation {
     this.heightM,
     this.edibleParts = const [],
     this.reason,
-    this.tip,
+    this.tips = const [],
   });
 
   /// One item of the API's `results` list (see recommender/scripts/scoring.py).
@@ -187,7 +187,7 @@ class CropRecommendation {
           p.toString(),
       ],
       reason: reasons.isEmpty ? null : reasons.first,
-      tip: warnings.isEmpty ? null : warnings.first,
+      tips: warnings,
     );
   }
 
@@ -225,8 +225,11 @@ class CropRecommendation {
   /// Why it suits the user's area (best reason from the model).
   final ModelNote? reason;
 
-  /// The most important care warning, if any.
-  final ModelNote? tip;
+  /// Every care warning, most serious first (the model sorts them).
+  final List<ModelNote> tips;
+
+  /// The most serious care warning, if any.
+  ModelNote? get tip => tips.isEmpty ? null : tips.first;
 }
 
 /// The user's area: this month's average climate (not today's weather).

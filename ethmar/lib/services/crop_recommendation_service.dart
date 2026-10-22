@@ -282,7 +282,7 @@ class CropRecommendationService {
         harvestDays: (min: 70, max: 150),
         edibleParts: ['fruit'],
         reason: ModelNote(code: 'temp_ok'),
-        tip: ModelNote(code: 'too_dry'),
+        tips: [ModelNote(code: 'too_dry')],
       ),
       CropRecommendation(
         name: BiText('Mint', 'نعناع'),
@@ -296,7 +296,10 @@ class CropRecommendationService {
         harvestDays: (min: 40, max: 270),
         edibleParts: ['leaves'],
         reason: ModelNote(code: 'light_ok'),
-        tip: ModelNote(code: 'needs_shade', months: [6, 7, 8]),
+        tips: [
+          ModelNote(code: 'needs_shade', months: [6, 7, 8]),
+          ModelNote(code: 'too_cool', months: [1]),
+        ],
       ),
       CropRecommendation(
         name: BiText('Date palm', 'نخلة'),
