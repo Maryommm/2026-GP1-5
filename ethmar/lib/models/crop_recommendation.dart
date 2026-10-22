@@ -106,7 +106,6 @@ class ModelNote {
     required this.code,
     this.month,
     this.months = const [],
-    this.hours,
     this.text = '',
   });
 
@@ -114,7 +113,6 @@ class ModelNote {
         code: json['code'] as String? ?? '',
         month: (json['month'] as num?)?.toInt(),
         months: _ints(json['months']),
-        hours: (json['hours'] as num?)?.toInt(),
         text: json['text'] as String? ?? '',
       );
 
@@ -125,9 +123,6 @@ class ModelNote {
 
   /// Months the note is about, e.g. the hot months that need shade.
   final List<int> months;
-
-  /// Hours of direct sun a day the crop needs (light_too_weak).
-  final int? hours;
   final String text;
 }
 

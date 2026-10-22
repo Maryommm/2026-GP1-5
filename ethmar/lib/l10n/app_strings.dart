@@ -120,6 +120,11 @@ class AppStrings {
     'cropPlantingQuestion': 'Where will you plant?',
     'cropSetupWhy': 'Your answers help us pick crops that suit you',
     'cropSetupStep': 'Question {n} of 3',
+    'cropNoCropsLowSun':
+        'The sunlight in your spot is the reason: most crops need more direct sun than it gets. Try a sunnier spot, such as a balcony or a roof',
+    'cropFewInShade':
+        'Only a few crops grow with less than 3 hours of sun a day. A sunnier spot gives you more choices',
+    'cropChangeAnswers': 'Change my answers',
     'cropPlantingPot': 'In a pot',
     'cropPlantingPotHint': 'With bought potting soil',
     'cropPlantingGround': 'In the ground',
@@ -169,8 +174,6 @@ class AppStrings {
     'note_needs_watering': 'Needs watering between rains',
     'note_needs_wet_soil':
         'Needs soil that stays wet. Grow it in a pot standing in water',
-    'note_light_too_weak':
-        'Needs at least {hours} hours of direct sun a day, more than your spot gets',
     'note_light_too_strong':
         'Your spot is too sunny for it: shade it, especially in the afternoon',
     'cropSwipeHint': 'Swipe to explore crop categories',
@@ -547,6 +550,11 @@ class AppStrings {
     'cropPlantingQuestion': 'أين ستزرع؟',
     'cropSetupWhy': 'إجاباتك تساعدنا في اختيار محاصيل تناسبك',
     'cropSetupStep': 'السؤال {n} من 3',
+    'cropNoCropsLowSun':
+        'السبب هو كمية الشمس في مكانك: أغلب المحاصيل تحتاج شمسًا مباشرة أكثر مما يصل إليه. جرّب مكانًا مشمسًا أكثر مثل الشرفة أو السطح',
+    'cropFewInShade':
+        'قليل من المحاصيل ينمو بأقل من 3 ساعات شمس يوميًا. المكان المشمس أكثر يمنحك خيارات أكثر',
+    'cropChangeAnswers': 'تغيير إجاباتي',
     'cropPlantingPot': 'في أصيص',
     'cropPlantingPotHint': 'بتربة زراعية جاهزة',
     'cropPlantingGround': 'في الأرض',
@@ -595,8 +603,6 @@ class AppStrings {
     'note_too_dry': 'منطقتك جافة، لذلك يحتاج سقيًا منتظمًا',
     'note_needs_watering': 'يحتاج سقيًا بين فترات المطر',
     'note_needs_wet_soil': 'يحتاج تربة مبللة دائمًا: ازرعه في أصيص داخل صحن ماء',
-    'note_light_too_weak':
-        'يحتاج {hours} ساعات على الأقل من الشمس المباشرة يوميًا، وهذا أكثر مما يصل إلى مكانك',
     'note_light_too_strong':
         'الشمس في مكانك أقوى مما يتحمّل: ظلّله، خاصة وقت العصر',
     'cropSwipeHint': 'اسحب للتنقل بين أنواع المحاصيل',
@@ -973,6 +979,9 @@ class S {
   String get cropOpenSettings => t('cropOpenSettings');
   String get cropPlantingQuestion => t('cropPlantingQuestion');
   String get cropSetupWhy => t('cropSetupWhy');
+  String get cropNoCropsLowSun => t('cropNoCropsLowSun');
+  String get cropFewInShade => t('cropFewInShade');
+  String get cropChangeAnswers => t('cropChangeAnswers');
   String cropSetupStep(int n) => t('cropSetupStep').replaceAll('{n}', '$n');
   String get cropPlantingPot => t('cropPlantingPot');
   String get cropPlantingPotHint => t('cropPlantingPotHint');
@@ -1037,8 +1046,7 @@ class S {
     final month = note.month;
     return t(key)
         .replaceAll('{month}', month == null ? '' : monthName(month))
-        .replaceAll('{months}', monthRanges(note.months))
-        .replaceAll('{hours}', '${note.hours ?? ''}');
+        .replaceAll('{months}', monthRanges(note.months));
   }
 
   String get cropSwipeHint => t('cropSwipeHint');

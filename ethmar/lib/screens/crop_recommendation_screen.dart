@@ -65,6 +65,12 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
         _future = _load(_setup!);
       });
 
+  // Back to the first question, e.g. to pick a sunnier spot.
+  void _changeAnswers() => setState(() {
+        _setup = null;
+        _future = null;
+      });
+
   // True after we send the user to the phone's settings to allow location,
   // so we try again by ourselves when they come back to the app.
   bool _sentToSettings = false;
@@ -140,10 +146,21 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
               );
               // It worked but returned no crops: show the "no crops" message.
             } else if (snap.data!.crops.isEmpty) {
-              child = _ErrorView(onRetry: _retry, empty: true);
+              child = _ErrorView(
+                onRetry: _retry,
+                empty: true,
+                // Without full sun, the sunlight is the likely reason, not
+                // the climate of the area.
+                lowSun: _setup?.sunlight != Sunlight.full,
+                onChangeAnswers: _changeAnswers,
+              );
               // Success: show the seed packets.
             } else {
-              child = _ResultsView(result: snap.data!, loadMore: _loadMore);
+              child = _ResultsView(
+                result: snap.data!,
+                loadMore: _loadMore,
+                onChangeAnswers: _changeAnswers,
+              );
               showingResults = true;
             }
             return AnimatedSwitcher(
@@ -468,8 +485,16 @@ class _ErrorView extends StatelessWidget {
     this.onSignIn,
     this.error,
     this.empty = false,
+    this.lowSun = false,
+    this.onChangeAnswers,
   });
   final VoidCallback onRetry;
+
+  /// No crops because the user's spot gets less than full sun.
+  final bool lowSun;
+
+  /// Goes back to the questions about the user's setup.
+  final VoidCallback? onChangeAnswers;
 
   /// Opens the phone's settings for a LOCATION_OFF / LOCATION_BLOCKED error.
   final ValueChanged<String>? onOpenSettings;
@@ -488,7 +513,7 @@ class _ErrorView extends StatelessWidget {
   }
 
   String _message(S s) {
-    if (empty) return s.cropNoCrops;
+    if (empty) return lowSun ? s.cropNoCropsLowSun : s.cropNoCrops;
     return switch (_status) {
       'UNAUTHENTICATED' => s.cropErrorSignIn,
       'UNAVAILABLE' => s.cropErrorClimate,
@@ -504,6 +529,10 @@ class _ErrorView extends StatelessWidget {
   /// The main button, plus a smaller "Try again" link when the main button
   /// sends the user to the phone's settings.
   List<Widget> _actions(S s) {
+    final change = onChangeAnswers;
+    if (empty && lowSun && change != null) {
+      return [EthmarButton(label: s.cropChangeAnswers, onPressed: change)];
+    }
     final status = _status;
     // Trying again can't help until the user signs in again.
     final signIn = onSignIn;
@@ -637,9 +666,14 @@ String _categoryPhoto(CropCategory cat) => switch (cat) {
 /// Swipe left/right between categories; each category's tickets scroll
 /// freely up and down.
 class _ResultsView extends StatefulWidget {
-  const _ResultsView({required this.result, required this.loadMore});
+  const _ResultsView({
+    required this.result,
+    required this.loadMore,
+    required this.onChangeAnswers,
+  });
   final CropRecommendationResult result;
   final LoadMoreCrops loadMore;
+  final VoidCallback onChangeAnswers;
 
   @override
   State<_ResultsView> createState() => _ResultsViewState();
@@ -774,6 +808,13 @@ class _ResultsViewState extends State<_ResultsView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _CompactHeader(conditions: conditions),
+        // In shade only a few crops can grow. Say that the light is the
+        // reason, so the user doesn't blame the climate of their area.
+        if (widget.result.setup.sunlight == Sunlight.shade)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: _LowSunNote(onChangeAnswers: widget.onChangeAnswers),
+          ),
         const SizedBox(height: 10),
         Entrance(
           delay: const Duration(milliseconds: 150),
@@ -1589,6 +1630,29 @@ class _NoteLine extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// "Only a few crops grow in shade" with a link back to the questions.
+class _LowSunNote extends StatelessWidget {
+  const _LowSunNote({required this.onChangeAnswers});
+  final VoidCallback onChangeAnswers;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _NoteLine(
+          icon: Icons.wb_sunny_rounded,
+          text: s.cropFewInShade,
+          color: AppColors.forest,
+          background: AppColors.featureCard,
+        ),
+        EthmarLink(label: s.cropChangeAnswers, onTap: onChangeAnswers),
+      ],
     );
   }
 }

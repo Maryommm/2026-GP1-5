@@ -82,18 +82,6 @@ void main() {
     expect(crop.tip, isNull);
   });
 
-  test('the light note says how many hours of sun the crop needs', () {
-    final note = ModelNote.fromJson({
-      'code': 'light_too_weak',
-      'text': 'needs at least 6 hours of direct sun a day',
-      'hours': 6,
-    });
-    expect(note.hours, 6);
-    expect(en.cropNote(note),
-        'Needs at least 6 hours of direct sun a day, more than your spot gets');
-    expect(ar.cropNote(note), contains('6 ساعات'));
-  });
-
   test('month ranges wrap around the year', () {
     expect(en.monthRanges([1, 2, 10, 11, 12]), 'Oct–Feb');
     expect(ar.monthRanges([1, 2, 10, 11, 12]), 'أكتوبر–فبراير');

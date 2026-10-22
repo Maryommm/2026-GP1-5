@@ -87,4 +87,41 @@ void main() {
     await _settle(tester);
     expect(offsets, [5]);
   });
+
+  testWidgets('with little sun, the app says the light is the reason',
+      (tester) async {
+    var crops = <CropRecommendation>[];
+    await tester.pumpWidget(MaterialApp(
+      home: CropRecommendationScreen(
+        load: (setup) async => CropRecommendationResult(
+          conditions: _conditions,
+          crops: crops,
+          setup: setup,
+        ),
+      ),
+    ));
+    await _settle(tester);
+
+    Future<void> answer(String sun) async {
+      for (final text in ['In a pot', sun, 'Medium']) {
+        await tester.tap(find.text(text));
+        await _settle(tester);
+      }
+    }
+
+    // No crops with partial sun: the message blames the light, not the
+    // climate, and the button goes back to the questions.
+    await answer('Partial sun');
+    expect(find.textContaining('The sunlight in your spot is the reason'),
+        findsOneWidget);
+    await tester.tap(find.text('Change my answers'));
+    await _settle(tester);
+    expect(find.text('Where will you plant?'), findsOneWidget);
+
+    // A few crops in shade: they are shown, with a note about the light.
+    crops = [_crop(0)];
+    await answer('Mostly shade');
+    expect(find.text('Crop 0'), findsOneWidget);
+    expect(find.textContaining('Only a few crops grow'), findsOneWidget);
+  });
 }

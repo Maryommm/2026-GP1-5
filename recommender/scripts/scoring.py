@@ -574,46 +574,58 @@ def score_soil_ph(row, ph: float, config: dict):
         "prefers_more_alkaline", "prefers slightly more alkaline soil than yours")
 
 
-def score_sunlight(row, site: Site):
-    """Check if the crop accepts the user's light level (Permapeople flags)."""
+# Light levels from most to least sun. In gardening, full sun means 6 hours
+# or more of direct sun a day, partial sun 3 to 6 hours and shade less than 3.
+LIGHT_ORDER = ("full", "partial", "shade")
+
+
+def accepted_light(row) -> list:
+    """
+    The light levels the crop accepts, from the Permapeople flags.
+
+    A crop with no light flag at all (2 crops, both peppers) is treated as a
+    full-sun crop, which is true for 476 of the 488 crops in the table.
+    """
     flags = {
         "full": _number(row, "light_full_sun"),
         "partial": _number(row, "light_partial_sun_shade"),
         "shade": _number(row, "light_full_shade"),
     }
-    wanted = flags.get(site.sunlight)
-    if wanted is None:
-        return 0.6, None, None
-    if wanted == 1:
-        return 1.0, _note("light_ok", "the sunlight in your spot suits it"), None
-    return 0.3, None, _light_note(flags, site.sunlight)
+    accepted = [level for level in LIGHT_ORDER if flags[level] == 1]
+    return accepted or ["full"]
 
 
-# Light levels from most to least sun, with the hours of direct sun a day
-# that each level starts at (the usual garden definition: full sun is 6
-# hours or more, partial sun 3 to 6 hours).
-LIGHT_ORDER = ("full", "partial", "shade")
-LIGHT_HOURS = {"full": 6, "partial": 3}
-
-
-def _light_note(flags: dict, user_light: str) -> dict | None:
+def needs_more_sun(row, site: Site) -> bool:
     """
-    Explain a light mismatch in a way the user can act on: the crop needs
-    more sun (and how many hours), or it needs less sun than the spot gets.
-    The nearest light level the crop accepts decides which one.
+    Return True if the crop needs more sun than the user's spot gets.
+
+    Such a crop is not recommended at all. The rule is not symmetric on
+    purpose: a home grower can lower the sun with shade cloth or by moving a
+    pot, but cannot add sunlight. A crop that needs less sun therefore stays,
+    with a note to shade it (see score_sunlight).
+
+    The nearest light level the crop accepts decides the direction.
     """
-    accepted = [level for level in LIGHT_ORDER if flags.get(level) == 1]
-    if not accepted:
-        return None
-    position = LIGHT_ORDER.index(user_light)
+    accepted = accepted_light(row)
+    if site.sunlight in accepted:
+        return False
+    position = LIGHT_ORDER.index(site.sunlight)
     nearest = min(accepted, key=lambda level: abs(LIGHT_ORDER.index(level) - position))
-    if LIGHT_ORDER.index(nearest) < position:
-        hours = LIGHT_HOURS[nearest]
-        return _note("light_too_weak",
-                     f"needs at least {hours} hours of direct sun a day, "
-                     "more than your spot gets", hours=hours)
-    return _note("light_too_strong",
-                 "your spot is too sunny for it; shade it, especially in the afternoon")
+    return LIGHT_ORDER.index(nearest) < position
+
+
+def score_sunlight(row, site: Site):
+    """
+    Check if the crop accepts the user's light level (Permapeople flags).
+
+    Crops that need more sun are already removed by needs_more_sun, so a
+    mismatch here means the spot is too sunny, which shade can fix.
+    """
+    if site.sunlight in accepted_light(row):
+        return 1.0, _note("light_ok", "the sunlight in your spot suits it"), None
+    return 0.3, None, _note(
+        "light_too_strong",
+        "your spot is too sunny for it; shade it, especially in the afternoon")
 
 
 def score_water(row, site: Site):
@@ -744,8 +756,12 @@ def score_species(row, climate, month: int, site: Site, config: dict):
 
     Returns:
         A Recommendation, or None if the crop cannot be grown at the
-        location in any month of the year.
+        location in any month of the year, or needs more sun than the
+        user's spot gets.
     """
+    if needs_more_sun(row, site):
+        return None
+
     weights = config["weights"]
     protection = config["protection"]
     reasons, warnings = [], []
