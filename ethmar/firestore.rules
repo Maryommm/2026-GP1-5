@@ -120,6 +120,30 @@ service cloud.firestore {
         // Only the owner can delete their profile image metadata.
         allow delete: if mediaId == 'profile' && ownsProfile(uid);
       }
+
+      // Sprint 2 farm data (see lib/models/ for the fields of each document).
+      // Owner-only for now. TODO(rules): Add field validation later, like
+      // validProfile and validProfileImage above.
+
+      // The user's plants.
+      match /plants/{plantId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+
+        // Each plant's growth timeline.
+        match /growth/{entryId} {
+          allow read, write: if request.auth != null && request.auth.uid == uid;
+        }
+      }
+
+      // Finished tasks, one document per day (yyyy-mm-dd).
+      match /taskLog/{date} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // Streak and number of lands (the "summary" document).
+      match /stats/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // Reserve unique usernames for verified users.
