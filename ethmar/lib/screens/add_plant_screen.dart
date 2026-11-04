@@ -5,6 +5,7 @@ import '../models/crop_catalog.dart';
 import '../models/crop_recommendation.dart' show CropCategory;
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
+import '../services/plant_service.dart' show FarmFullException;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
@@ -52,6 +53,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
 
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
+  bool _saving = false;
   final _irrigation = ScheduleDraft(
     Repeat.everyDay,
     const TimeOfDay(hour: 7, minute: 0),
@@ -78,7 +80,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_form.currentState!.validate()) return;
+    if (_saving || !_form.currentState!.validate()) return;
     final plant = FarmPlant(
       crop: _crop!,
       name: _name.text.trim(),
@@ -91,8 +93,21 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
       builder: (_) => _SummaryDialog(plant: plant),
     );
     if (confirmed != true || !mounted) return;
-    FarmStore.addPlant(plant);
-    Navigator.of(context).pop(plant);
+    setState(() => _saving = true);
+    try {
+      final saved = await FarmStore.addPlant(plant);
+      if (mounted) Navigator.of(context).pop(saved);
+    } on FarmFullException {
+      _saveFailed((s) => s.farmLandFull, EthmarToastType.info);
+    } catch (_) {
+      _saveFailed((s) => s.farmSaveFailed, EthmarToastType.error);
+    }
+  }
+
+  void _saveFailed(String Function(S) message, EthmarToastType type) {
+    if (!mounted) return;
+    setState(() => _saving = false);
+    showEthmarToast(context, message(S.of(context)), type: type);
   }
 
   @override
@@ -249,7 +264,11 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: EthmarButton(label: s.addPlantButton, onPressed: _submit),
+              child: EthmarButton(
+                label: s.addPlantButton,
+                onPressed: _submit,
+                loading: _saving,
+              ),
             ),
           ),
         ],

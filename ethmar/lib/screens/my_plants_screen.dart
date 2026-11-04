@@ -26,39 +26,45 @@ class MyPlantsScreen extends StatelessWidget {
       body: LeafPrintBackground(
         child: ValueListenableBuilder<List<FarmPlant>>(
           valueListenable: FarmStore.plants,
-          builder: (context, plants, _) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              EthmarPageHeader(title: s.myPlants, accent: s.myPlantsAccent),
-              Expanded(
-                child: plants.isEmpty
-                    ? const _NoPlants()
-                    : ListView.separated(
-                        padding: EdgeInsets.fromLTRB(
-                          16,
-                          16,
-                          16,
-                          16 + MediaQuery.paddingOf(context).bottom,
-                        ),
-                        itemCount: plants.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (context, i) {
-                          // Newest first.
-                          final index = plants.length - 1 - i;
-                          return Entrance(
-                            delay: Duration(milliseconds: 40 * i.clamp(0, 8)),
-                            child: _PlantCard(
-                              plant: plants[index],
-                              onTap: () => Navigator.of(context).push(
-                                riseRoute(PlantDetailsScreen(index: index)),
+          builder: (context, plants, _) {
+            final newestFirst = [...plants]
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                EthmarPageHeader(title: s.myPlants, accent: s.myPlantsAccent),
+                Expanded(
+                  child: plants.isEmpty
+                      ? const _NoPlants()
+                      : ListView.separated(
+                          padding: EdgeInsets.fromLTRB(
+                            16,
+                            16,
+                            16,
+                            16 + MediaQuery.paddingOf(context).bottom,
+                          ),
+                          itemCount: newestFirst.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, i) {
+                            final plant = newestFirst[i];
+                            return Entrance(
+                              delay: Duration(milliseconds: 40 * i.clamp(0, 8)),
+                              child: _PlantCard(
+                                plant: plant,
+                                onTap: () => Navigator.of(context).push(
+                                  riseRoute(
+                                    PlantDetailsScreen(plantId: plant.id!),
+                                  ),
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

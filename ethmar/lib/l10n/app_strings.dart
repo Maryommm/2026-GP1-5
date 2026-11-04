@@ -436,6 +436,7 @@ class AppStrings {
     'tomorrow': 'Tomorrow',
     'editPlantTitle': 'Edit plant',
     'plantUpdated': 'Plant updated',
+    'farmSaveFailed': "Couldn't save. Check your connection and try again.",
     'leaderboardTitle': 'Leaderboard',
     'leaderboardAccent': "who's growing the most?",
     'rankFirst': "You're #1! Your farm is the biggest of all.",
@@ -867,6 +868,7 @@ class AppStrings {
     'tomorrow': 'بكرة',
     'editPlantTitle': 'تعديل النبتة',
     'plantUpdated': 'تم تحديث النبتة',
+    'farmSaveFailed': 'تعذر الحفظ. تحقق من اتصالك وحاول مرة أخرى.',
     'leaderboardTitle': 'المتصدرون',
     'leaderboardAccent': 'مين يزرع أكثر؟',
     'rankFirst': 'أنت الأول! مزرعتك هي الأكبر.',
@@ -1296,6 +1298,7 @@ class S {
   String get tomorrow => t('tomorrow');
   String get editPlantTitle => t('editPlantTitle');
   String get plantUpdated => t('plantUpdated');
+  String get farmSaveFailed => t('farmSaveFailed');
   String get leaderboardTitle => t('leaderboardTitle');
   String get leaderboardAccent => t('leaderboardAccent');
 

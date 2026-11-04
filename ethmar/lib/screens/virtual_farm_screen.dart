@@ -7,6 +7,7 @@ import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/entrance.dart';
 import '../widgets/page_header.dart';
 import '../widgets/page_routes.dart';
@@ -45,8 +46,11 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
 
   int get _landCount => FarmStore.lands.value;
 
-  /// Index of a plant added while this screen is open; it pops in.
-  int? _newest;
+  /// Id of a plant added while this screen is open; it pops in.
+  String? _newest;
+
+  /// The plants already on the farm, to notice a new one.
+  Set<String?> _knownPlants = const {};
 
   final _view = TransformationController();
   late final _move = AnimationController(
@@ -61,6 +65,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
   @override
   void initState() {
     super.initState();
+    _knownPlants = _plantIds();
     FarmStore.lands.addListener(_farmChanged);
     FarmStore.plants.addListener(_plantsChanged);
   }
@@ -76,8 +81,17 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
 
   void _farmChanged() => setState(() {});
 
-  void _plantsChanged() =>
-      setState(() => _newest = FarmStore.plants.value.length - 1);
+  Set<String?> _plantIds() => {for (final p in FarmStore.plants.value) p.id};
+
+  void _plantsChanged() {
+    final ids = _plantIds();
+    final added = ids.difference(_knownPlants);
+    _knownPlants = ids;
+    setState(() {
+      // Several at once is the farm loading, not the user adding a plant.
+      if (added.length == 1) _newest = added.first;
+    });
+  }
 
   void _onMove() {
     final tween = _moveTween;
@@ -108,8 +122,18 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
       ? _landSpots[_landCount]
       : null;
 
-  // TODO(backend): Save the new land for the user (inside FarmStore).
-  void _addLand() => FarmStore.addLand();
+  Future<void> _addLand() async {
+    try {
+      await FarmStore.addLand();
+    } catch (_) {
+      if (!mounted) return;
+      showEthmarToast(
+        context,
+        S.of(context).farmSaveFailed,
+        type: EthmarToastType.error,
+      );
+    }
+  }
 
   double get _maxScale => _maxZoomOneLand * _zoomRoom;
 
@@ -178,27 +202,24 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                                     image: true,
                                     label: s.farmLand,
                                     child: CustomPaint(
-                                      painter: _FarmPainter(
-                                        layout,
-                                        plants.length,
-                                      ),
+                                      painter: _FarmPainter(layout, plants),
                                     ),
                                   ),
                                 ),
                                 // Back squares first, so plants in front
                                 // overlap the ones behind them.
-                                for (final i in layout.backToFront(
-                                  plants.length,
-                                ))
+                                for (final plant in layout.backToFront(plants))
                                   _PlacedPlant(
-                                    key: ValueKey(i),
-                                    plant: plants[i],
-                                    at: layout.squareMiddle(i),
+                                    key: ValueKey(plant.id),
+                                    plant: plant,
+                                    at: layout.squareMiddle(plant),
                                     squareWidth:
                                         layout.landWidth / _FarmLayout.cells,
-                                    popIn: i == _newest,
+                                    popIn: plant.id == _newest,
                                     onTap: () => Navigator.of(context).push(
-                                      riseRoute(PlantDetailsScreen(index: i)),
+                                      riseRoute(
+                                        PlantDetailsScreen(plantId: plant.id!),
+                                      ),
                                     ),
                                   ),
                                 if (next != null)
@@ -597,45 +618,40 @@ class _FarmLayout {
   /// Middle of the land's grass top.
   Offset middleOf((int, int) spot) => pointOn(spot, 0.5, 0.5);
 
-  /// Where plant number [i] grows: its land, and its square's row and
-  /// column there. Squares fill row by row from the land's back corner,
-  /// one land after another.
-  ({(int, int) land, int row, int col}) squareOf(int i) {
-    final square = i % (cells * cells);
-    return (
-      land: lands[i ~/ (cells * cells)],
-      row: square ~/ cells,
-      col: square % cells,
-    );
-  }
+  /// Where [plant] grows: its land, and its square's row and column there.
+  /// Squares go row by row from the land's back corner.
+  ({(int, int) land, int row, int col}) squareOf(FarmPlant plant) => (
+    land: lands[plant.land],
+    row: plant.square ~/ cells,
+    col: plant.square % cells,
+  );
 
-  /// Middle of plant number [i]'s square.
-  Offset squareMiddle(int i) {
-    final s = squareOf(i);
+  /// Middle of [plant]'s square.
+  Offset squareMiddle(FarmPlant plant) {
+    final s = squareOf(plant);
     return pointOn(s.land, (s.col + 0.5) / cells, (s.row + 0.5) / cells);
   }
 
-  /// Plant numbers below [count], ordered from the back of the farm to the
-  /// front, so drawing them in this order layers them correctly.
-  List<int> backToFront(int count) {
-    int depth(int i) {
-      final s = squareOf(i);
+  /// [plants] ordered from the back of the farm to the front, so drawing
+  /// them in this order layers them correctly.
+  List<FarmPlant> backToFront(List<FarmPlant> plants) {
+    int depth(FarmPlant plant) {
+      final s = squareOf(plant);
       return (s.land.$1 + s.land.$2) * cells + s.row + s.col;
     }
 
-    return List.generate(count, (i) => i)
-      ..sort((a, b) => depth(a).compareTo(depth(b)));
+    return [...plants]..sort((a, b) => depth(a).compareTo(depth(b)));
   }
 
   bool hasLand((int, int) spot) => lands.contains(spot);
 }
 
 class _FarmPainter extends CustomPainter {
-  const _FarmPainter(this.layout, this.plantCount);
+  const _FarmPainter(this.layout, this.plants);
   final _FarmLayout layout;
 
   /// Planted squares get a soft shadow under the plant.
-  final int plantCount;
+  final List<FarmPlant> plants;
 
   static const _grassTop = Color(0xFFA9D57F);
   static const _grassLit = Color(0xFF97C86F);
@@ -675,10 +691,10 @@ class _FarmPainter extends CustomPainter {
     final shadow = Paint()
       ..color = AppColors.forest.withValues(alpha: 0.2)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, square * 0.06);
-    for (var i = 0; i < plantCount; i++) {
+    for (final plant in plants) {
       canvas.drawOval(
         Rect.fromCenter(
-          center: layout.squareMiddle(i),
+          center: layout.squareMiddle(plant),
           width: square * 0.45,
           height: square * 0.18,
         ),
@@ -841,7 +857,7 @@ class _FarmPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FarmPainter old) =>
-      old.plantCount != plantCount ||
+      old.plants != plants ||
       old.layout.lands.length != layout.lands.length ||
       old.layout.landWidth != layout.landWidth ||
       old.layout.next != layout.next;

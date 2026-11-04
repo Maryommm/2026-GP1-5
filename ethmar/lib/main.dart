@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'l10n/locale_controller.dart';
 import 'screens/splash_screen.dart';
 import 'screens/startup_error_screen.dart';
+import 'services/farm_store.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
@@ -15,6 +16,9 @@ Future<void> main() async {
 
   // Initialize Firebase before building the app.
   final firebaseReady = await initFirebase();
+
+  // Follow the signed-in user's plants and lands.
+  if (firebaseReady) FarmStore.start();
 
   // Open the app in the language the user chose last time.
   await loadSavedLocale();

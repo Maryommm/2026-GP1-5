@@ -89,8 +89,9 @@ class CareSchedule {
 
   /// Null when the schedule is switched off (saved as null).
   /// Throws a [FormatException] if the saved values aren't valid.
-  static CareSchedule? fromMap(Map<String, dynamic>? data) {
+  static CareSchedule? fromMap(Object? data) {
     if (data == null) return null;
+    if (data is! Map) throw FormatException('Invalid care schedule: $data');
     final everyDays = data['everyDays'];
     final time = data['time'];
     if (everyDays is! int || time is! String) {
@@ -143,8 +144,9 @@ class GrowthPhoto {
 
   /// Null when the entry has no picture.
   /// Throws a [FormatException] if the saved values aren't valid.
-  static GrowthPhoto? fromMap(Map<String, dynamic>? data) {
+  static GrowthPhoto? fromMap(Object? data) {
     if (data == null) return null;
+    if (data is! Map) throw FormatException('Invalid growth photo: $data');
     final publicId = data['publicId'];
     final version = data['version'];
     final format = data['format'];
@@ -202,7 +204,7 @@ class GrowthEntry {
       id: id,
       date: date.toDate(),
       notes: notes as String?,
-      photo: GrowthPhoto.fromMap(data['photo'] as Map<String, dynamic>?),
+      photo: GrowthPhoto.fromMap(data['photo']),
     );
   }
 }
@@ -277,6 +279,25 @@ class FarmPlant {
     growth: growth,
   );
 
+  /// The same plant once it has a document [id] and a spot on the farm.
+  FarmPlant placed({
+    required String id,
+    required int land,
+    required int square,
+  }) => FarmPlant(
+    id: id,
+    crop: crop,
+    name: name,
+    land: land,
+    square: square,
+    irrigation: irrigation,
+    fertilization: fertilization,
+    plantedAt: plantedAt,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    growth: growth,
+  );
+
   /// The same plant with [entry] added to its timeline. The plant's own
   /// document doesn't change (entries live in `growth`), so neither does
   /// [updatedAt].
@@ -339,12 +360,8 @@ class FarmPlant {
       name: name,
       land: land,
       square: square,
-      irrigation: CareSchedule.fromMap(
-        data['irrigation'] as Map<String, dynamic>?,
-      ),
-      fertilization: CareSchedule.fromMap(
-        data['fertilization'] as Map<String, dynamic>?,
-      ),
+      irrigation: CareSchedule.fromMap(data['irrigation']),
+      fertilization: CareSchedule.fromMap(data['fertilization']),
       plantedAt: plantedAt.toDate(),
       createdAt: createdAt.toDate(),
       updatedAt: updatedAt.toDate(),

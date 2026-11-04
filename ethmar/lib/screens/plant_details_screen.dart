@@ -18,13 +18,13 @@ import 'edit_plant_screen.dart';
 /// watering, the growth timeline (pictures with notes and dates), and the
 /// care schedule with an Edit button.
 ///
-/// [index] is the plant's number on the farm (see [FarmStore]).
+/// [plantId] is the plant's Firestore document id.
 class PlantDetailsScreen extends StatelessWidget {
-  const PlantDetailsScreen({super.key, required this.index});
-  final int index;
+  const PlantDetailsScreen({super.key, required this.plantId});
+  final String plantId;
 
   /// "Upload a picture": pick where it comes from, then add optional notes.
-  Future<void> _addPicture(BuildContext context, FarmPlant plant) async {
+  Future<void> _addPicture(BuildContext context) async {
     final s = S.of(context);
     final picked = await showModalBottomSheet<bool>(
       context: context,
@@ -63,18 +63,16 @@ class PlantDetailsScreen extends StatelessWidget {
     );
     if (notes == null || !context.mounted) return;
     // TODO(backend): Upload the picture and save the entry for this plant.
-    FarmStore.updatePlant(
-      index,
-      plant.withGrowth(
-        GrowthEntry(date: DateTime.now(), notes: notes.isEmpty ? null : notes),
-      ),
+    FarmStore.addGrowth(
+      plantId,
+      GrowthEntry(date: DateTime.now(), notes: notes.isEmpty ? null : notes),
     );
     showEthmarToast(context, s.pictureAdded);
   }
 
   Future<void> _edit(BuildContext context) async {
     final saved = await Navigator.of(context)
-        .push<bool>(riseRoute(EditPlantScreen(index: index)));
+        .push<bool>(riseRoute(EditPlantScreen(plantId: plantId)));
     if (saved == true && context.mounted) {
       showEthmarToast(context, S.of(context).plantUpdated);
     }
@@ -88,7 +86,9 @@ class PlantDetailsScreen extends StatelessWidget {
         child: ValueListenableBuilder<List<FarmPlant>>(
           valueListenable: FarmStore.plants,
           builder: (context, plants, _) {
-            final plant = plants[index];
+            final plant = FarmStore.plantById(plantId);
+            // It was deleted while this screen was open.
+            if (plant == null) return const SizedBox.shrink();
             final crop = plant.crop;
             final irrigation = plant.irrigation;
             return Column(
@@ -143,7 +143,7 @@ class PlantDetailsScreen extends StatelessWidget {
                         title: s.stagesTitle,
                         child: _GrowthTimeline(
                           entries: plant.growth,
-                          onAdd: () => _addPicture(context, plant),
+                          onAdd: () => _addPicture(context),
                         ),
                       ),
                       const SizedBox(height: 16),

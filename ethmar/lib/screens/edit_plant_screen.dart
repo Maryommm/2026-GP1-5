@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
+import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/care_schedule_editor.dart';
 import '../widgets/ethmar_buttons.dart';
@@ -11,18 +12,19 @@ import '../widgets/page_header.dart';
 
 /// Edit a plant's name and care schedules, starting from what's saved.
 class EditPlantScreen extends StatefulWidget {
-  const EditPlantScreen({super.key, required this.index});
-  final int index;
+  const EditPlantScreen({super.key, required this.plantId});
+  final String plantId;
 
   @override
   State<EditPlantScreen> createState() => _EditPlantScreenState();
 }
 
 class _EditPlantScreenState extends State<EditPlantScreen> {
-  late final FarmPlant _plant = FarmStore.plants.value[widget.index];
+  late final FarmPlant _plant = FarmStore.plantById(widget.plantId)!;
 
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: _plant.name);
+  bool _saving = false;
 
   // Off schedules start from the same defaults as when adding a plant.
   late final _irrigation = ScheduleDraft.from(
@@ -42,18 +44,27 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
     super.dispose();
   }
 
-  void _save() {
-    if (!_form.currentState!.validate()) return;
-    // TODO(backend): Save the changes in the next sprints.
-    FarmStore.updatePlant(
-      widget.index,
-      _plant.edited(
-        name: _name.text.trim(),
-        irrigation: _irrigation.result,
-        fertilization: _fertilization.result,
-      ),
-    );
-    Navigator.of(context).pop(true);
+  Future<void> _save() async {
+    if (_saving || !_form.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await FarmStore.updatePlant(
+        _plant.edited(
+          name: _name.text.trim(),
+          irrigation: _irrigation.result,
+          fertilization: _fertilization.result,
+        ),
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      showEthmarToast(
+        context,
+        S.of(context).farmSaveFailed,
+        type: EthmarToastType.error,
+      );
+    }
   }
 
   @override
@@ -103,7 +114,11 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      EthmarButton(label: s.save, onPressed: _save),
+                      EthmarButton(
+                        label: s.save,
+                        onPressed: _save,
+                        loading: _saving,
+                      ),
                       const SizedBox(height: 4),
                       Center(
                         child: EthmarLink(

@@ -22,6 +22,11 @@ void main() {
       expect(back.time, const TimeOfDay(hour: 7, minute: 5));
     });
 
+    test('rejects a saved value that is not a map', () {
+      expect(() => CareSchedule.fromMap('daily'), throwsFormatException);
+      expect(() => GrowthPhoto.fromMap(7), throwsFormatException);
+    });
+
     test('null means switched off', () {
       expect(CareSchedule.fromMap(null), isNull);
     });
@@ -94,6 +99,18 @@ void main() {
       expect(() => FarmPlant.fromMap('p1', map), throwsFormatException);
     });
 
+    test('placed() sets the id and spot and keeps the rest', () {
+      final plant = samplePlants.first;
+      final placed = plant.placed(id: 'new', land: 2, square: 7);
+      expect(placed.id, 'new');
+      expect(placed.land, 2);
+      expect(placed.square, 7);
+      expect(placed.name, plant.name);
+      expect(placed.createdAt, plant.createdAt);
+      expect(placed.updatedAt, plant.updatedAt);
+      expect(placed.growth, plant.growth);
+    });
+
     test('edited() and withGrowth() keep the id, spot and dates', () {
       final plant = samplePlants.first;
       final edited = plant.edited(
@@ -157,13 +174,35 @@ void main() {
     });
   });
 
-  group('firstFreeSpot', () {
+  group('farm spots', () {
     FarmPlant at(int land, int square) => FarmPlant(
       crop: cropCatalog.first,
       name: 'x',
       land: land,
       square: square,
     );
+
+    test('inFarmOrder sorts by land, then square', () {
+      final sorted = inFarmOrder([at(1, 0), at(0, 3), at(0, 1)]);
+      expect(
+        [for (final p in sorted) (p.land, p.square)],
+        [(0, 1), (0, 3), (1, 0)],
+      );
+    });
+
+    test('isOnFarm rejects spots outside the grid', () {
+      expect(isOnFarm(at(0, 0)), isTrue);
+      expect(isOnFarm(at(8, 24)), isTrue);
+      expect(isOnFarm(at(9, 0)), isFalse);
+      expect(isOnFarm(at(0, 25)), isFalse);
+      expect(isOnFarm(at(-1, 0)), isFalse);
+    });
+
+    test('landsToShow always leaves a land under every plant', () {
+      expect(landsToShow(1, const []), 1);
+      expect(landsToShow(3, [at(0, 0)]), 3);
+      expect(landsToShow(1, [at(0, 0), at(2, 4)]), 3);
+    });
 
     test('an empty farm starts at land 0, square 0', () {
       expect(firstFreeSpot(const [], 1), (land: 0, square: 0));

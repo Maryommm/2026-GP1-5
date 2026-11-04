@@ -1,44 +1,97 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/farm_plant.dart';
+import '../models/farm_spot.dart';
+import 'plant_service.dart';
 
-/// The user's farm while the app is open: how many lands, and the plants in
-/// the order they were added. Plant number i sits in square i, filling each
-/// land ([squaresPerLand] squares) before the next.
+/// The user's farm while the app is open: the latest lands and plants from
+/// Firestore, ready for the screens to read and listen to.
 ///
-/// TODO(backend): Load the user's lands and plants from the database when
-///   the app starts, and save every change. Prototype: kept in memory only,
-///   so the farm is empty again after the app restarts.
+/// Changes go through the methods below and are saved by [PlantService].
+/// [plants] and [lands] then update by themselves, from the live streams.
 class FarmStore {
   FarmStore._();
 
-  /// Squares along each side of a land: 5 × 5 = 25 squares, one plant each,
-  /// with room to breathe between them.
-  static const squaresPerSide = 5;
-  static const squaresPerLand = squaresPerSide * squaresPerSide;
-
-  /// The farm grows to at most 3 × 3 lands.
-  static const maxLands = 9;
+  static const squaresPerSide = FarmGrid.squaresPerSide;
+  static const squaresPerLand = FarmGrid.squaresPerLand;
+  static const maxLands = FarmGrid.maxLands;
 
   static final lands = ValueNotifier<int>(1);
+
+  /// Sorted by land, then square.
   static final plants = ValueNotifier<List<FarmPlant>>(const []);
+
+  static final _service = PlantService();
+
+  /// The latest plants and lands, exactly as saved.
+  static List<FarmPlant> _savedPlants = const [];
+  static int _savedLands = 1;
+
+  /// TODO(growth): Save entries in Firestore and load them for each plant.
+  ///   Prototype: kept in memory by plant id, so they're gone after a restart.
+  static final _growth = <String, List<GrowthEntry>>{};
+
+  static bool _started = false;
+
+  /// Starts following the user's farm. Call once, after Firebase is ready.
+  /// It follows sign-in and sign-out by itself.
+  static void start() {
+    if (_started) return;
+    _started = true;
+    _service.watchPlants().listen((saved) {
+      _savedPlants = saved;
+      _publish();
+    }, onError: (Object e) => debugPrint('Could not load the plants: $e'));
+    _service.watchStats().listen((stats) {
+      _savedLands = stats.lands;
+      _publish();
+    }, onError: (Object e) => debugPrint('Could not load the lands: $e'));
+  }
+
+  /// Lands go first: the farm needs a land under every plant it draws.
+  static void _publish() {
+    lands.value = landsToShow(_savedLands, _savedPlants);
+    plants.value = [
+      for (final plant in _savedPlants)
+        (_growth[plant.id] ?? const <GrowthEntry>[]).fold(
+          plant,
+          (p, entry) => p.withGrowth(entry),
+        ),
+    ];
+  }
 
   /// True when every square on every land has a plant.
   static bool get landsFull =>
       plants.value.length >= lands.value * squaresPerLand;
 
-  static void addPlant(FarmPlant plant) {
-    assert(!landsFull, 'Add a land before adding more plants.');
-    plants.value = [...plants.value, plant];
+  /// The plant with this id, or null if it's gone (e.g. just deleted).
+  static FarmPlant? plantById(String id) =>
+      plants.value.where((p) => p.id == id).firstOrNull;
+
+  /// Saves a new plant on the first free square and returns it.
+  /// Throws a [FarmFullException] if there is no free square.
+  static Future<FarmPlant> addPlant(FarmPlant plant) =>
+      _service.addPlant(plant, lands: lands.value);
+
+  /// Saves a plant's changes (e.g. after editing its schedules). It keeps
+  /// its square.
+  static Future<void> updatePlant(FarmPlant plant) =>
+      _service.updatePlant(plant);
+
+  /// Deletes a plant and its growth entries.
+  static Future<void> deletePlant(String plantId) async {
+    await _service.deletePlant(plantId);
+    _growth.remove(plantId);
   }
 
-  /// Replaces plant number [index] (e.g. after editing its schedules or
-  /// adding to its growth timeline). It keeps its square.
-  static void updatePlant(int index, FarmPlant plant) {
-    plants.value = [...plants.value]..[index] = plant;
+  /// Adds to a plant's growth timeline, in memory for now (see [_growth]).
+  static void addGrowth(String plantId, GrowthEntry entry) {
+    _growth[plantId] = [...?_growth[plantId], entry];
+    _publish();
   }
 
-  static void addLand() {
-    if (lands.value < maxLands) lands.value++;
+  /// Saves one more land, up to [maxLands].
+  static Future<void> addLand() async {
+    if (lands.value < maxLands) await _service.saveLands(lands.value + 1);
   }
 }
