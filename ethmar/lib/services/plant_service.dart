@@ -7,14 +7,17 @@ import 'package:flutter/foundation.dart';
 import '../models/farm_plant.dart';
 import '../models/farm_spot.dart';
 import '../models/farm_stats.dart';
+import '../models/streak.dart';
+import '../models/task_log.dart';
 
 /// Error when every square on every land already has a plant.
 class FarmFullException implements Exception {
   const FarmFullException();
 }
 
-/// Reads and saves the signed-in user's plants and farm stats in Firestore.
-/// See farm_plant.dart and farm_stats.dart for the paths and fields.
+/// Reads and saves the signed-in user's plants, farm stats and task log in
+/// Firestore. See farm_plant.dart, farm_stats.dart and task_log.dart for the
+/// paths and fields.
 ///
 /// Screens normally go through `FarmStore`, which keeps the latest values
 /// ready for them.
@@ -42,6 +45,9 @@ class PlantService {
   DocumentReference<Map<String, dynamic>> _stats(String uid) =>
       _userDoc(uid).collection('stats').doc(FarmStats.docId);
 
+  DocumentReference<Map<String, dynamic>> _taskLog(String uid, String date) =>
+      _userDoc(uid).collection('taskLog').doc(date);
+
   /// Live list of the user's plants, sorted by land, then square. Empty when
   /// signed out; it switches over when another user signs in.
   ///
@@ -56,16 +62,7 @@ class PlantService {
   /// (1 land, no streak).
   Stream<FarmStats> watchStats() => _forEachUser(
     signedOut: const FarmStats(),
-    watch: (uid) => _stats(uid).snapshots().map((snapshot) {
-      final data = snapshot.data();
-      if (data == null) return const FarmStats();
-      try {
-        return FarmStats.fromMap(data);
-      } on FormatException catch (e) {
-        debugPrint('Using default farm stats: $e');
-        return const FarmStats();
-      }
-    }),
+    watch: (uid) => _stats(uid).snapshots().map(_readStats),
   );
 
   /// Saves a new plant on the first free square of the user's [lands], and
@@ -127,6 +124,93 @@ class PlantService {
         transaction.set(stats, FarmStats(lands: lands).toMap());
       }
     });
+  }
+
+  /// Live task log of the day [date] ("yyyy-mm-dd", see [TaskLog.dateKey]).
+  /// An empty log when nothing is done yet or when signed out.
+  Stream<TaskLog> watchTaskLog(String date) => _forEachUser(
+    signedOut: TaskLog(date: date),
+    watch: (uid) => _taskLog(uid, date).snapshots().map((snapshot) {
+      final data = snapshot.data();
+      if (data == null) return TaskLog(date: date);
+      try {
+        return TaskLog.fromMap(date, data);
+      } on FormatException catch (e) {
+        debugPrint('Using an empty task log: $e');
+        return TaskLog(date: date);
+      }
+    }),
+  );
+
+  /// Marks task [taskId] of [today] as done (or not done), and updates the
+  /// streak in the same transaction, so the log and the streak always agree.
+  ///
+  /// [todayTaskIds] are the ids of every task due today and [plants] the
+  /// user's plants; they decide whether the day is complete and whether an
+  /// earlier day was missed (see streak.dart).
+  Future<void> setTaskDone({
+    required DateTime today,
+    required String taskId,
+    required bool done,
+    required List<String> todayTaskIds,
+    required List<FarmPlant> plants,
+  }) async {
+    final uid = _uid;
+    final log = _taskLog(uid, TaskLog.dateKey(today));
+    final stats = _stats(uid);
+    await _firestore.runTransaction<void>((transaction) async {
+      final logSnapshot = await transaction.get(log);
+      final statsSnapshot = await transaction.get(stats);
+
+      final completed = <String>{};
+      final logData = logSnapshot.data();
+      if (logData != null) {
+        try {
+          completed.addAll(TaskLog.fromMap(log.id, logData).completed);
+        } on FormatException catch (e) {
+          debugPrint('Starting today\'s task log again: $e');
+        }
+      }
+      done ? completed.add(taskId) : completed.remove(taskId);
+
+      final before = _readStats(statsSnapshot);
+      final after = streakAfterToggle(
+        streakAfterMissedDays(before, plants, today),
+        today: today,
+        allDone: todayTaskIds.isNotEmpty && completed.containsAll(todayTaskIds),
+        previousTaskDay: previousTaskDay(plants, today),
+      );
+
+      transaction.set(log, TaskLog(date: log.id, completed: [...completed]).toMap());
+      transaction.set(stats, after.toMap());
+    });
+  }
+
+  /// Resets the streak to 0 if a day with tasks was missed, or if the user
+  /// has no plants. Call when the app opens or comes back on a new day.
+  Future<void> checkStreak(DateTime today) async {
+    final uid = _uid;
+    final plants = _readPlants((await _plants(uid).get()).docs);
+    final stats = _stats(uid);
+    await _firestore.runTransaction<void>((transaction) async {
+      final before = _readStats(await transaction.get(stats));
+      final after = streakAfterMissedDays(before, plants, today);
+      if (after.currentStreak != before.currentStreak) {
+        transaction.set(stats, after.toMap());
+      }
+    });
+  }
+
+  /// The saved stats, or the defaults when there are none (or they're bad).
+  FarmStats _readStats(DocumentSnapshot<Map<String, dynamic>> snapshot) {
+    final data = snapshot.data();
+    if (data == null) return const FarmStats();
+    try {
+      return FarmStats.fromMap(data);
+    } on FormatException catch (e) {
+      debugPrint('Using default farm stats: $e');
+      return const FarmStats();
+    }
   }
 
   /// Builds the plants from their documents. One bad document is skipped, so

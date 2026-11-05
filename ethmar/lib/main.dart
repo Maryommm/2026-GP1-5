@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'l10n/locale_controller.dart';
 import 'screens/splash_screen.dart';
 import 'screens/startup_error_screen.dart';
+import 'services/care_notifications.dart';
 import 'services/farm_store.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
@@ -17,8 +18,13 @@ Future<void> main() async {
   // Initialize Firebase before building the app.
   final firebaseReady = await initFirebase();
 
-  // Follow the signed-in user's plants and lands.
-  if (firebaseReady) FarmStore.start();
+  // Follow the signed-in user's plants and lands, and keep their care
+  // reminders scheduled. Awaited so a tap that opened the app is known
+  // before the first screen.
+  if (firebaseReady) {
+    FarmStore.start();
+    await CareNotifications.init();
+  }
 
   // Open the app in the language the user chose last time.
   await loadSavedLocale();

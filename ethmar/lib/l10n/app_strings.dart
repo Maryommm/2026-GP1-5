@@ -226,6 +226,9 @@ class AppStrings {
     'statusOverdue': 'Overdue',
     'statusUpcoming': 'Upcoming',
     'taskMarkDone': 'Mark as done',
+    'noTasksToday':
+        'No tasks today. Set a watering or fertilizing schedule for a plant to see its tasks here.',
+    'taskSaveFailed': "Couldn't save the task. Check your connection and try again",
     // Today's date, e.g. "Wednesday, October 21".
     'todayDate': '{weekday}, {month} {day}',
     'weekday1': 'Monday',
@@ -396,6 +399,11 @@ class AppStrings {
     'schedFertilization': 'Fertilization schedule',
     'schedRepetition': 'Repetition',
     'schedAlarmTime': 'Alarm time',
+    'reminderChannel': 'Care reminders',
+    'reminderChannelInfo': 'Watering and fertilizing reminders for your plants',
+    'reminderWaterTitle': 'Time to water {plant}',
+    'reminderFertilizeTitle': 'Time to fertilize {plant}',
+    'reminderBody': 'Open your daily tasks to mark it done',
     'schedLessOften': 'Less often',
     'schedMoreOften': 'More often',
     'repeatEveryDay': 'Every day',
@@ -662,6 +670,9 @@ class AppStrings {
     'statusOverdue': 'متأخرة',
     'statusUpcoming': 'قادمة',
     'taskMarkDone': 'تحديد كمكتملة',
+    'noTasksToday':
+        'لا توجد مهام اليوم. حدّد موعد سقي أو تسميد لنبتة لتظهر مهامها هنا.',
+    'taskSaveFailed': 'تعذّر حفظ المهمة. تحقق من اتصالك وحاول مرة أخرى',
     // تاريخ اليوم، مثل "الأربعاء، 21 أكتوبر".
     'todayDate': '{weekday}، {day} {month}',
     'weekday1': 'الاثنين',
@@ -829,6 +840,11 @@ class AppStrings {
     'schedFertilization': 'جدول التسميد',
     'schedRepetition': 'التكرار',
     'schedAlarmTime': 'وقت التنبيه',
+    'reminderChannel': 'تذكيرات العناية',
+    'reminderChannelInfo': 'تذكيرات سقي نباتاتك وتسميدها',
+    'reminderWaterTitle': 'حان وقت سقي {plant}',
+    'reminderFertilizeTitle': 'حان وقت تسميد {plant}',
+    'reminderBody': 'افتح مهامك اليومية لتسجيل إنجازها',
     'schedLessOften': 'أقل تكرار',
     'schedMoreOften': 'أكثر تكرار',
     'repeatEveryDay': 'كل يوم',
@@ -1114,6 +1130,8 @@ class S {
   String get statusOverdue => t('statusOverdue');
   String get statusUpcoming => t('statusUpcoming');
   String get taskMarkDone => t('taskMarkDone');
+  String get noTasksToday => t('noTasksToday');
+  String get taskSaveFailed => t('taskSaveFailed');
 
   /// Today's date without the year, e.g. "Wednesday, October 21" /
   /// "الأربعاء، 21 أكتوبر".
@@ -1254,6 +1272,13 @@ class S {
   String get schedFertilization => t('schedFertilization');
   String get schedRepetition => t('schedRepetition');
   String get schedAlarmTime => t('schedAlarmTime');
+  String get reminderChannel => t('reminderChannel');
+  String get reminderChannelInfo => t('reminderChannelInfo');
+  String reminderWaterTitle(String plant) =>
+      t('reminderWaterTitle').replaceAll('{plant}', plant);
+  String reminderFertilizeTitle(String plant) =>
+      t('reminderFertilizeTitle').replaceAll('{plant}', plant);
+  String get reminderBody => t('reminderBody');
   String get schedLessOften => t('schedLessOften');
   String get schedMoreOften => t('schedMoreOften');
   String get repeatEveryDay => t('repeatEveryDay');

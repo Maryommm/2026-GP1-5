@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
+import '../models/farm_stats.dart';
 import '../services/daily_slogan_service.dart';
+import '../services/farm_store.dart';
 import '../services/user_service.dart' show currentUsername;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -491,25 +493,33 @@ class _WeatherRow extends StatelessWidget {
 // streak is active.
 // ---------------------------------------------------------------------------
 
-// Streak states shown on Home (UI only for now).
+// Streak states shown on Home.
 enum _StreakState { notStarted, active, lost }
 
-// TODO(streak): Replace these prototype values with the user's real streak
-//   (state + current count) once plants and daily tasks are saved.
-// Change _prototypeStreak to preview another state.
-const _prototypeStreak = _StreakState.notStarted;
-const _prototypeStreakCount = 5; // only used when the state is active
-
+/// The user's streak from [FarmStore.stats]: active while it is above 0;
+/// lost when it went back to 0 after a completed day; otherwise not started.
 class _StreakCard extends StatelessWidget {
   const _StreakCard();
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<FarmStats>(
+      valueListenable: FarmStore.stats,
+      builder: (context, stats, _) => _buildCard(context, stats),
+    );
+  }
+
+  Widget _buildCard(BuildContext context, FarmStats stats) {
     final s = S.of(context);
-    final (title, hint) = switch (_prototypeStreak) {
+    final state = stats.currentStreak > 0
+        ? _StreakState.active
+        : stats.lastCompletedDate != null
+        ? _StreakState.lost
+        : _StreakState.notStarted;
+    final (title, hint) = switch (state) {
       _StreakState.notStarted => (s.streakNotStartedTitle, s.streakNotStartedHint),
       _StreakState.active =>
-        (s.streakActiveTitle(_prototypeStreakCount), s.streakActiveHint),
+        (s.streakActiveTitle(stats.currentStreak), s.streakActiveHint),
       _StreakState.lost => (s.streakLostTitle, s.streakLostHint),
     };
     return Container(
@@ -520,7 +530,7 @@ class _StreakCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _StreakFire(animate: _prototypeStreak == _StreakState.active),
+          _StreakFire(animate: state == _StreakState.active),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

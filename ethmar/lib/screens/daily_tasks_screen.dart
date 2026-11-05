@@ -1,9 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
+import '../models/care_task.dart';
 import '../models/daily_task.dart';
+import '../models/farm_plant.dart';
+import '../models/task_log.dart';
+import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/centered_header.dart';
 import '../widgets/character.dart';
@@ -11,43 +18,123 @@ import '../widgets/entrance.dart';
 
 /// Today's care tasks: the date, a progress card, and one card per task.
 ///
-/// UI only for now: it shows [DailyTask.sampleTasks] unless [tasks] is
-/// given. Ticking a task only changes what this screen shows; nothing is
-/// saved.
+/// The tasks come from the user's plants and their care schedules
+/// ([dueTasks]); ticking one saves it in today's task log and updates the
+/// streak (see [FarmStore.setTaskDone]).
 class DailyTasksScreen extends StatefulWidget {
-  const DailyTasksScreen({super.key, this.tasks});
-
-  final List<DailyTask>? tasks;
+  const DailyTasksScreen({super.key});
 
   @override
   State<DailyTasksScreen> createState() => _DailyTasksScreenState();
 }
 
 class _DailyTasksScreenState extends State<DailyTasksScreen> {
-  // Tasks in time order.
-  late final List<DailyTask> _tasks = [
-    ...(widget.tasks ?? DailyTask.sampleTasks),
-  ]..sort((a, b) => _minutes(a.time).compareTo(_minutes(b.time)));
+  DateTime _today = _dateOnly(DateTime.now());
+  TaskLog _log = TaskLog(date: TaskLog.dateKey(DateTime.now()));
+  StreamSubscription<TaskLog>? _logChanges;
+  late final AppLifecycleListener _lifecycle;
+  Timer? _midnight;
 
-  // Which tasks are ticked, by index in [_tasks]. Starts from each task's
-  // status; changes stay on this screen only.
-  late final List<bool> _done = [
-    for (final t in _tasks) t.status == TaskStatus.completed,
-  ];
+  // Ticks shown right away, before Firestore confirms them: task id -> done.
+  final _pending = <String, bool>{};
 
-  static int _minutes(TimeOfDay t) => t.hour * 60 + t.minute;
+  static DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
 
-  /// A ticked task shows as completed; otherwise it keeps its own status.
-  TaskStatus _statusOf(int i) =>
-      _done[i] ? TaskStatus.completed : _uncheckedStatus(_tasks[i]);
+  @override
+  void initState() {
+    super.initState();
+    _followLog();
+    // Opened again on a new day (or after a while): show that day's tasks
+    // and refresh which ones are overdue.
+    _lifecycle = AppLifecycleListener(onResume: _onResume);
+    FarmStore.plants.addListener(_refresh);
+    _scheduleMidnight();
+  }
 
-  static TaskStatus _uncheckedStatus(DailyTask t) =>
-      t.status == TaskStatus.completed ? TaskStatus.upcoming : t.status;
+  @override
+  void dispose() {
+    _logChanges?.cancel();
+    _lifecycle.dispose();
+    _midnight?.cancel();
+    FarmStore.plants.removeListener(_refresh);
+    super.dispose();
+  }
+
+  void _refresh() => setState(() {});
+
+  /// Switches to the new day's tasks at midnight if the page stays open.
+  void _scheduleMidnight() {
+    final now = DateTime.now();
+    final next = DateTime(now.year, now.month, now.day + 1, 0, 0, 5);
+    _midnight = Timer(next.difference(now), () {
+      _onResume();
+      _scheduleMidnight();
+    });
+  }
+
+  void _onResume() {
+    final today = _dateOnly(DateTime.now());
+    if (today != _today) {
+      _today = today;
+      _pending.clear();
+      _followLog();
+    }
+    setState(() {});
+  }
+
+  void _followLog() {
+    _logChanges?.cancel();
+    final date = TaskLog.dateKey(_today);
+    _log = TaskLog(date: date);
+    _logChanges = FarmStore.watchTaskLog(date).listen((log) {
+      setState(() {
+        _log = log;
+        // Drop the ticks Firestore now shows as saved.
+        _pending.removeWhere((id, done) => log.isCompleted(id) == done);
+      });
+    }, onError: (Object e) => debugPrint('Could not load the task log: $e'));
+  }
+
+  /// Today's tasks in time order, with any tick that is still being saved.
+  List<DailyTask> _tasks(List<FarmPlant> plants) {
+    final now = DateTime.now();
+    final saved = [for (final p in plants) if (p.id != null) p];
+    final completed = {..._log.completed};
+    _pending.forEach((id, done) => done ? completed.add(id) : completed.remove(id));
+    final log = TaskLog(date: _log.date, completed: [...completed]);
+    return [
+      for (final task in dueTasks(saved, _today)) DailyTask.from(task, log, now),
+    ];
+  }
+
+  Future<void> _toggle(DailyTask task, List<DailyTask> all) async {
+    final done = task.status != TaskStatus.completed;
+    setState(() => _pending[task.id] = done);
+    try {
+      await FarmStore.setTaskDone(
+        today: _today,
+        taskId: task.id,
+        done: done,
+        todayTaskIds: [for (final t in all) t.id],
+      );
+    } catch (e) {
+      debugPrint('Could not save the task: $e');
+      if (!mounted) return;
+      setState(() => _pending.remove(task.id));
+      showEthmarToast(
+        context,
+        S.of(context).taskSaveFailed,
+        type: EthmarToastType.error,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final doneCount = _done.where((d) => d).length;
+    final tasks = _tasks(FarmStore.plants.value);
+    final doneCount =
+        tasks.where((t) => t.status == TaskStatus.completed).length;
     return Scaffold(
       body: LeafPrintBackground(
         child: Column(
@@ -95,7 +182,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                   const SizedBox(height: 16),
                   Entrance(
                     delay: const Duration(milliseconds: 100),
-                    child: _ProgressCard(done: doneCount, total: _tasks.length),
+                    child: _ProgressCard(done: doneCount, total: tasks.length),
                   ),
                   const SizedBox(height: 24),
                   // Section title with the number of tasks on the other side.
@@ -108,23 +195,32 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                         ),
                       ),
                       Text(
-                        '${_tasks.length}',
+                        '${tasks.length}',
                         style: AppText.label(context, color: AppColors.earthBrown)
                             .copyWith(fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  for (var i = 0; i < _tasks.length; i++) ...[
+                  if (tasks.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        s.noTasksToday,
+                        textAlign: TextAlign.center,
+                        style: AppText.body(context),
+                      ),
+                    ),
+                  for (var i = 0; i < tasks.length; i++) ...[
                     if (i > 0) const SizedBox(height: 10),
                     Entrance(
                       delay: Duration(milliseconds: 150 + 50 * i),
                       offset: 16,
                       child: _TaskCard(
-                        task: _tasks[i],
-                        status: _statusOf(i),
-                        done: _done[i],
-                        onToggle: () => setState(() => _done[i] = !_done[i]),
+                        task: tasks[i],
+                        status: tasks[i].status,
+                        done: tasks[i].status == TaskStatus.completed,
+                        onToggle: () => _toggle(tasks[i], tasks),
                       ),
                     ),
                   ],
@@ -286,7 +382,7 @@ class _TaskCard extends StatelessWidget {
               ],
             ),
           ),
-          // Separate tick control; display only, nothing is saved.
+          // Separate tick control; saved in today's task log.
           Semantics(
             label: s.taskMarkDone,
             child: Checkbox(

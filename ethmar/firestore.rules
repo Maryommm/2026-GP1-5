@@ -10,6 +10,99 @@ service cloud.firestore {
           request.auth.token.email is string;
     }
 
+    // ---- Sprint 2 farm data ------------------------------------------------
+
+    // The farm belongs to the signed-in user with this uid.
+    function ownsFarm(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // "HH:mm", 24-hour.
+    function validTime(value) {
+      return value is string && value.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+    }
+
+    // A care schedule {everyDays, time}, or null when switched off
+    // (see CareSchedule in lib/models/farm_plant.dart).
+    function validSchedule(schedule) {
+      return schedule == null || (
+          schedule is map &&
+          schedule.keys().hasAll(['everyDays', 'time']) &&
+          schedule.keys().hasOnly(['everyDays', 'time']) &&
+          schedule.everyDays in [1, 2, 3, 7, 14, 30] &&
+          validTime(schedule.time));
+    }
+
+    // A plant (see FarmPlant.toMap). 9 lands of 25 squares at most.
+    function validPlant(data) {
+      return data.keys().hasAll(['cropId', 'name', 'category', 'land', 'square',
+              'irrigation', 'fertilization', 'plantedAt', 'createdAt', 'updatedAt']) &&
+          data.keys().hasOnly(['cropId', 'name', 'category', 'land', 'square',
+              'irrigation', 'fertilization', 'plantedAt', 'createdAt', 'updatedAt']) &&
+          data.cropId is string && data.cropId.size() > 0 && data.cropId.size() <= 40 &&
+          data.name is string && data.name.size() > 0 && data.name.size() <= 30 &&
+          data.category is string && data.category.size() <= 30 &&
+          data.land is int && data.land >= 0 && data.land < 9 &&
+          data.square is int && data.square >= 0 && data.square < 25 &&
+          validSchedule(data.irrigation) &&
+          validSchedule(data.fertilization) &&
+          data.plantedAt is timestamp &&
+          data.createdAt is timestamp &&
+          data.updatedAt is timestamp;
+    }
+
+    // A growth photo's metadata, or null (see GrowthPhoto.toMap).
+    function validGrowthPhoto(photo) {
+      return photo == null || (
+          photo is map &&
+          photo.keys().hasAll(['publicId', 'version', 'format', 'width', 'height', 'bytes']) &&
+          photo.keys().hasOnly(['publicId', 'version', 'format', 'width', 'height', 'bytes']) &&
+          photo.publicId is string && photo.publicId.size() <= 200 &&
+          photo.version is int && photo.version > 0 &&
+          photo.format is string && photo.format.size() <= 10 &&
+          photo.width is int && photo.width > 0 && photo.width <= 4096 &&
+          photo.height is int && photo.height > 0 && photo.height <= 4096 &&
+          photo.bytes is int && photo.bytes > 0 && photo.bytes <= 5 * 1024 * 1024);
+    }
+
+    // One step on a plant's growth timeline (see GrowthEntry.toMap).
+    function validGrowthEntry(data) {
+      return data.keys().hasAll(['date', 'notes', 'photo']) &&
+          data.keys().hasOnly(['date', 'notes', 'photo']) &&
+          data.date is timestamp &&
+          (data.notes == null || (data.notes is string && data.notes.size() <= 500)) &&
+          validGrowthPhoto(data.photo);
+    }
+
+    // One day's finished tasks (see TaskLog.toMap). Two tasks per plant and
+    // 225 plants at most.
+    function validTaskLog(data) {
+      return data.keys().hasAll(['completed']) &&
+          data.keys().hasOnly(['completed']) &&
+          data.completed is list &&
+          data.completed.size() <= 450;
+    }
+
+    // The streak and lands (see FarmStats.toMap).
+    function validStats(data) {
+      return data.keys().hasAll(['currentStreak', 'lastCompletedDate', 'lands']) &&
+          data.keys().hasOnly(['currentStreak', 'lastCompletedDate', 'lands']) &&
+          data.currentStreak is int && data.currentStreak >= 0 &&
+          (data.lastCompletedDate == null ||
+              (data.lastCompletedDate is string &&
+               data.lastCompletedDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))) &&
+          data.lands is int && data.lands >= 1 && data.lands <= 9;
+    }
+
+    // The app only ever moves the streak up by one day, back by one (a task
+    // un-ticked), to 0 (a day missed), or to 1 (a day missed, then today
+    // completed, in the same write). Anything else would be a made-up
+    // streak, e.g. to climb the leaderboard.
+    function validStreakChange(before, after) {
+      return after == before || after == before + 1 ||
+          after == before - 1 || after == 0 || after == 1;
+    }
+
     // Allow users to access only their own profile.
     function ownsProfile(uid) {
       return hasVerifiedEmail() && request.auth.uid == uid;
@@ -122,27 +215,43 @@ service cloud.firestore {
       }
 
       // Sprint 2 farm data (see lib/models/ for the fields of each document).
-      // Owner-only for now. TODO(rules): Add field validation later, like
-      // validProfile and validProfileImage above.
+      // Only the signed-in owner reaches it, and every write is checked.
 
       // The user's plants.
       match /plants/{plantId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, delete: if ownsFarm(uid);
+        allow create, update: if ownsFarm(uid) &&
+            validPlant(request.resource.data);
 
         // Each plant's growth timeline.
         match /growth/{entryId} {
-          allow read, write: if request.auth != null && request.auth.uid == uid;
+          allow read, delete: if ownsFarm(uid);
+          allow create, update: if ownsFarm(uid) &&
+              validGrowthEntry(request.resource.data);
         }
       }
 
-      // Finished tasks, one document per day (yyyy-mm-dd).
+      // Finished tasks, one document per day (yyyy-mm-dd). Never deleted,
+      // because the streak is checked against them.
       match /taskLog/{date} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read: if ownsFarm(uid);
+        allow create, update: if ownsFarm(uid) &&
+            date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+            validTaskLog(request.resource.data);
+        allow delete: if false;
       }
 
-      // Streak and number of lands (the "summary" document).
+      // Streak and number of lands (the "summary" document only).
       match /stats/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read: if ownsFarm(uid);
+        allow create: if ownsFarm(uid) && docId == 'summary' &&
+            validStats(request.resource.data) &&
+            request.resource.data.currentStreak <= 1;
+        allow update: if ownsFarm(uid) && docId == 'summary' &&
+            validStats(request.resource.data) &&
+            validStreakChange(resource.data.currentStreak,
+                              request.resource.data.currentStreak);
+        allow delete: if false;
       }
     }
 
