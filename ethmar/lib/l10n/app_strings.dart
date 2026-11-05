@@ -405,9 +405,25 @@ class AppStrings {
     'schedAlarmTime': 'Alarm time',
     'reminderChannel': 'Care reminders',
     'reminderChannelInfo': 'Watering and fertilizing reminders for your plants',
-    'reminderWaterTitle': 'Time to water {plant}',
-    'reminderFertilizeTitle': 'Time to fertilize {plant}',
-    'reminderBody': 'Open your daily tasks to mark it done',
+    // Care reminders: three messages per task, one per day in turn.
+    'reminderWater1Title': 'Time to water {plant}',
+    'reminderWater1Body':
+        'Your plant is thirsty. Water it now to keep it from drying out!',
+    'reminderWater2Title': '{plant} is waiting for a drink',
+    'reminderWater2Body':
+        "Today's watering keeps its roots strong and its leaves green.",
+    'reminderWater3Title': 'Watering time for {plant}',
+    'reminderWater3Body':
+        'Water it now, then tick the task to keep your streak going.',
+    'reminderFertilize1Title': 'Time to feed {plant}',
+    'reminderFertilize1Body':
+        'A little fertilizer now gives your plant the strength to grow and fruit.',
+    'reminderFertilize2Title': '{plant} is hungry!',
+    'reminderFertilize2Body':
+        'Feed it today so it grows healthy and gives you a bigger harvest.',
+    'reminderFertilize3Title': 'Fertilizing time for {plant}',
+    'reminderFertilize3Body':
+        'Fertilize it now, then tick the task to keep your streak going.',
     'schedLessOften': 'Less often',
     'schedMoreOften': 'More often',
     'repeatEveryDay': 'Every day',
@@ -850,9 +866,18 @@ class AppStrings {
     'schedAlarmTime': 'وقت التنبيه',
     'reminderChannel': 'تذكيرات العناية',
     'reminderChannelInfo': 'تذكيرات سقي نباتاتك وتسميدها',
-    'reminderWaterTitle': 'حان وقت سقي {plant}',
-    'reminderFertilizeTitle': 'حان وقت تسميد {plant}',
-    'reminderBody': 'افتح مهامك اليومية لتسجيل إنجازها',
+    'reminderWater1Title': 'حان وقت سقي {plant}',
+    'reminderWater1Body': 'نبتتك عطشى، اسقِها الآن لتحافظ عليها من الجفاف!',
+    'reminderWater2Title': 'نبتتك {plant} تنتظر سقيتها',
+    'reminderWater2Body': 'سقية اليوم تُبقي جذورها قوية وأوراقها خضراء.',
+    'reminderWater3Title': 'موعد الماء لنبتتك {plant}',
+    'reminderWater3Body': 'اسقِها الآن، ثم سجّل المهمة لتحافظ على سلسلتك.',
+    'reminderFertilize1Title': 'حان وقت تسميد {plant}',
+    'reminderFertilize1Body': 'قليل من السماد الآن يمنح نبتتك قوة لتنمو وتثمر.',
+    'reminderFertilize2Title': 'نبتتك {plant} جائعة!',
+    'reminderFertilize2Body': 'سمّدها اليوم لتنمو بصحة وتمنحك محصولًا أوفر.',
+    'reminderFertilize3Title': 'موعد السماد لنبتتك {plant}',
+    'reminderFertilize3Body': 'سمّدها الآن، ثم سجّل المهمة لتحافظ على سلسلتك.',
     'schedLessOften': 'أقل تكرار',
     'schedMoreOften': 'أكثر تكرار',
     'repeatEveryDay': 'كل يوم',
@@ -1286,11 +1311,27 @@ class S {
   String get schedAlarmTime => t('schedAlarmTime');
   String get reminderChannel => t('reminderChannel');
   String get reminderChannelInfo => t('reminderChannelInfo');
-  String reminderWaterTitle(String plant) =>
-      t('reminderWaterTitle').replaceAll('{plant}', plant);
-  String reminderFertilizeTitle(String plant) =>
-      t('reminderFertilizeTitle').replaceAll('{plant}', plant);
-  String get reminderBody => t('reminderBody');
+  /// How many messages each reminder type has (see [reminderTitle]).
+  static const reminderVariants = 3;
+
+  /// A care reminder's title, after a 💧 (watering) or 🌱 (fertilizing).
+  /// [watering] picks watering or fertilizing, [variant] (0-2) one of its
+  /// messages, and [plant] is the plant's name.
+  String reminderTitle({
+    required bool watering,
+    required int variant,
+    required String plant,
+  }) =>
+      '${watering ? '💧' : '🌱'} '
+      '${t(_reminderKey(watering, variant, 'Title')).replaceAll('{plant}', plant)}';
+
+  /// The body that goes with [reminderTitle].
+  String reminderBody({required bool watering, required int variant}) =>
+      t(_reminderKey(watering, variant, 'Body'));
+
+  static String _reminderKey(bool watering, int variant, String part) =>
+      'reminder${watering ? 'Water' : 'Fertilize'}'
+      '${variant % reminderVariants + 1}$part';
   String get schedLessOften => t('schedLessOften');
   String get schedMoreOften => t('schedMoreOften');
   String get repeatEveryDay => t('repeatEveryDay');

@@ -83,14 +83,18 @@ List<PlannedReminder> planReminders(
       final slot = slots[key] ?? 0;
       if (slot >= remindersPerTask) continue;
       slots[key] = slot + 1;
+      // A different message each day, the same one on every sync.
+      final variant = _dayNumber(task.at) % S.reminderVariants;
+      final watering = task.type == TaskType.watering;
       planned.add(PlannedReminder(
         id: reminderId(task.plant.id!, task.type, slot),
         at: task.at,
-        title: switch (task.type) {
-          TaskType.watering => s.reminderWaterTitle(task.plant.name),
-          TaskType.fertilizing => s.reminderFertilizeTitle(task.plant.name),
-        },
-        body: s.reminderBody,
+        title: s.reminderTitle(
+          watering: watering,
+          variant: variant,
+          plant: task.plant.name,
+        ),
+        body: s.reminderBody(watering: watering, variant: variant),
       ));
     }
   }
@@ -99,6 +103,11 @@ List<PlannedReminder> planReminders(
       ? planned.sublist(0, maxReminders)
       : planned;
 }
+
+/// Days since 1 January 1970 for the date of [t], to pick the day's message.
+int _dayNumber(DateTime t) =>
+    DateTime.utc(t.year, t.month, t.day).millisecondsSinceEpoch ~/
+    Duration.millisecondsPerDay;
 
 /// Care reminders: a notification at the alarm time of every watering and
 /// fertilizing task, shown by Android even when the app is closed or the

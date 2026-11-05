@@ -89,7 +89,9 @@ void main() {
         plant('a', water: const CareSchedule(Repeat.everyDay, at8)),
         plant('b', fertilize: const CareSchedule(Repeat.everyWeek, at17)),
       ], now, en);
-      final water = plan.where((r) => r.title == 'Time to water Mint').toList();
+      final water = plan.where((r) => r.title.contains('Mint') &&
+          !r.title.contains('feed') && !r.title.contains('hungry') &&
+          !r.title.contains('Fertiliz')).toList();
       // 08:00 today has passed, so it starts tomorrow.
       expect([for (final r in water) r.at], [
         DateTime(2026, 11, 6, 8),
@@ -155,8 +157,35 @@ void main() {
       final plan = planReminders([
         plant('a', name: 'نعناعي', fertilize: const CareSchedule(Repeat.everyDay, at8)),
       ], now, ar);
-      expect(plan.first.title, 'حان وقت تسميد نعناعي');
-      expect(plan.first.body, ar.reminderBody);
+      for (final r in plan) {
+        expect(r.title, contains('نعناعي'));
+        expect(r.body, isNotEmpty);
+      }
+    });
+
+    test('the message changes from day to day and stays the same on a sync', () {
+      final plants = [
+        plant('a', water: const CareSchedule(Repeat.everyDay, at8)),
+      ];
+      final plan = planReminders(plants, now, en);
+      expect({for (final r in plan.take(3)) r.title}, hasLength(3));
+      expect([for (final r in planReminders(plants, now, en)) r.title],
+          [for (final r in plan) r.title]);
+    });
+
+    test('every message exists in both languages', () {
+      for (final lang in [en, ar]) {
+        for (final watering in [true, false]) {
+          for (var v = 0; v < S.reminderVariants; v++) {
+            final title = lang.reminderTitle(
+                watering: watering, variant: v, plant: 'X');
+            final body = lang.reminderBody(watering: watering, variant: v);
+            expect(title, contains('X'));
+            expect(title, isNot(startsWith('reminder')));
+            expect(body, isNot(startsWith('reminder')));
+          }
+        }
+      }
     });
   });
 }
