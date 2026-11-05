@@ -164,30 +164,37 @@ class CareNotifications {
     unawaited(sync());
   }
 
-  /// Asks for the permissions the reminders need, at most once each:
-  /// - notifications (Android 13+ shows a dialog);
-  /// - exact alarms (Android 12+), so a reminder rings within the minute
-  ///   instead of whenever Android batches it. Android 14+ turns this off by
-  ///   default and only lets the user grant it on a settings page, so that
-  ///   page is opened once, and only when the user has a reminder.
+  /// Asks for the notification permission (Android 13+ shows a dialog).
+  /// The exact-alarm permission is asked for later, by [sync], once the
+  /// user really has a reminder (see [_askExactAlarmsOnce]).
   static Future<void> askPermissions() async {
     final android = _android;
     if (!_started || android == null) return;
     try {
       await android.requestNotificationsPermission();
-      final hasReminders = FarmStore.plants.value
-          .any((p) => p.irrigation != null || p.fertilization != null);
-      if (hasReminders && !(await android.canScheduleExactNotifications() ?? true)) {
-        final prefs = await SharedPreferences.getInstance();
-        if (!(prefs.getBool(_askedExactKey) ?? false)) {
-          await prefs.setBool(_askedExactKey, true);
-          await android.requestExactAlarmsPermission();
-        }
-      }
     } catch (e) {
-      debugPrint('Could not ask for the reminder permissions: $e');
+      debugPrint('Could not ask for the notification permission: $e');
     }
     await sync();
+  }
+
+  /// Exact alarms (Android 12+) make a reminder ring within the minute
+  /// instead of whenever Android batches it (up to an hour late). Android
+  /// 14+ turns them off by default and only lets the user allow them on a
+  /// settings page, so that page is opened once, while the app is on
+  /// screen. Returns whether exact alarms are allowed now.
+  static Future<bool> _askExactAlarmsOnce() async {
+    final android = _android;
+    if (android == null) return true;
+    if (await android.canScheduleExactNotifications() ?? true) return true;
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return false;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_askedExactKey) ?? false) return false;
+    await prefs.setBool(_askedExactKey, true);
+    await android.requestExactAlarmsPermission();
+    return await android.canScheduleExactNotifications() ?? false;
   }
 
   /// Makes Android's pending notifications match the plants: cancels the
@@ -219,21 +226,24 @@ class CareNotifications {
     final plan = planReminders(FarmStore.plants.value, DateTime.now(), s);
     final wanted = {for (final r in plan) r.id: r};
 
+    // Without the exact-alarm permission Android may deliver late, but the
+    // reminder still comes.
+    final exact = plan.isEmpty || await _askExactAlarmsOnce();
+    // The payload also records exact or not, so reminders scheduled before
+    // the permission was given are scheduled again as exact ones.
+    String payloadOf(PlannedReminder r) => '${r.payload}|${exact ? 'exact' : 'inexact'}';
+
     final pending = await _plugin.pendingNotificationRequests();
     final upToDate = <int>{};
     for (final p in pending) {
       final r = wanted[p.id];
       if (r == null) {
         await _plugin.cancel(id: p.id);
-      } else if (p.payload == r.payload && p.title == r.title && p.body == r.body) {
+      } else if (p.payload == payloadOf(r) && p.title == r.title && p.body == r.body) {
         upToDate.add(p.id);
       }
     }
     if (plan.isEmpty) return;
-
-    // Without the exact-alarm permission Android may deliver late, but the
-    // reminder still comes.
-    final exact = await _android?.canScheduleExactNotifications() ?? true;
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
@@ -257,7 +267,7 @@ class CareNotifications {
             : AndroidScheduleMode.inexactAllowWhileIdle,
         title: r.title,
         body: r.body,
-        payload: r.payload,
+        payload: payloadOf(r),
       );
     }
   }
