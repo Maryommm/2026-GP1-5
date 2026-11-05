@@ -360,12 +360,15 @@ class _CropCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: AppText.title(context).copyWith(fontSize: 16),
+                // Long names shrink to fit, so they're never cut off.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: AppText.title(context).copyWith(fontSize: 16),
+                  ),
                 ),
                 const SizedBox(height: 2),
               ],

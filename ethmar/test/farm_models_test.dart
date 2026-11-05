@@ -105,6 +105,29 @@ void main() {
       expect(File(defaultPlantImage).existsSync(), isTrue);
     });
 
+    // Compares exact names: Windows ignores capitals, but Android doesn't.
+    test('every picture in the crops folder is a crop in the catalog', () {
+      final files = Directory('assets/ethmar_crops')
+          .listSync()
+          .map((file) => file.uri.pathSegments.last)
+          .map(Uri.decodeComponent);
+      final ids = cropCatalog.map((c) => '${c.id}.png').toSet();
+      expect(ids.length, cropCatalog.length, reason: 'a crop id is repeated');
+      expect(files.toSet().difference(ids), isEmpty);
+      expect(
+        ids.difference(files.toSet()),
+        everyElement('$unknownCropId.png'),
+      );
+    });
+
+    test('crop ids and names fit what Firestore allows', () {
+      for (final crop in cropCatalog) {
+        expect(crop.id, matches(RegExp(r'^[a-z_]{1,40}$')));
+        expect(crop.name.en.length, lessThanOrEqualTo(30), reason: crop.id);
+        expect(crop.name.ar.length, lessThanOrEqualTo(30), reason: crop.id);
+      }
+    });
+
     test('rejects an unknown cropId', () {
       final map = samplePlants.first.toMap()..['cropId'] = 'not_a_crop';
       expect(() => FarmPlant.fromMap('p1', map), throwsFormatException);
