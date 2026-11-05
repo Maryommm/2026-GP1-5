@@ -47,8 +47,10 @@ class CareScheduleCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.earthBrown.withValues(alpha: 0.35),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -123,17 +125,16 @@ class _ScheduleSection extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: const BoxDecoration(
-                  color: AppColors.seaTint,
+                  color: AppColors.featureCard,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 18, color: AppColors.seaDeep),
+                child: Icon(icon, size: 18, color: AppColors.forest),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
-                  style: AppText.label(context)
-                      .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: AppText.title(context).copyWith(fontSize: 16),
                 ),
               ),
               Switch(
@@ -165,7 +166,7 @@ class _ScheduleSection extends StatelessWidget {
                         10,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.forestTint,
+                        color: AppColors.featureCard,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
@@ -278,7 +279,7 @@ class _TimeBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.forestTint,
+      color: AppColors.featureCard,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,

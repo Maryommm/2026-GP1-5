@@ -18,6 +18,7 @@ import '../services/crop_recommendation_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/backgrounds.dart';
+import '../widgets/category_chip.dart';
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
@@ -627,31 +628,6 @@ List<_CategoryGroup> _groupByCategory(List<CropRecommendation> crops) {
   return groups.values.toList();
 }
 
-// Display names and artwork for the five main categories on this screen.
-// Grain and "Other crops" keep their existing label and art unchanged.
-
-String _categoryLabel(CropCategory cat, BuildContext context) {
-  final s = S.of(context);
-  return switch (cat) {
-    CropCategory.herb => s.cropCatHerb,
-    CropCategory.legume => s.cropCatLegume,
-    CropCategory.root => s.cropCatRoot,
-    CropCategory.vegetable => s.cropCatVegetable,
-    CropCategory.fruit => s.cropCatFruit,
-    _ => cat.label.of(context),
-  };
-}
-
-/// Small transparent icon for the category buttons.
-String _categoryIcon(CropCategory cat) => switch (cat) {
-      CropCategory.herb => 'assets/images/ethmar_herbs_icon.png',
-      CropCategory.legume => 'assets/images/ethmar_legumes_icon.png',
-      CropCategory.root => 'assets/images/ethmar_root_veg_icon.png',
-      CropCategory.vegetable => 'assets/images/ethmar_veg_icon.png',
-      CropCategory.fruit => 'assets/images/ethmar_fruits_icon.png',
-      _ => cat.iconImage,
-    };
-
 /// Illustration on the ticket (drawn on a near-white background, so the
 /// ticket face is warm white for it to blend in).
 String _categoryPhoto(CropCategory cat) => switch (cat) {
@@ -1026,108 +1002,15 @@ class _CategoryBar extends StatelessWidget {
             Padding(
               key: chipKeys[i],
               padding: const EdgeInsetsDirectional.only(end: 8),
-              child: _CategoryTab(
-                group: groups[i],
+              child: CategoryChip(
+                label: categoryLabel(groups[i].category, context),
+                icon: categoryIcon(groups[i].category),
+                count: groups[i].crops.length,
                 selected: i == selected,
                 onTap: () => onSelect(i),
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// One category button: its icon, its name, and how many crops it has.
-/// White with a thin earthy border; the selected one gets a soft green
-/// tint and a stronger border.
-class _CategoryTab extends StatelessWidget {
-  const _CategoryTab({
-    required this.group,
-    required this.selected,
-    required this.onTap,
-  });
-  final _CategoryGroup group;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cat = group.category;
-    const radius = BorderRadius.all(Radius.circular(14));
-    return Semantics(
-      selected: selected,
-      button: true,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.featureCard : AppColors.surface,
-          borderRadius: radius,
-          border: Border.all(
-            color: AppColors.earthBrown
-                .withValues(alpha: selected ? 0.7 : 0.35),
-            width: selected ? 1.6 : 1,
-          ),
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          // InkWell shows the ripple effect when tapped.
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: radius,
-            child: ConstrainedBox(
-              // Compact, but still an easy tap target.
-              constraints: const BoxConstraints(minHeight: 40),
-              child: Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(8, 0, 10, 0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ExcludeSemantics(
-                      child: Image.asset(
-                        _categoryIcon(cat),
-                        width: 24,
-                        height: 24,
-                        cacheWidth: 96,
-                        filterQuality: FilterQuality.medium,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _categoryLabel(cat, context),
-                      style: AppText.label(context).copyWith(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    // The small circle with the number of crops
-                    if (group.crops.length > 1) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        constraints: const BoxConstraints(
-                          minWidth: 20,
-                          minHeight: 20,
-                        ),
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          color: AppColors.backgroundAlt,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          '${group.crops.length}',
-                          style: AppText.small(
-                            context,
-                            color: AppColors.earthBrown,
-                          ).copyWith(fontSize: 11, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -9,8 +9,10 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/entrance.dart';
+import '../widgets/ethmar_buttons.dart';
 import '../widgets/page_header.dart';
 import '../widgets/page_routes.dart';
+import '../widgets/plant_picture.dart';
 import 'add_plant_screen.dart';
 import 'my_plants_screen.dart';
 import 'plant_details_screen.dart';
@@ -21,6 +23,7 @@ import 'plant_details_screen.dart';
 /// Each land holds 5 × 5 = 25 plants. New plants go in the next free square
 /// automatically, row by row from the back corner. When every land is full,
 /// a new land can be added next to them, growing the farm up to 3 × 3 lands.
+/// An empty farm prompts for the first plant.
 /// The farm itself comes from [FarmStore].
 class VirtualFarmScreen extends StatefulWidget {
   const VirtualFarmScreen({super.key});
@@ -46,6 +49,10 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
 
   int get _landCount => FarmStore.lands.value;
 
+  /// True once we know the user has no plants (not while they're loading).
+  bool get _farmEmpty =>
+      FarmStore.plantsLoaded.value && FarmStore.plants.value.isEmpty;
+
   /// Id of a plant added while this screen is open; it pops in.
   String? _newest;
 
@@ -67,12 +74,14 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     super.initState();
     _knownPlants = _plantIds();
     FarmStore.lands.addListener(_farmChanged);
+    FarmStore.plantsLoaded.addListener(_farmChanged);
     FarmStore.plants.addListener(_plantsChanged);
   }
 
   @override
   void dispose() {
     FarmStore.lands.removeListener(_farmChanged);
+    FarmStore.plantsLoaded.removeListener(_farmChanged);
     FarmStore.plants.removeListener(_plantsChanged);
     _move.dispose();
     _view.dispose();
@@ -245,12 +254,18 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                 },
               ),
             ),
+            if (_farmEmpty)
+              _EmptyFarmPrompt(
+                onAddPlant: () => AddPlantScreen.open(context),
+              ),
             Align(
               alignment: Alignment.topCenter,
               // A main tab: no back button.
               child: EthmarPageHeader(
                 title: s.farmTitle,
-                accent: s.farmAccent,
+                accent: FarmStore.plants.value.isEmpty
+                    ? s.farmAccent
+                    : s.farmAccentPlanted,
                 trailing: const _MyPlantsButton(),
                 showBack: false,
               ),
@@ -273,10 +288,14 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                               s.farmPinchHint,
                               style: AppText.small(context),
                             ),
-                            const SizedBox(height: 10),
-                            _AddPlantButton(
-                              onPressed: () => AddPlantScreen.open(context),
-                            ),
+                            // The empty farm's prompt has its own button.
+                            if (!_farmEmpty) ...[
+                              const SizedBox(height: 10),
+                              _AddPlantButton(
+                                onPressed: () =>
+                                    AddPlantScreen.open(context),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -292,6 +311,61 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown over a farm with no plants: says so and offers to add the first.
+class _EmptyFarmPrompt extends StatelessWidget {
+  const _EmptyFarmPrompt({required this.onAddPlant});
+  final VoidCallback onAddPlant;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    // Below the middle, so the land stays in view above it.
+    return Align(
+      alignment: const Alignment(0, 0.35),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
+          child: Entrance(
+            delay: const Duration(milliseconds: 200),
+            child: Material(
+              color: AppColors.surface,
+              elevation: 3,
+              shadowColor: AppColors.overlay,
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      s.farmEmptyTitle,
+                      textAlign: TextAlign.center,
+                      style: AppText.title(context).copyWith(fontSize: 22),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      s.farmEmptyBody,
+                      textAlign: TextAlign.center,
+                      style: AppText.small(context),
+                    ),
+                    const SizedBox(height: 16),
+                    EthmarButton(
+                      label: s.farmEmptyAction,
+                      onPressed: onAddPlant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -397,7 +471,7 @@ class _PlacedPlant extends StatelessWidget {
     // The pictures are about 4:5.
     final width = squareWidth * 0.6;
     final height = width * 1.3;
-    Widget picture = Image.asset(
+    Widget picture = PlantPicture(
       plant.crop.image,
       width: width,
       height: height,

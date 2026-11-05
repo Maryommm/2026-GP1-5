@@ -13,6 +13,13 @@ class CatalogCrop {
   String get image => 'assets/ethmar_crops/$id.png';
 }
 
+/// Shown when a plant's own picture can't be loaded.
+const defaultPlantImage = 'assets/images/ethmar_sprout_pair.png';
+
+/// The crop to choose when the user's plant isn't in the catalog. Its picture
+/// goes in `assets/ethmar_crops/unknown.png`.
+const unknownCropId = 'unknown';
+
 /// Every crop that can be added, grouped by category.
 const cropCatalog = [
   // Vegetables
@@ -49,4 +56,6 @@ const cropCatalog = [
   CatalogCrop('thyme', BiText('Thyme', 'زعتر'), CropCategory.herb),
   // Grains
   CatalogCrop('corn', BiText('Corn', 'ذرة'), CropCategory.grain),
+  // Anything else
+  CatalogCrop(unknownCropId, BiText('Unknown plant', 'نبتة غير معروفة'), CropCategory.other),
 ];

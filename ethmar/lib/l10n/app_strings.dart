@@ -377,7 +377,11 @@ class AppStrings {
     'mapYouAreHere': 'You are here',
     'farmTitle': 'My virtual farm',
     'farmAccent': 'your land is ready for its first seed',
-    'farmLand': 'Your empty farm land',
+    'farmAccentPlanted': 'your plants are growing',
+    'farmLand': 'Your farm land',
+    'farmEmptyTitle': 'Your farm is empty',
+    'farmEmptyBody': 'Add your first plant and watch it appear here.',
+    'farmEmptyAction': 'Add your first plant',
     'farmZoomIn': 'Zoom in',
     'farmZoomOut': 'Zoom out',
     'farmResetView': 'Reset view',
@@ -818,7 +822,11 @@ class AppStrings {
     'mapYouAreHere': 'أنت هنا',
     'farmTitle': 'مزرعتي الافتراضية',
     'farmAccent': 'أرضك جاهزة لأول بذرة',
-    'farmLand': 'أرض مزرعتك الفاضية',
+    'farmAccentPlanted': 'نباتاتك تكبر',
+    'farmLand': 'أرض مزرعتك',
+    'farmEmptyTitle': 'مزرعتك فاضية',
+    'farmEmptyBody': 'أضف أول نبتة وبتظهر لك هنا.',
+    'farmEmptyAction': 'أضف أول نبتة',
     'farmZoomIn': 'تكبير',
     'farmZoomOut': 'تصغير',
     'farmResetView': 'إعادة العرض',
@@ -1250,7 +1258,11 @@ class S {
   String get mapYouAreHere => t('mapYouAreHere');
   String get farmTitle => t('farmTitle');
   String get farmAccent => t('farmAccent');
+  String get farmAccentPlanted => t('farmAccentPlanted');
   String get farmLand => t('farmLand');
+  String get farmEmptyTitle => t('farmEmptyTitle');
+  String get farmEmptyBody => t('farmEmptyBody');
+  String get farmEmptyAction => t('farmEmptyAction');
   String get farmZoomIn => t('farmZoomIn');
   String get farmZoomOut => t('farmZoomOut');
   String get farmResetView => t('farmResetView');

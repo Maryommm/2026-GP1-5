@@ -11,6 +11,7 @@ import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/page_header.dart';
 import '../widgets/page_routes.dart';
+import '../widgets/plant_picture.dart';
 import 'add_plant_screen.dart';
 import 'plant_details_screen.dart';
 
@@ -105,7 +106,7 @@ class _PlantCard extends StatelessWidget {
                   color: cat.tint,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Image.asset(crop.image, cacheWidth: 220),
+                child: PlantPicture(crop.image, cacheWidth: 220),
               ),
               const SizedBox(width: 14),
               Expanded(

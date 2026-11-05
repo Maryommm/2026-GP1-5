@@ -36,6 +36,9 @@ class PlantService {
     return user.uid;
   }
 
+  /// True while somebody is signed in.
+  bool get signedIn => _auth.currentUser != null;
+
   DocumentReference<Map<String, dynamic>> _userDoc(String uid) =>
       _firestore.collection('users').doc(uid);
 

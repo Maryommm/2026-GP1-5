@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
+import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/care_schedule_editor.dart';
+import '../widgets/centered_header.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
-import '../widgets/page_header.dart';
 
 /// Edit a plant's name and care schedules, starting from what's saved.
 class EditPlantScreen extends StatefulWidget {
@@ -77,13 +78,15 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              EthmarPageHeader(
-                title: s.editPlantTitle,
-                accent: _plant.crop.name.of(context),
+              EthmarCenteredHeader(title: s.editPlantTitle),
+              Text(
+                _plant.crop.name.of(context),
+                textAlign: TextAlign.center,
+                style: AppText.small(context),
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
                   children: [
                     EthmarTextField(
                       label: s.addPlantNameLabel,
@@ -109,7 +112,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
               SafeArea(
                 top: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,

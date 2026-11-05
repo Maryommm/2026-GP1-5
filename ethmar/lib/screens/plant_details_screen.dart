@@ -12,6 +12,7 @@ import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_header.dart';
 import '../widgets/page_routes.dart';
+import '../widgets/plant_picture.dart';
 import 'edit_plant_screen.dart';
 
 /// One plant, from the sketch: its picture, days since planting and
@@ -115,7 +116,7 @@ class PlantDetailsScreen extends StatelessWidget {
                             color: crop.category.tint,
                             borderRadius: BorderRadius.circular(28),
                           ),
-                          child: Image.asset(crop.image, cacheWidth: 400),
+                          child: PlantPicture(crop.image, cacheWidth: 400),
                         ),
                       ),
                       const SizedBox(height: 12),

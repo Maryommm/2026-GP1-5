@@ -11,10 +11,13 @@ import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/care_schedule_editor.dart';
+import '../widgets/category_chip.dart';
+import '../widgets/centered_header.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
+import '../widgets/plant_picture.dart';
 
 /// "Add a plant", in two steps: (screens)
 ///  1. Choose the crop
@@ -73,7 +76,10 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   void _choose(CatalogCrop crop) {
     setState(() {
       //keep the user's own name if they come back for the same crop.
-      if (crop != _crop) _name.text = crop.name.of(context);
+      // An unknown plant has no name to suggest: the user types their own.
+      if (crop != _crop) {
+        _name.text = crop.id == unknownCropId ? '' : crop.name.of(context);
+      }
       _crop = crop;
       _step = 1;
     });
@@ -170,35 +176,42 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-          child: Row(
-            children: [
-              _FilterChip(
-                label: s.filterAll,
-                selected: _filter == null,
-                onTap: () => setState(() => _filter = null),
-              ),
-              for (final c in categories)
+        Entrance(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+            child: Row(
+              children: [
                 Padding(
-                  padding: const EdgeInsetsDirectional.only(start: 8),
-                  child: _FilterChip(
-                    label: c.label.of(context),
-                    category: c,
-                    selected: _filter == c,
-                    onTap: () => setState(() => _filter = c),
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: CategoryChip(
+                    label: s.filterAll,
+                    count: cropCatalog.length,
+                    selected: _filter == null,
+                    onTap: () => setState(() => _filter = null),
                   ),
                 ),
-            ],
+                for (final c in categories)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: CategoryChip(
+                      label: categoryLabel(c, context),
+                      icon: categoryIcon(c),
+                      count: cropCatalog.where((x) => x.category == c).length,
+                      selected: _filter == c,
+                      onTap: () => setState(() => _filter = c),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
         Expanded(
           child: GridView.builder(
             padding: EdgeInsets.fromLTRB(
-              16,
+              24,
               12,
-              16,
+              24,
               16 + MediaQuery.paddingOf(context).bottom,
             ),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -226,7 +239,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
         children: [
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               children: [
                 _ChosenCrop(
                   crop: _crop!,
@@ -263,7 +276,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
           SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
               child: EthmarButton(
                 label: s.addPlantButton,
                 onPressed: _submit,
@@ -278,7 +291,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
 }
 
 
-// Header: back, title, which step, and a two-part progress bar.
+// Header: back, centred title and which step, straight on the background.
 
 class _StepHeader extends StatelessWidget {
   const _StepHeader({required this.step});
@@ -287,172 +300,30 @@ class _StepHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return Container(
-      padding: EdgeInsetsDirectional.fromSTEB(
-        16,
-        MediaQuery.paddingOf(context).top + 8,
-        20,
-        16,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.forestTint,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              EthmarBackButton(tooltip: s.back),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      s.addPlantTitle,
-                      style: AppText.title(context).copyWith(fontSize: 24),
-                    ),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: Text(
-                        '${s.addPlantStep(step + 1)} · '
-                        '${step == 0 ? s.addPlantChoose : s.addPlantDetails}',
-                        key: ValueKey(step),
-                        style: AppText.small(
-                          context,
-                          color: AppColors.textPrimary,
-                        ).copyWith(fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        EthmarCenteredHeader(title: s.addPlantTitle),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Text(
+            '${s.addPlantStep(step + 1)} · '
+            '${step == 0 ? s.addPlantChoose : s.addPlantDetails}',
+            key: ValueKey(step),
+            textAlign: TextAlign.center,
+            style: AppText.small(context),
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              for (var i = 0; i < 2; i++) ...[
-                if (i > 0) const SizedBox(width: 6),
-                Expanded(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: i <= step
-                          ? AppColors.forest
-                          : AppColors.forest.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
 
-// Step 1 classes: crop filter and card
+// Step 1 class: crop card
 
-/// Crop type filter
-/// Without a [category] it's the "All" chip.
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.category,
-  });
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final CropCategory? category;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = category;
-    final accent = c?.color ?? AppColors.forest;
-    final tint = c?.tint ?? AppColors.forestTint;
-    final fg = selected
-        ? (c?.dark ?? AppColors.forest)
-        : AppColors.textSecondary;
-    return Semantics(
-      selected: selected,
-      button: true,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: selected ? tint : AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: selected ? accent : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 44),
-              child: Padding(
-                padding: EdgeInsetsDirectional.fromSTEB(
-                  c == null ? 18 : 12,
-                  0,
-                  16,
-                  0,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (c != null) ...[
-                      // The icon art sits in the middle of a wide transparent
-                      // canvas, so draw it larger and let the empty margin
-                      // spill outside the 28px slot.
-                      ExcludeSemantics(
-                        child: SizedBox.square(
-                          dimension: 28,
-                          child: OverflowBox(
-                            maxWidth: 62,
-                            maxHeight: 62,
-                            child: Image.asset(
-                              c.iconImage,
-                              width: 62,
-                              height: 62,
-                              cacheWidth: 200,
-                              filterQuality: FilterQuality.medium,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                    ],
-                    Text(
-                      label,
-                      style: AppText.label(context, color: fg).copyWith(
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Square card: the crop's picture on its type's soft colour, name below.
+/// Square card: the crop's picture on warm white with a thin earthy border
+/// (like the recommender's cards), name below.
 class _CropCard extends StatelessWidget {
   const _CropCard({required this.crop, required this.onTap});
   final CatalogCrop crop;
@@ -469,7 +340,9 @@ class _CropCard extends StatelessWidget {
         color: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(
+            color: AppColors.earthBrown.withValues(alpha: 0.35),
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -480,18 +353,10 @@ class _CropCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: crop.category.tint,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Image.asset(
-                      crop.image,
-                      fit: BoxFit.contain,
-                      cacheWidth: 320,
-                      filterQuality: FilterQuality.medium,
-                    ),
+                  child: PlantPicture(
+                    crop.image,
+                    fit: BoxFit.contain,
+                    cacheWidth: 320,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -500,8 +365,7 @@ class _CropCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: AppText.label(context)
-                      .copyWith(fontSize: 15, fontWeight: FontWeight.w600),
+                  style: AppText.title(context).copyWith(fontSize: 16),
                 ),
                 const SizedBox(height: 2),
               ],
@@ -529,9 +393,8 @@ class _ChosenCrop extends StatelessWidget {
       child: Container(
         padding: const EdgeInsetsDirectional.fromSTEB(10, 10, 6, 10),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.featureCard,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -540,10 +403,10 @@ class _ChosenCrop extends StatelessWidget {
               height: 64,
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: cat.tint,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Image.asset(crop.image, cacheWidth: 200),
+              child: PlantPicture(crop.image, cacheWidth: 200),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -551,16 +414,12 @@ class _ChosenCrop extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    cat.label.of(context),
-                    style: AppText.small(
-                      context,
-                      color: cat.dark,
-                    ).copyWith(fontWeight: FontWeight.w600),
+                    categoryLabel(cat, context),
+                    style: AppText.small(context),
                   ),
                   Text(
                     crop.name.of(context),
-                    style: AppText.label(context)
-                        .copyWith(fontSize: 17, fontWeight: FontWeight.w700),
+                    style: AppText.title(context).copyWith(fontSize: 18),
                   ),
                 ],
               ),
@@ -605,11 +464,11 @@ class _SummaryDialog extends StatelessWidget {
                 width: 104,
                 height: 104,
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: cat.tint,
+                decoration: const BoxDecoration(
+                  color: AppColors.featureCard,
                   shape: BoxShape.circle,
                 ),
-                child: Image.asset(crop.image, cacheWidth: 300),
+                child: PlantPicture(crop.image, cacheWidth: 300),
               ),
             ),
             const SizedBox(height: 12),
@@ -622,7 +481,7 @@ class _SummaryDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.forestTint,
+                color: AppColors.featureCard,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -633,9 +492,7 @@ class _SummaryDialog extends StatelessWidget {
                       children: [
                         Text(
                           plant.name,
-                          style: AppText.label(
-                            context,
-                          ).copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+                          style: AppText.title(context).copyWith(fontSize: 18),
                         ),
                         // The crop, unless the name already says it.
                         if (plant.name != crop.name.of(context))
@@ -652,14 +509,14 @@ class _SummaryDialog extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: cat.tint,
+                      color: AppColors.backgroundAlt,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      cat.label.of(context),
+                      categoryLabel(cat, context),
                       style: AppText.small(
                         context,
-                        color: cat.dark,
+                        color: AppColors.earthBrown,
                       ).copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -722,10 +579,10 @@ class _SummaryRow extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: const BoxDecoration(
-              color: AppColors.seaTint,
+              color: AppColors.featureCard,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 18, color: AppColors.seaDeep),
+            child: Icon(icon, size: 18, color: AppColors.forest),
           ),
           const SizedBox(width: 12),
           Expanded(

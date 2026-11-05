@@ -23,6 +23,10 @@ class FarmStore {
   /// Sorted by land, then square.
   static final plants = ValueNotifier<List<FarmPlant>>(const []);
 
+  /// True once the signed-in user's plants have arrived. Until then an empty
+  /// [plants] doesn't mean the farm is empty.
+  static final plantsLoaded = ValueNotifier<bool>(false);
+
   /// The streak and lands, as saved (Home shows the streak).
   static final stats = ValueNotifier<FarmStats>(const FarmStats());
 
@@ -46,6 +50,7 @@ class FarmStore {
     _service.watchPlants().listen((saved) {
       _savedPlants = saved;
       _publish();
+      plantsLoaded.value = _service.signedIn;
     }, onError: (Object e) => debugPrint('Could not load the plants: $e'));
     _service.watchStats().listen((saved) {
       stats.value = saved;

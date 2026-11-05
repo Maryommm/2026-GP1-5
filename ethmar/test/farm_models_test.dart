@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ethmar/data/sample_plants.dart';
 import 'package:ethmar/models/crop_catalog.dart';
 import 'package:ethmar/models/farm_plant.dart';
@@ -92,6 +94,15 @@ void main() {
         expect(back.updatedAt, plant.updatedAt);
         expect(back.growth, isEmpty);
       }
+    });
+
+    test('every crop and the default have a picture in the assets', () {
+      // The team adds the unknown plant's picture; until then it shows the
+      // default one.
+      for (final crop in cropCatalog.where((c) => c.id != unknownCropId)) {
+        expect(File(crop.image).existsSync(), isTrue, reason: crop.id);
+      }
+      expect(File(defaultPlantImage).existsSync(), isTrue);
     });
 
     test('rejects an unknown cropId', () {
