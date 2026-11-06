@@ -18,15 +18,24 @@ import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/plant_picture.dart';
+import 'plant_details_screen.dart';
+
+typedef SavePlant = Future<FarmPlant> Function(FarmPlant plant);
 
 /// "Add a plant", in two steps: (screens)
 ///  1. Choose the crop
 ///  2. Name it and, if wanted, set the irrigation and fertilization schedules.
 class AddPlantScreen extends StatefulWidget {
-  const AddPlantScreen({super.key});
+  const AddPlantScreen({super.key, this.savePlant});
+
+  /// Test seam; production callers save through [FarmStore].
+  final SavePlant? savePlant;
 
   /// Returns the added plant, if any.
-  static Future<FarmPlant?> open(BuildContext context) async {
+  static Future<FarmPlant?> open(
+    BuildContext context, {
+    SavePlant? savePlant,
+  }) async {
     if (FarmStore.landsFull) {
       showEthmarToast(
         context,
@@ -36,9 +45,14 @@ class AddPlantScreen extends StatefulWidget {
       return null;
     }
     final plant = await Navigator.of(context)
-        .push<FarmPlant>(riseRoute(const AddPlantScreen()));
+        .push<FarmPlant>(riseRoute(AddPlantScreen(savePlant: savePlant)));
     if (plant != null && context.mounted) {
       showEthmarToast(context, S.of(context).plantAdded(plant.name));
+      final plantId = plant.id;
+      if (plantId != null && plantId.trim().isNotEmpty) {
+        await Navigator.of(context)
+            .push<void>(riseRoute(PlantDetailsScreen(plantId: plantId)));
+      }
     }
     return plant;
   }
@@ -61,7 +75,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     Repeat.everyDay,
     const TimeOfDay(hour: 7, minute: 0),
   );
-  
+
   final _fertilization = ScheduleDraft(
     Repeat.everyWeek,
     const TimeOfDay(hour: 8, minute: 0),
@@ -101,7 +115,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     if (confirmed != true || !mounted) return;
     setState(() => _saving = true);
     try {
-      final saved = await FarmStore.addPlant(plant);
+      final saved = await (widget.savePlant ?? FarmStore.addPlant)(plant);
       if (mounted) Navigator.of(context).pop(saved);
     } on FarmFullException {
       _saveFailed((s) => s.farmLandFull, EthmarToastType.info);
@@ -160,9 +174,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     );
   }
 
-
-
-  // Step 1: choose the crop process 
+  // Step 1: choose the crop process
 
   Widget _buildChooseStep() {
     final s = S.of(context);
@@ -290,7 +302,6 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   }
 }
 
-
 // Header: back, centred title and which step, straight on the background.
 
 class _StepHeader extends StatelessWidget {
@@ -319,7 +330,6 @@ class _StepHeader extends StatelessWidget {
   }
 }
 
-
 // Step 1 class: crop card
 
 /// Square card: the crop's picture on warm white with a thin earthy border
@@ -340,9 +350,7 @@ class _CropCard extends StatelessWidget {
         color: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: AppColors.earthBrown.withValues(alpha: 0.35),
-          ),
+          side: BorderSide(color: AppColors.earthBrown.withValues(alpha: 0.35)),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -379,7 +387,6 @@ class _CropCard extends StatelessWidget {
     );
   }
 }
-
 
 // Step 2 classes: chosen crop and summary dialog
 
@@ -435,9 +442,7 @@ class _ChosenCrop extends StatelessWidget {
   }
 }
 
-
 // Summary dialog: confirm, or go back and change something.
-
 
 class _SummaryDialog extends StatelessWidget {
   const _SummaryDialog({required this.plant});
@@ -598,7 +603,9 @@ class _SummaryRow extends StatelessWidget {
                   style:
                       AppText.label(
                         context,
-                        color: set ? AppColors.textPrimary : AppColors.textSecondary,
+                        color: set
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
                       ).copyWith(
                         fontWeight: set ? FontWeight.w600 : FontWeight.w400,
                       ),

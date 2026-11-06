@@ -1,3 +1,5 @@
+import '../models/farm_plant.dart';
+import '../services/farm_store.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -338,13 +340,15 @@ class _Stats extends StatelessWidget {
 
   // TODO(stats): Temporary fixed values for this stage. Connect to the
   //   user's real plants and leaderboard rank once they are stored.
-  static const _plantCount = '0';
-  static const _rank = '—';
+
+  static const _rank = '\u2014';
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return IntrinsicHeight(
+    return ValueListenableBuilder<List<FarmPlant>>(
+      valueListenable: FarmStore.plants,
+      builder: (context, plants, _) => IntrinsicHeight(
       child: Row(
         // My Plants stays on the left and My Rank on the right in both
         // languages; text inside each card keeps the app's direction.
@@ -356,7 +360,7 @@ class _Stats extends StatelessWidget {
               image: 'assets/images/ethmar_plant_icon.png',
               imageSize: 32,
               color: AppColors.featureCard,
-              value: _plantCount,
+              value: plants.length.toString(),
               label: s.statMyPlants,
             ),
           ),
@@ -374,6 +378,7 @@ class _Stats extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

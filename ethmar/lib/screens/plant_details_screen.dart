@@ -5,7 +5,7 @@ import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../widgets/auth_header.dart' show showEthmarToast;
+import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
@@ -20,9 +20,42 @@ import 'edit_plant_screen.dart';
 /// care schedule with an Edit button.
 ///
 /// [plantId] is the plant's Firestore document id.
-class PlantDetailsScreen extends StatelessWidget {
+class PlantDetailsScreen extends StatefulWidget {
   const PlantDetailsScreen({super.key, required this.plantId});
   final String plantId;
+
+  @override
+  State<PlantDetailsScreen> createState() => _PlantDetailsScreenState();
+}
+
+class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
+  bool _deleting = false;
+  Future<void> _requestDelete(FarmPlant plant) async {
+    if (_deleting) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: AppColors.overlay,
+      builder: (_) => _DeletePlantDialog(plantName: plant.name),
+    );
+    if (confirmed != true || !mounted || _deleting) return;
+
+    setState(() => _deleting = true);
+    try {
+      await FarmStore.deletePlant(plantId);
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      showEthmarToast(
+        context,
+        S.of(context).plantDeleteFailed,
+        type: EthmarToastType.error,
+      );
+    }
+  }
+
+
+  String get plantId => widget.plantId;
 
   /// "Upload a picture": pick where it comes from, then add optional notes.
   Future<void> _addPicture(BuildContext context) async {
@@ -98,6 +131,10 @@ class PlantDetailsScreen extends StatelessWidget {
                 EthmarPageHeader(
                   title: plant.name,
                   accent: crop.name.of(context),
+                  trailing: _DeleteButton(
+                    deleting: _deleting,
+                    onPressed: () => _requestDelete(plant),
+                  ),
                 ),
                 Expanded(
                   child: ListView(
@@ -174,6 +211,94 @@ class PlantDetailsScreen extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 /// Small white box: a label on top, the value below (from the sketch).
+class _DeleteButton extends StatelessWidget {
+  const _DeleteButton({required this.deleting, required this.onPressed});
+
+  final bool deleting;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      shape: const CircleBorder(),
+      child: IconButton(
+        key: const ValueKey('delete-plant'),
+        tooltip: S.of(context).deletePlant,
+        onPressed: deleting ? null : onPressed,
+        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+        icon: deleting
+            ? const SizedBox.square(
+                dimension: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: AppColors.error,
+                ),
+              )
+            : const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+      ),
+    );
+  }
+}
+
+class _DeletePlantDialog extends StatelessWidget {
+  const _DeletePlantDialog({required this.plantName});
+
+  final String plantName;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(
+              Icons.delete_outline_rounded,
+              size: 42,
+              color: AppColors.error,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              s.deletePlantTitle,
+              textAlign: TextAlign.center,
+              style: AppText.title(context).copyWith(fontSize: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              s.deletePlantMessage(plantName),
+              textAlign: TextAlign.center,
+              style: AppText.body(context),
+            ),
+            const SizedBox(height: 22),
+            EthmarButton(
+              key: const ValueKey('confirm-delete-plant'),
+              label: s.deletePlant,
+              color: AppColors.error,
+              textColor: AppColors.surface,
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            const SizedBox(height: 4),
+            Center(
+              child: EthmarLink(
+                label: s.cancel,
+                onTap: () => Navigator.of(context).pop(false),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 class _StatCard extends StatelessWidget {
   const _StatCard({required this.label, required this.value});
   final String label;
@@ -332,7 +457,7 @@ class _GrowthTimeline extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            entries[i].notes ?? '—',
+                            entries[i].notes ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â',
                             style: AppText.label(context).copyWith(
                               color: entries[i].notes == null
                                   ? AppColors.textSecondary

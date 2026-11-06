@@ -464,6 +464,21 @@ class AppStrings {
     'tomorrow': 'Tomorrow',
     'editPlantTitle': 'Edit plant',
     'plantUpdated': 'Plant updated',
+    'deletePlant': 'Delete plant',
+    'deletePlantTitle': 'Delete this plant?',
+    'deletePlantMessage':
+        "Delete {name} and its growth records? This can't be undone.",
+    'plantDeleteFailed':
+        "Couldn't delete the plant. Check your connection and try again.",
+    'plantUnavailableTitle': 'Plant unavailable',
+    'plantUnavailableBody':
+        'This plant may have been deleted on another device.',
+    'plantEditConflict':
+        'This plant changed on another device. Go back and open it again.',
+    'farmLoadFailed':
+        "Couldn't load your plants. Check your connection and try again.",
+    'farmPlacementNeedsMigration':
+        'Your saved farm needs a safe placement update before adding another plant. Please contact the Ethmar team.',
     'farmSaveFailed': "Couldn't save. Check your connection and try again.",
     'leaderboardTitle': 'Leaderboard',
     'leaderboardAccent': "who's growing the most?",
@@ -917,6 +932,21 @@ class AppStrings {
     'tomorrow': 'بكرة',
     'editPlantTitle': 'تعديل النبتة',
     'plantUpdated': 'تم تحديث النبتة',
+    'deletePlant': 'حذف النبتة',
+    'deletePlantTitle': 'حذف هذه النبتة؟',
+    'deletePlantMessage':
+        'هل تريد حذف {name} وسجل نموها؟ لا يمكن التراجع عن ذلك.',
+    'plantDeleteFailed':
+        'تعذر حذف النبتة. تحقق من اتصالك وحاول مرة أخرى.',
+    'plantUnavailableTitle': 'النبتة غير متاحة',
+    'plantUnavailableBody':
+        'ربما حُذفت هذه النبتة من جهاز آخر.',
+    'plantEditConflict':
+        'تم تعديل هذه النبتة من جهاز آخر. ارجع وافتحها مرة أخرى.',
+    'farmLoadFailed':
+        'تعذر تحميل نباتاتك. تحقق من اتصالك وحاول مرة أخرى.',
+    'farmPlacementNeedsMigration':
+        'تحتاج مزرعتك المحفوظة إلى تحديث آمن للمواقع قبل إضافة نبتة جديدة. تواصل مع فريق إثمار.',
     'farmSaveFailed': 'تعذر الحفظ. تحقق من اتصالك وحاول مرة أخرى.',
     'leaderboardTitle': 'المتصدرون',
     'leaderboardAccent': 'مين يزرع أكثر؟',
@@ -1376,6 +1406,16 @@ class S {
   String get tomorrow => t('tomorrow');
   String get editPlantTitle => t('editPlantTitle');
   String get plantUpdated => t('plantUpdated');
+  String get deletePlant => t('deletePlant');
+  String get deletePlantTitle => t('deletePlantTitle');
+  String deletePlantMessage(String name) =>
+      t('deletePlantMessage').replaceAll('{name}', name);
+  String get plantDeleteFailed => t('plantDeleteFailed');
+  String get plantUnavailableTitle => t('plantUnavailableTitle');
+  String get plantUnavailableBody => t('plantUnavailableBody');
+  String get plantEditConflict => t('plantEditConflict');
+  String get farmLoadFailed => t('farmLoadFailed');
+  String get farmPlacementNeedsMigration => t('farmPlacementNeedsMigration');
   String get farmSaveFailed => t('farmSaveFailed');
   String get leaderboardTitle => t('leaderboardTitle');
   String get leaderboardAccent => t('leaderboardAccent');
