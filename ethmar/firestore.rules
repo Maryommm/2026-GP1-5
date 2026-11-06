@@ -220,8 +220,13 @@ service cloud.firestore {
       // The user's plants.
       match /plants/{plantId} {
         allow read, delete: if ownsFarm(uid);
-        allow create, update: if ownsFarm(uid) &&
+        allow create: if ownsFarm(uid) &&
             validPlant(request.resource.data);
+
+        allow update: if ownsFarm(uid) &&
+            validPlant(request.resource.data) &&
+            request.resource.data.cropId == resource.data.cropId &&
+            request.resource.data.createdAt == resource.data.createdAt;
 
         // Each plant's growth timeline.
         match /growth/{entryId} {

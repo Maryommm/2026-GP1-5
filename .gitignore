@@ -19,6 +19,7 @@ venv/
 # Firebase
 .firebase/
 *-debug.log
+node_modules/
 
 # Vercel and Firebase secrets - never commit a service account key
 .vercel/
