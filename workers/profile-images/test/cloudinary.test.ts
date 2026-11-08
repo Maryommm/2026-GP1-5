@@ -1,5 +1,10 @@
 import {
+  deleteGrowthPhoto,
+  deletePlantGrowthPhotos,
   deleteProfileImage,
+  GROWTH_PHOTO_TRANSFORMATION,
+  growthPublicId,
+  uploadGrowthPhoto,
   PROFILE_IMAGE_FORMAT,
   PROFILE_IMAGE_TRANSFORMATION,
   profilePublicId,
@@ -208,5 +213,107 @@ describe("Cloudinary profile image operations", () => {
       deleted: false,
       notFound: true,
     });
+  });
+});
+
+describe("Cloudinary growth photo operations", () => {
+  const growthId = "ethmar/plant-growth/user-a/plant-1/entry-1";
+
+  it("uploads to the entry's ID inside the user's plant folder, at most 2048 px", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_710_000_000_000);
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const form = init?.body as FormData;
+      expect(form.get("public_id")).toBe(growthId);
+      expect(form.get("transformation")).toBe(GROWTH_PHOTO_TRANSFORMATION);
+      expect(GROWTH_PHOTO_TRANSFORMATION).toBe("c_limit,h_2048,w_2048/fl_force_strip");
+      const canonical = "format=webp&invalidate=true&overwrite=true"
+        + "&public_id=" + growthId
+        + "&timestamp=1710000000"
+        + "&transformation=" + GROWTH_PHOTO_TRANSFORMATION;
+      expect(form.get("signature")).toBe(await sha1Hex(canonical + env.CLOUDINARY_API_SECRET));
+      return Response.json({
+        resource_type: "image",
+        public_id: growthId,
+        secure_url: "https://res.cloudinary.com/k7otdsln/image/upload/v5/" + growthId + ".webp",
+        version: 5,
+        format: "webp",
+        width: 2048,
+        height: 1536,
+        bytes: 300_000,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(uploadGrowthPhoto(env, "user-a", "plant-1", "entry-1", image))
+      .resolves.toMatchObject({ publicId: growthId, version: 5, width: 2048 });
+    expect(growthPublicId("user-a", "plant-1", "entry-1")).toBe(growthId);
+  });
+
+  it("rejects an upload stored under another public ID", async () => {
+    const otherId = "ethmar/plant-growth/user-b/plant-1/entry-1";
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({
+      resource_type: "image",
+      public_id: otherId,
+      secure_url: "https://res.cloudinary.com/k7otdsln/image/upload/v5/" + otherId + ".webp",
+      version: 5,
+      format: "webp",
+      width: 1,
+      height: 1,
+      bytes: 3,
+    })));
+
+    await expect(uploadGrowthPhoto(env, "user-a", "plant-1", "entry-1", image))
+      .rejects.toMatchObject({ kind: "CLOUDINARY_INVALID_RESPONSE" });
+  });
+
+  it("deletes one growth photo by its ID", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect((init?.body as URLSearchParams).get("public_id")).toBe(growthId);
+      return Response.json({ result: "ok" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(deleteGrowthPhoto(env, "user-a", "plant-1", "entry-1")).resolves.toEqual({
+      publicId: growthId,
+      deleted: true,
+      notFound: false,
+    });
+  });
+
+  it("deletes a plant's folder, with the final slash, until nothing is left", async () => {
+    const replies = [
+      { deleted: { [growthId]: "deleted", "x/2": "deleted" }, partial: true },
+      { deleted: { "x/3": "deleted", "x/4": "not_found" }, partial: false },
+    ];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      expect(url.pathname).toBe("/v1_1/k7otdsln/resources/image/upload");
+      expect(url.searchParams.get("prefix")).toBe("ethmar/plant-growth/user-a/plant-1/");
+      expect(init?.method).toBe("DELETE");
+      expect(new Headers(init?.headers).get("authorization"))
+        .toBe("Basic " + btoa(env.CLOUDINARY_API_KEY + ":" + env.CLOUDINARY_API_SECRET));
+      return Response.json(replies.shift());
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(deletePlantGrowthPhotos(env, "user-a", "plant-1"))
+      .resolves.toEqual({ deleted: 3 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports a failed folder delete without exposing the credentials", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json(
+      { error: { message: "Request forbidden" } },
+      { status: 403 },
+    )));
+
+    let failure: unknown;
+    try {
+      await deletePlantGrowthPhotos(env, "user-a", "plant-1");
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({ kind: "CLOUDINARY_FORBIDDEN" });
+    expect(String(failure)).not.toContain(env.CLOUDINARY_API_SECRET);
   });
 });

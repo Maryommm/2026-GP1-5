@@ -9,4 +9,3 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
-    - firebase-tests/node_modules/**

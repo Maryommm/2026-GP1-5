@@ -1,6 +1,6 @@
 # Ethmar profile image worker
 
-Cloudflare Worker for public Cloudinary profile images. Upload and deletion are
+Cloudflare Worker for public Cloudinary profile images and plant growth photos. Upload and deletion are
 protected by Firebase Authentication. The Worker never accepts a UID, folder,
 or Cloudinary public ID from the client; it derives the UID from a verified
 Firebase ID token and uses this fixed public ID:
@@ -27,6 +27,33 @@ Cloudinary otherwise preserves in transformed JPEG and PNG outputs.
 
 Send no request body. Deleting a missing image is successful and returns the
 status not_found rather than an error.
+
+### POST /v1/plant-growth
+
+Growth timeline photos. Send multipart/form-data with exactly one `file` and
+one each of `plantId` and `entryId` (the Firestore IDs of the plant and the
+new growth entry: letters, digits, `_` and `-`, at most 64). The photo is saved
+at this public ID, with the UID again taken from the verified token:
+
+    ethmar/plant-growth/{uid}/{plantId}/{entryId}
+
+The same file limits, metadata stripping and WebP output apply, but the stored
+photo is limited to 2048 x 2048 pixels. The app then saves the growth entry in
+Firestore, whose rules accept only this exact public ID.
+
+### DELETE /v1/plant-growth?plantId=…&entryId=…
+
+Deletes one growth photo (used when the entry could not be saved). Send no
+request body.
+
+### DELETE /v1/plant-growth?plantId=…
+
+Deletes every growth photo of a plant, when the plant is deleted. This uses
+Cloudinary's Admin API (delete by prefix, with the API key and secret as basic
+auth) and returns `{"deletedPhotos": n}`.
+
+Growth requests share the rate limiter below, under a separate key per user
+(`growth:{uid}`), so they don't use up the profile image's budget.
 
 ## Cloudflare bindings
 

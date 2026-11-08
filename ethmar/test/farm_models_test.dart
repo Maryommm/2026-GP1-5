@@ -10,6 +10,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('crop search', () {
+    CatalogCrop crop(String id) => cropCatalog.firstWhere((c) => c.id == id);
+
+    test('matches English names in any case', () {
+      expect(crop('tomato').matches('TOMA'), isTrue);
+      expect(crop('sweet_potato').matches('  sweet   pot '), isTrue);
+      expect(crop('tomato').matches('cucumber'), isFalse);
+      expect(crop('tomato').matches(''), isTrue);
+    });
+
+    test('matches Arabic names despite marks, letter variants and "ال"', () {
+      expect(crop('tomato').matches('الطماطم'), isTrue);
+      expect(crop('tomato').matches('طَمَاطِم'), isTrue);
+      expect(crop('sweet_potato').matches('بطاطا حلوه'), isTrue);
+      expect(crop('cucumber').matches('طماطم'), isFalse);
+    });
+  });
+
   group('CareSchedule', () {
     test('saves as everyDays and "HH:mm", and reads back the same', () {
       const schedule = CareSchedule(

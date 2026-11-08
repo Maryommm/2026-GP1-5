@@ -55,6 +55,8 @@ void main() {
     FarmStore.plants.value = const [];
     FarmStore.plantsLoaded.value = false;
     FarmStore.lands.value = 1;
+    // Plant Details reads the growth timeline; tests have no Firebase.
+    FarmStore.growthForTests = (_) => Stream.value(const []);
   }
 
   Future<_PagePushObserver> openAddPlant(
@@ -107,6 +109,37 @@ void main() {
     await tester.tap(find.text('Unknown plant'));
     await settle(tester);
     expect(typedName(tester), isEmpty);
+  });
+
+  testWidgets('searching narrows the crops to matching names', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: AddPlantScreen()));
+    await settle(tester);
+
+    await tester.enterText(find.byType(TextField), 'toma');
+    await settle(tester);
+    expect(find.text('Tomato'), findsOneWidget);
+    expect(find.text('Tomatillo'), findsOneWidget);
+    expect(find.text('Cucumber'), findsNothing);
+
+    await tester.tap(find.byTooltip('Clear search'));
+    await settle(tester);
+    expect(find.text('Cucumber'), findsOneWidget);
+  });
+
+  testWidgets('a search with no match offers the unknown plant, named', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: AddPlantScreen()));
+    await settle(tester);
+
+    await tester.enterText(find.byType(TextField), 'Moringa tree');
+    await settle(tester);
+    expect(find.text('No crop called "Moringa tree" yet'), findsOneWidget);
+
+    await tester.tap(find.text('Add it as an unknown plant'));
+    await settle(tester);
+    expect(find.text('Unknown plant'), findsOneWidget);
+    expect(typedName(tester), 'Moringa tree');
   });
 
   testWidgets('a missing picture shows the default one', (tester) async {

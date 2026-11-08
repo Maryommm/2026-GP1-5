@@ -15,10 +15,12 @@
 ///   - updatedAt      Timestamp
 ///
 /// Growth entry: `users/{uid}/plants/{plantId}/growth/{entryId}`
-///   - date   Timestamp
+///   - date   Timestamp  set by the server when the entry is saved
 ///   - notes  String|null
-///   - photo  map|null   {publicId, version, format, width, height, bytes},
-///                       the same shape as `users/{uid}/media/profile`
+///   - photo  map        {publicId, version, format, width, height, bytes},
+///                       the same shape as `users/{uid}/media/profile`.
+///                       The picture is on Cloudinary at
+///                       `ethmar/plant-growth/{uid}/{plantId}/{entryId}`.
 library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -133,6 +135,19 @@ class GrowthPhoto {
   final int height;
   final int bytes;
 
+  /// Ethmar's Cloudinary account (the same as the profile pictures').
+  static const cloudName = 'k7otdsln';
+
+  /// Where it's saved on Cloudinary, for [uid]'s entry [entryId] of plant
+  /// [plantId]. Firestore's rules allow no other.
+  static String publicIdFor(String uid, String plantId, String entryId) =>
+      'ethmar/plant-growth/$uid/$plantId/$entryId';
+
+  /// The address to show it from. The version makes a replaced picture a
+  /// new address, so an old copy is never shown from a cache.
+  String get url =>
+      'https://res.cloudinary.com/$cloudName/image/upload/v$version/$publicId.$format';
+
   Map<String, Object> toMap() => {
     'publicId': publicId,
     'version': version,
@@ -182,8 +197,20 @@ class GrowthEntry {
   final DateTime date;
   final String? notes;
 
-  /// Null until the picture is uploaded (or if there is none).
+  /// Every saved entry has one; null only in sample data and old entries.
   final GrowthPhoto? photo;
+
+  /// Which day of the plant's life it was taken: 0 on the planting day.
+  int dayOf(DateTime plantedAt) {
+    // UTC calendar days, so a daylight-saving change can't lose a day.
+    final planted = DateTime.utc(
+      plantedAt.year,
+      plantedAt.month,
+      plantedAt.day,
+    );
+    final day = DateTime.utc(date.year, date.month, date.day);
+    return day.difference(planted).inDays;
+  }
 
   /// The document's fields. The id isn't one of them: it's the document name.
   Map<String, Object?> toMap() => {

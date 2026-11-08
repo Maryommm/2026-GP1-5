@@ -1,6 +1,9 @@
 import type {
+  DeletedGrowthPhoto,
+  DeletedPlantGrowthPhotos,
   DeletedProfileImage,
   Env,
+  UploadedGrowthPhoto,
   UploadedProfileImage,
   ValidatedImage,
 } from "./types";
@@ -57,9 +60,19 @@ interface CloudinaryDestroyResponse {
   result?: unknown;
 }
 
+interface CloudinaryDeleteByPrefixResponse {
+  deleted?: unknown;
+  partial?: unknown;
+}
+
 // Set the output format and image transformation.
 export const PROFILE_IMAGE_TRANSFORMATION = "c_limit,h_4096,w_4096/fl_force_strip";
 export const PROFILE_IMAGE_FORMAT = "webp";
+// Growth photos are smaller: the timeline never needs more than 2048 px.
+export const GROWTH_PHOTO_TRANSFORMATION = "c_limit,h_2048,w_2048/fl_force_strip";
+// Cloudinary deletes at most 1000 photos per call; a plant never has that
+// many, so a few rounds are always enough.
+const MAX_DELETE_BY_PREFIX_ROUNDS = 5;
 const MAX_CLOUDINARY_ERROR_BYTES = 8 * 1024;
 
 // Read and validate Cloudinary configuration from Worker bindings.
@@ -107,6 +120,17 @@ async function sign(parameters: Record<string, string>, apiSecret: string): Prom
 // Create a fixed image ID for each Firebase user.
 export function profilePublicId(uid: string): string {
   return "ethmar/profile-images/" + uid + "/profile";
+}
+
+// The folder holding every growth photo of one plant (with the final "/",
+// so plant "ab" never matches plant "abc").
+export function growthPlantFolder(uid: string, plantId: string): string {
+  return "ethmar/plant-growth/" + uid + "/" + plantId + "/";
+}
+
+// One growth photo: its plant's folder, then the growth entry's ID.
+export function growthPublicId(uid: string, plantId: string, entryId: string): string {
+  return growthPlantFolder(uid, plantId) + entryId;
 }
 
 // Parse Cloudinary responses and reject invalid JSON.
@@ -263,13 +287,40 @@ function isExpectedUploadUrl(
 }
 
 // Upload and replace the authenticated user's sanitized image.
-export async function uploadProfileImage(
+export function uploadProfileImage(
   env: Env,
   uid: string,
   image: ValidatedImage,
 ): Promise<UploadedProfileImage> {
+  return uploadImage(env, profilePublicId(uid), image, PROFILE_IMAGE_TRANSFORMATION, "profile");
+}
+
+// Upload one growth photo. A retry for the same entry replaces it.
+export function uploadGrowthPhoto(
+  env: Env,
+  uid: string,
+  plantId: string,
+  entryId: string,
+  image: ValidatedImage,
+): Promise<UploadedGrowthPhoto> {
+  return uploadImage(
+    env,
+    growthPublicId(uid, plantId, entryId),
+    image,
+    GROWTH_PHOTO_TRANSFORMATION,
+    "growth",
+  );
+}
+
+// Upload a sanitized image to a fixed public ID, replacing what was there.
+async function uploadImage(
+  env: Env,
+  publicId: string,
+  image: ValidatedImage,
+  transformation: string,
+  fileName: string,
+): Promise<UploadedProfileImage> {
   const config = configFrom(env);
-  const publicId = profilePublicId(uid);
   const timestamp = Math.floor(Date.now() / 1000);
 
   // Set the image format, transformation, and overwrite options.
@@ -279,14 +330,14 @@ export async function uploadProfileImage(
     overwrite: "true",
     public_id: publicId,
     timestamp: String(timestamp),
-    transformation: PROFILE_IMAGE_TRANSFORMATION,
+    transformation,
   };
   const signature = await sign(signedParameters, config.apiSecret);
 
   // Prepare the authenticated Cloudinary upload request.
   const form = new FormData();
   const imageBuffer = Uint8Array.from(image.bytes).buffer;
-  form.set("file", new Blob([imageBuffer], { type: image.mediaType }), "profile." + image.extension);
+  form.set("file", new Blob([imageBuffer], { type: image.mediaType }), fileName + "." + image.extension);
   form.set("api_key", config.apiKey);
   for (const [name, value] of Object.entries(signedParameters)) form.set(name, value);
   form.set("signature", signature);
@@ -340,9 +391,58 @@ export async function uploadProfileImage(
 }
 
 // Delete the authenticated user's fixed Cloudinary asset.
-export async function deleteProfileImage(env: Env, uid: string): Promise<DeletedProfileImage> {
+export function deleteProfileImage(env: Env, uid: string): Promise<DeletedProfileImage> {
+  return destroyImage(env, profilePublicId(uid));
+}
+
+// Delete one growth photo.
+export function deleteGrowthPhoto(
+  env: Env,
+  uid: string,
+  plantId: string,
+  entryId: string,
+): Promise<DeletedGrowthPhoto> {
+  return destroyImage(env, growthPublicId(uid, plantId, entryId));
+}
+
+// Delete every growth photo of one plant, with Cloudinary's Admin API
+// (the upload API can only delete one image at a time).
+export async function deletePlantGrowthPhotos(
+  env: Env,
+  uid: string,
+  plantId: string,
+): Promise<DeletedPlantGrowthPhotos> {
   const config = configFrom(env);
-  const publicId = profilePublicId(uid);
+  const url = "https://api.cloudinary.com/v1_1/" + encodeURIComponent(config.cloudName)
+    + "/resources/image/upload?prefix=" + encodeURIComponent(growthPlantFolder(uid, plantId))
+    + "&invalidate=true";
+  const authorization = "Basic " + btoa(config.apiKey + ":" + config.apiSecret);
+
+  let deleted = 0;
+  for (let round = 0; round < MAX_DELETE_BY_PREFIX_ROUNDS; round += 1) {
+    let response: Response;
+    try {
+      response = await fetch(url, { method: "DELETE", headers: { authorization } });
+    } catch {
+      throw new CloudinaryError("CLOUDINARY_NETWORK_ERROR");
+    }
+    if (!response.ok) throw await cloudinaryHttpError(response);
+
+    // "deleted" maps each public ID to "deleted" or "not_found"; "partial"
+    // means more are left for another round.
+    const data = await safeJson<CloudinaryDeleteByPrefixResponse>(response);
+    if (typeof data.deleted !== "object" || data.deleted === null) {
+      throw new CloudinaryError("CLOUDINARY_INVALID_RESPONSE");
+    }
+    deleted += Object.values(data.deleted).filter((result) => result === "deleted").length;
+    if (data.partial !== true) return { deleted };
+  }
+  throw new CloudinaryError("CLOUDINARY_REQUEST_FAILED");
+}
+
+// Delete one Cloudinary image by its public ID.
+async function destroyImage(env: Env, publicId: string): Promise<DeletedProfileImage> {
+  const config = configFrom(env);
   const timestamp = Math.floor(Date.now() / 1000);
 
   // Sign the parameters required to delete the image.

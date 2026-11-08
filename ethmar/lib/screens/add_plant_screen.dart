@@ -68,6 +68,9 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   CropCategory? _filter;
   CatalogCrop? _crop;
 
+  /// What the user typed to find a crop in step 1.
+  final _search = TextEditingController();
+
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
   bool _saving = false;
@@ -83,16 +86,19 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
 
   @override
   void dispose() {
+    _search.dispose();
     _name.dispose();
     super.dispose();
   }
 
-  void _choose(CatalogCrop crop) {
+  /// [name] is what to suggest for an unknown plant, e.g. the search text.
+  void _choose(CatalogCrop crop, {String name = ''}) {
+    FocusScope.of(context).unfocus();
     setState(() {
       //keep the user's own name if they come back for the same crop.
       // An unknown plant has no name to suggest: the user types their own.
-      if (crop != _crop) {
-        _name.text = crop.id == unknownCropId ? '' : crop.name.of(context);
+      if (crop != _crop || crop.id == unknownCropId && name.isNotEmpty) {
+        _name.text = crop.id == unknownCropId ? name : crop.name.of(context);
       }
       _crop = crop;
       _step = 1;
@@ -178,63 +184,92 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
 
   Widget _buildChooseStep() {
     final s = S.of(context);
+    final query = _search.text.trim();
 
+    // The search covers every category; the chips then narrow it down.
+    final found = cropCatalog.where((c) => c.matches(query)).toList();
+    int countOf(CropCategory c) => found.where((x) => x.category == c).length;
+    // Only categories with a match, so no chip leads to an empty grid.
     final categories = <CropCategory>{
-      for (final crop in cropCatalog) crop.category,
+      for (final crop in found) crop.category,
     };
-    final crops = _filter == null
-        ? cropCatalog
-        : cropCatalog.where((c) => c.category == _filter).toList();
+    final filter = categories.contains(_filter) ? _filter : null;
+    final crops = filter == null
+        ? found
+        : found.where((c) => c.category == filter).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Entrance(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 8),
-                  child: CategoryChip(
-                    label: s.filterAll,
-                    count: cropCatalog.length,
-                    selected: _filter == null,
-                    onTap: () => setState(() => _filter = null),
-                  ),
-                ),
-                for (final c in categories)
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 8),
-                    child: CategoryChip(
-                      label: categoryLabel(c, context),
-                      icon: categoryIcon(c),
-                      count: cropCatalog.where((x) => x.category == c).length,
-                      selected: _filter == c,
-                      onTap: () => setState(() => _filter = c),
-                    ),
-                  ),
-              ],
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+            child: _CropSearchField(
+              controller: _search,
+              onChanged: () => setState(() {}),
             ),
           ),
         ),
-        Expanded(
-          child: GridView.builder(
-            padding: EdgeInsets.fromLTRB(
-              24,
-              12,
-              24,
-              16 + MediaQuery.paddingOf(context).bottom,
+        if (found.isNotEmpty)
+          Entrance(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+              child: Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: CategoryChip(
+                      label: s.filterAll,
+                      count: found.length,
+                      selected: filter == null,
+                      onTap: () => setState(() => _filter = null),
+                    ),
+                  ),
+                  for (final c in categories)
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 8),
+                      child: CategoryChip(
+                        label: categoryLabel(c, context),
+                        icon: categoryIcon(c),
+                        count: countOf(c),
+                        selected: filter == c,
+                        onTap: () => setState(() => _filter = c),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-            ),
-            itemCount: crops.length,
-            itemBuilder: (context, i) =>
-                _CropCard(crop: crops[i], onTap: () => _choose(crops[i])),
           ),
+        Expanded(
+          child: crops.isEmpty
+              ? _NoCropFound(
+                  query: query,
+                  onUseUnknown: () => _choose(
+                    cropCatalog.firstWhere((c) => c.id == unknownCropId),
+                    name: query,
+                  ),
+                )
+              : GridView.builder(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    12,
+                    24,
+                    16 + MediaQuery.paddingOf(context).bottom,
+                  ),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                  ),
+                  itemCount: crops.length,
+                  itemBuilder: (context, i) => _CropCard(
+                    crop: crops[i],
+                    onTap: () => _choose(crops[i]),
+                  ),
+                ),
         ),
       ],
     );
@@ -330,7 +365,97 @@ class _StepHeader extends StatelessWidget {
   }
 }
 
-// Step 1 class: crop card
+// Step 1 classes: search field, no-match message and crop card
+
+/// Rounded white search box, styled like the app's text fields.
+class _CropSearchField extends StatelessWidget {
+  const _CropSearchField({required this.controller, required this.onChanged});
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+
+  static InputBorder _border(Color c, [double w = 1]) => OutlineInputBorder(
+        borderRadius: kControlRadius,
+        borderSide: BorderSide(color: c, width: w),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return TextField(
+      controller: controller,
+      onChanged: (_) => onChanged(),
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) => FocusScope.of(context).unfocus(),
+      style: AppText.body(context, color: AppColors.textPrimary)
+          .copyWith(fontSize: 16),
+      decoration: InputDecoration(
+        hintText: s.cropSearchHint,
+        hintStyle: AppText.body(context, color: AppColors.textSecondary),
+        filled: true,
+        fillColor: AppColors.surface,
+        contentPadding: const EdgeInsetsDirectional.fromSTEB(12, 14, 12, 14),
+        prefixIcon: const Icon(
+          Icons.search_rounded,
+          color: AppColors.textSecondary,
+        ),
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                tooltip: s.cropSearchClear,
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textSecondary,
+                ),
+                onPressed: () {
+                  controller.clear();
+                  onChanged();
+                },
+              ),
+        enabledBorder: _border(AppColors.border),
+        focusedBorder: _border(AppColors.forest, 1.6),
+      ),
+    );
+  }
+}
+
+/// Shown when no crop matches the search: offers the unknown plant instead,
+/// named after what the user typed.
+class _NoCropFound extends StatelessWidget {
+  const _NoCropFound({required this.query, required this.onUseUnknown});
+  final String query;
+  final VoidCallback onUseUnknown;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(32, 40, 32, 24),
+      child: Column(
+        children: [
+          const SizedBox(
+            width: 96,
+            height: 96,
+            child: PlantPicture(defaultPlantImage, cacheWidth: 300),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            s.cropSearchEmpty(query),
+            textAlign: TextAlign.center,
+            style: AppText.title(context).copyWith(fontSize: 18),
+          ),
+          const SizedBox(height: 20),
+          EthmarButton(
+            label: s.cropSearchUseUnknown,
+            outlined: true,
+            color: AppColors.featureCard,
+            onPressed: onUseUnknown,
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Square card: the crop's picture on warm white with a thin earthy border
 /// (like the recommender's cards), name below.

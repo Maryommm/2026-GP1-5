@@ -393,6 +393,10 @@ class AppStrings {
     'addPlantChoose': 'Choose your crop',
     'addPlantDetails': 'Name & schedules',
     'addPlantChange': 'Change',
+    'cropSearchHint': 'Search crops',
+    'cropSearchClear': 'Clear search',
+    'cropSearchEmpty': 'No crop called "{q}" yet',
+    'cropSearchUseUnknown': 'Add it as an unknown plant',
     'addPlantNameLabel': 'Name your plant',
     'addPlantNameHint': 'e.g. Balcony tomato',
     'errPlantNameRequired': 'Give your plant a name',
@@ -457,6 +461,10 @@ class AppStrings {
     'notesLabel': 'Notes (optional)',
     'notesHint': 'e.g. First flowers appeared',
     'pictureAdded': 'Picture added to the growth timeline',
+    'growthDay': 'Day {n}',
+    'uploadingPicture': 'Uploading the picture…',
+    'errGrowthUpload':
+        "Couldn't add the picture. Check your connection and try again.",
     'careSchedule': 'Care schedule',
     'edit': 'Edit',
     'scheduleNext': 'Next: {when}',
@@ -470,15 +478,6 @@ class AppStrings {
         "Delete {name} and its growth records? This can't be undone.",
     'plantDeleteFailed':
         "Couldn't delete the plant. Check your connection and try again.",
-    'plantUnavailableTitle': 'Plant unavailable',
-    'plantUnavailableBody':
-        'This plant may have been deleted on another device.',
-    'plantEditConflict':
-        'This plant changed on another device. Go back and open it again.',
-    'farmLoadFailed':
-        "Couldn't load your plants. Check your connection and try again.",
-    'farmPlacementNeedsMigration':
-        'Your saved farm needs a safe placement update before adding another plant. Please contact the Ethmar team.',
     'farmSaveFailed': "Couldn't save. Check your connection and try again.",
     'leaderboardTitle': 'Leaderboard',
     'leaderboardAccent': "who's growing the most?",
@@ -869,6 +868,10 @@ class AppStrings {
     'addPlantChoose': 'اختر محصولك',
     'addPlantDetails': 'الاسم والمواعيد',
     'addPlantChange': 'تغيير',
+    'cropSearchHint': 'ابحث عن محصول',
+    'cropSearchClear': 'مسح البحث',
+    'cropSearchEmpty': 'ما فيه محصول باسم "{q}" حاليًا',
+    'cropSearchUseUnknown': 'أضفها كنبتة غير معروفة',
     'addPlantNameLabel': 'سمّ نبتتك',
     'addPlantNameHint': 'مثلًا: طماطم البلكونة',
     'errPlantNameRequired': 'اكتب اسم لنبتتك',
@@ -881,13 +884,13 @@ class AppStrings {
     'schedAlarmTime': 'وقت التنبيه',
     'reminderChannel': 'تذكيرات العناية',
     'reminderChannelInfo': 'تذكيرات سقي نباتاتك وتسميدها',
-    'reminderWater1Title': 'حان وقت الري لنبتتك  {plant}',
+    'reminderWater1Title': 'حان وقت الري لنبتتك {plant}',
     'reminderWater1Body': 'نبتتك عطشى، قم بريّها الآن لتحافظ عليها من الجفاف!',
-    'reminderWater2Title': ' الـ {plant} تنتظر منك أن تقوم بريّها',
+    'reminderWater2Title': 'نبتتك {plant} تنتظر منك أن تقوم بريّها',
     'reminderWater2Body': 'عنايتك اليوم تُبقي جذورها قوية وأوراقها خضراء.',
     'reminderWater3Title': 'موعد الريّ لنبتتك {plant}',
     'reminderWater3Body': 'قم بريّها الآن، ثم سجّل المهمة لتحافظ على سلسلتك.',
-    'reminderFertilize1Title': 'حان وقت تسميد الـ {plant}',
+    'reminderFertilize1Title': 'حان وقت تسميد نبتتك {plant}',
     'reminderFertilize1Body': 'قليل من السماد الآن يمنح نبتتك قوة لتنمو وتثمر.',
     'reminderFertilize2Title': 'نبتتك {plant} جائعة!',
     'reminderFertilize2Body': 'سمّدها اليوم لتنمو بصحة وتمنحك محصولًا أوفر.',
@@ -925,6 +928,9 @@ class AppStrings {
     'notesLabel': 'ملاحظات (اختياري)',
     'notesHint': 'مثلًا: طلعت أول زهرة',
     'pictureAdded': 'تمت إضافة الصورة لمراحل النمو',
+    'growthDay': 'اليوم {n}',
+    'uploadingPicture': 'جارٍ رفع الصورة…',
+    'errGrowthUpload': 'تعذر إضافة الصورة. تحقق من اتصالك وحاول مرة أخرى.',
     'careSchedule': 'جدول العناية',
     'edit': 'تعديل',
     'scheduleNext': 'القادم: {when}',
@@ -938,15 +944,6 @@ class AppStrings {
         'هل تريد حذف {name} وسجل نموها؟ لا يمكن التراجع عن ذلك.',
     'plantDeleteFailed':
         'تعذر حذف النبتة. تحقق من اتصالك وحاول مرة أخرى.',
-    'plantUnavailableTitle': 'النبتة غير متاحة',
-    'plantUnavailableBody':
-        'ربما حُذفت هذه النبتة من جهاز آخر.',
-    'plantEditConflict':
-        'تم تعديل هذه النبتة من جهاز آخر. ارجع وافتحها مرة أخرى.',
-    'farmLoadFailed':
-        'تعذر تحميل نباتاتك. تحقق من اتصالك وحاول مرة أخرى.',
-    'farmPlacementNeedsMigration':
-        'تحتاج مزرعتك المحفوظة إلى تحديث آمن للمواقع قبل إضافة نبتة جديدة. تواصل مع فريق إثمار.',
     'farmSaveFailed': 'تعذر الحفظ. تحقق من اتصالك وحاول مرة أخرى.',
     'leaderboardTitle': 'المتصدرون',
     'leaderboardAccent': 'مين يزرع أكثر؟',
@@ -1329,6 +1326,10 @@ class S {
   String get addPlantChoose => t('addPlantChoose');
   String get addPlantDetails => t('addPlantDetails');
   String get addPlantChange => t('addPlantChange');
+  String get cropSearchHint => t('cropSearchHint');
+  String get cropSearchClear => t('cropSearchClear');
+  String cropSearchEmpty(String q) => t('cropSearchEmpty').replaceAll('{q}', q);
+  String get cropSearchUseUnknown => t('cropSearchUseUnknown');
   String get addPlantNameLabel => t('addPlantNameLabel');
   String get addPlantNameHint => t('addPlantNameHint');
   String get errPlantNameRequired => t('errPlantNameRequired');
@@ -1398,6 +1399,10 @@ class S {
   String get notesLabel => t('notesLabel');
   String get notesHint => t('notesHint');
   String get pictureAdded => t('pictureAdded');
+  /// "Day 12": which day of the plant's life a growth picture is from.
+  String growthDay(int n) => t('growthDay').replaceAll('{n}', '$n');
+  String get uploadingPicture => t('uploadingPicture');
+  String get errGrowthUpload => t('errGrowthUpload');
   String get careSchedule => t('careSchedule');
   String get edit => t('edit');
   String scheduleNext(String when) =>
@@ -1411,11 +1416,6 @@ class S {
   String deletePlantMessage(String name) =>
       t('deletePlantMessage').replaceAll('{name}', name);
   String get plantDeleteFailed => t('plantDeleteFailed');
-  String get plantUnavailableTitle => t('plantUnavailableTitle');
-  String get plantUnavailableBody => t('plantUnavailableBody');
-  String get plantEditConflict => t('plantEditConflict');
-  String get farmLoadFailed => t('farmLoadFailed');
-  String get farmPlacementNeedsMigration => t('farmPlacementNeedsMigration');
   String get farmSaveFailed => t('farmSaveFailed');
   String get leaderboardTitle => t('leaderboardTitle');
   String get leaderboardAccent => t('leaderboardAccent');

@@ -39,6 +39,14 @@ export interface DeletedProfileImage {
   notFound: boolean;
 }
 
+// A growth photo is stored and described like a profile image.
+export type UploadedGrowthPhoto = UploadedProfileImage;
+export type DeletedGrowthPhoto = DeletedProfileImage;
+
+export interface DeletedPlantGrowthPhotos {
+  deleted: number;
+}
+
 export interface WorkerDependencies {
   verifyToken(token: string, env: Env): Promise<AuthenticatedUser>;
   uploadProfileImage(
@@ -47,4 +55,22 @@ export interface WorkerDependencies {
     image: ValidatedImage,
   ): Promise<UploadedProfileImage>;
   deleteProfileImage(env: Env, uid: string): Promise<DeletedProfileImage>;
+  uploadGrowthPhoto(
+    env: Env,
+    uid: string,
+    plantId: string,
+    entryId: string,
+    image: ValidatedImage,
+  ): Promise<UploadedGrowthPhoto>;
+  deleteGrowthPhoto(
+    env: Env,
+    uid: string,
+    plantId: string,
+    entryId: string,
+  ): Promise<DeletedGrowthPhoto>;
+  deletePlantGrowthPhotos(
+    env: Env,
+    uid: string,
+    plantId: string,
+  ): Promise<DeletedPlantGrowthPhotos>;
 }

@@ -52,9 +52,10 @@ final samplePlants = <FarmPlant>[
         id: 'sample-tomato-2',
         date: DateTime(2026, 10, 5, 17, 45),
         notes: 'Flowers are opening.',
-        // A made-up Cloudinary picture; the real folder isn't decided yet.
+        // A made-up Cloudinary picture, in the folder real ones use
+        // (see GrowthPhoto.publicIdFor).
         photo: const GrowthPhoto(
-          publicId: 'ethmar/growth-images/sample-uid/sample-tomato-2',
+          publicId: 'ethmar/plant-growth/sample-uid/sample-tomato/sample-tomato-2',
           version: 1,
           format: 'webp',
           width: 1080,
