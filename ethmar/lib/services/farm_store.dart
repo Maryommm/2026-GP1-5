@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/farm_plant.dart';
 import '../models/farm_spot.dart';
 import '../models/farm_stats.dart';
 import '../models/task_log.dart';
+import 'growth_photo_service.dart';
 import 'plant_service.dart';
 
 /// The user's farm while the app is open: the latest lands and plants from
@@ -31,14 +35,11 @@ class FarmStore {
   static final stats = ValueNotifier<FarmStats>(const FarmStats());
 
   static final _service = PlantService();
+  static final _photos = GrowthPhotoService();
 
   /// The latest plants and lands, exactly as saved.
   static List<FarmPlant> _savedPlants = const [];
   static int _savedLands = 1;
-
-  /// TODO(growth): Save entries in Firestore and load them for each plant.
-  ///   Prototype: kept in memory by plant id, so they're gone after a restart.
-  static final _growth = <String, List<GrowthEntry>>{};
 
   static bool _started = false;
 
@@ -62,13 +63,7 @@ class FarmStore {
   /// Lands go first: the farm needs a land under every plant it draws.
   static void _publish() {
     lands.value = landsToShow(_savedLands, _savedPlants);
-    plants.value = [
-      for (final plant in _savedPlants)
-        (_growth[plant.id] ?? const <GrowthEntry>[]).fold(
-          plant,
-          (p, entry) => p.withGrowth(entry),
-        ),
-    ];
+    plants.value = _savedPlants;
   }
 
   /// True when every square on every land has a plant.
@@ -89,21 +84,64 @@ class FarmStore {
   static Future<void> updatePlant(FarmPlant plant) =>
       _service.updatePlant(plant);
 
-  /// Deletes a plant and its growth entries.
+  /// Deletes a plant, its growth entries and their photos.
   static Future<void> deletePlant(String plantId) async {
     await _service.deletePlant(plantId);
-    _growth.remove(plantId);
+    // The plant is gone either way; a photo left behind only takes space.
+    unawaited(
+      _photos
+          .deletePlantPhotos(plantId)
+          .catchError((Object e) => debugPrint('Growth photos kept: $e')),
+    );
   }
 
-  /// Adds to a plant's growth timeline, in memory for now (see [_growth]).
-  static void addGrowth(String plantId, GrowthEntry entry) {
-    _growth[plantId] = [...?_growth[plantId], entry];
-    _publish();
+  /// Live growth timeline of [plantId], newest first.
+  static Stream<List<GrowthEntry>> watchGrowth(String plantId) =>
+      (growthForTests ?? _service.watchGrowth)(plantId);
+
+  /// Replaces [watchGrowth] in widget tests, which have no Firebase.
+  @visibleForTesting
+  static Stream<List<GrowthEntry>> Function(String plantId)? growthForTests;
+
+  /// Adds [image] to [plantId]'s growth timeline, with optional [notes].
+  /// The photo is uploaded first; if the entry then can't be saved, the
+  /// photo is deleted again. Throws a [GrowthPhotoException] if the upload
+  /// fails, or Firestore's error if saving does.
+  static Future<void> addGrowth(
+    String plantId,
+    XFile image, {
+    String? notes,
+  }) async {
+    final entryId = _service.newGrowthEntryId(plantId);
+    final photo = await _photos.upload(
+      image,
+      plantId: plantId,
+      entryId: entryId,
+    );
+    try {
+      await _service.saveGrowthEntry(
+        plantId,
+        entryId,
+        photo: photo,
+        notes: notes,
+      );
+    } catch (_) {
+      unawaited(
+        _photos
+            .deleteEntryPhoto(plantId: plantId, entryId: entryId)
+            .catchError((Object e) => debugPrint('Growth photo kept: $e')),
+      );
+      rethrow;
+    }
   }
 
   /// Live task log of the day [date] ("yyyy-mm-dd", see [TaskLog.dateKey]).
   static Stream<TaskLog> watchTaskLog(String date) =>
-      _service.watchTaskLog(date);
+      (taskLogForTests ?? _service.watchTaskLog)(date);
+
+  /// Replaces [watchTaskLog] in widget tests, which have no Firebase.
+  @visibleForTesting
+  static Stream<TaskLog> Function(String date)? taskLogForTests;
 
   /// Marks a task of [today] done or not done, and updates the streak.
   /// [todayTaskIds] are the ids of every task due today.

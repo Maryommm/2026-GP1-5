@@ -1,4 +1,4 @@
-import { CloudinaryError, profilePublicId } from "../src/cloudinary";
+import { CloudinaryError, growthPublicId, profilePublicId } from "../src/cloudinary";
 import { AuthenticationError } from "../src/firebase-auth";
 import { createWorker } from "../src/index";
 import type {
@@ -66,7 +66,48 @@ function defaultMocks() {
       notFound: false,
     }),
   );
-  return { verifyToken, uploadProfileImage, deleteProfileImage };
+  const uploadGrowthPhoto = vi.fn<WorkerDependencies["uploadGrowthPhoto"]>(
+    async (_env, uid, plantId, entryId) => ({
+      ...uploaded(uid, 1),
+      publicId: growthPublicId(uid, plantId, entryId),
+    }),
+  );
+  const deleteGrowthPhoto = vi.fn<WorkerDependencies["deleteGrowthPhoto"]>(
+    async (_env, uid, plantId, entryId) => ({
+      publicId: growthPublicId(uid, plantId, entryId),
+      deleted: true,
+      notFound: false,
+    }),
+  );
+  const deletePlantGrowthPhotos = vi.fn<WorkerDependencies["deletePlantGrowthPhotos"]>(
+    async () => ({ deleted: 2 }),
+  );
+  return {
+    verifyToken,
+    uploadProfileImage,
+    deleteProfileImage,
+    uploadGrowthPhoto,
+    deleteGrowthPhoto,
+    deletePlantGrowthPhotos,
+  };
+}
+
+function growthUpload(fields: Array<[string, string]>, token = "valid-token"): Request {
+  const form = new FormData();
+  form.set("file", new File([ONE_PIXEL_PNG], "growth.png", { type: "image/png" }));
+  for (const [name, value] of fields) form.append(name, value);
+  return new Request("https://worker.test/v1/plant-growth", {
+    method: "POST",
+    headers: { authorization: "Bearer " + token },
+    body: form,
+  });
+}
+
+function growthDelete(query: string): Request {
+  return new Request("https://worker.test/v1/plant-growth" + query, {
+    method: "DELETE",
+    headers: { authorization: "Bearer valid-token" },
+  });
 }
 
 describe("profile image Worker", () => {
@@ -304,4 +345,110 @@ describe("profile image Worker", () => {
     expect(JSON.stringify(warning.mock.calls)).not.toContain(env.CLOUDINARY_API_SECRET);
     expect(JSON.stringify(warning.mock.calls)).not.toContain("valid-token");
   });
+});
+
+describe("growth photo endpoint", () => {
+  beforeEach(() => vi.restoreAllMocks());
+
+  it("uploads into the verified user's folder for that plant and entry", async () => {
+    const mocks = defaultMocks();
+    const response = await createWorker(mocks).fetch(
+      growthUpload([["plantId", "plant-1"], ["entryId", "entry-1"]]),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json() as { image: UploadedProfileImage };
+    expect(body.image.publicId).toBe("ethmar/plant-growth/user-a/plant-1/entry-1");
+    expect(mocks.uploadGrowthPhoto.mock.calls[0].slice(1, 4))
+      .toEqual(["user-a", "plant-1", "entry-1"]);
+    expect(mocks.uploadProfileImage).not.toHaveBeenCalled();
+  });
+
+  it("needs a login, like the profile image", async () => {
+    const mocks = defaultMocks();
+    const response = await createWorker(mocks).fetch(
+      growthUpload([["plantId", "plant-1"], ["entryId", "entry-1"]], "bad-token"),
+      env,
+    );
+
+    expect(response.status).toBe(401);
+    expect(mocks.uploadGrowthPhoto).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { case: "a missing entry ID", fields: [["plantId", "plant-1"]] },
+    { case: "a path in an ID", fields: [["plantId", "../user-b"], ["entryId", "e"]] },
+    { case: "a slash in an ID", fields: [["plantId", "p"], ["entryId", "a/b"]] },
+    { case: "a repeated ID", fields: [["plantId", "p"], ["plantId", "q"], ["entryId", "e"]] },
+  ])("rejects $case", async ({ fields }) => {
+    const mocks = defaultMocks();
+    const response = await createWorker(mocks).fetch(
+      growthUpload(fields as Array<[string, string]>),
+      env,
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: "INVALID_ID" } });
+    expect(mocks.uploadGrowthPhoto).not.toHaveBeenCalled();
+  });
+
+  it("rejects a client-provided UID or public ID", async () => {
+    for (const field of ["uid", "public_id"]) {
+      const mocks = defaultMocks();
+      const response = await createWorker(mocks).fetch(
+        growthUpload([["plantId", "p"], ["entryId", "e"], [field, "user-b"]]),
+        env,
+      );
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: { code: "UNEXPECTED_FIELD" } });
+      expect(mocks.uploadGrowthPhoto).not.toHaveBeenCalled();
+    }
+  });
+
+  it("has its own rate limit budget, apart from the profile image", async () => {
+    const mocks = defaultMocks();
+    const limit = vi.fn(async () => ({ success: true }));
+    await createWorker(mocks).fetch(
+      growthUpload([["plantId", "p"], ["entryId", "e"]]),
+      { ...env, PROFILE_IMAGE_RATE_LIMITER: { limit } },
+    );
+
+    expect(limit).toHaveBeenCalledWith({ key: "growth:user-a" });
+  });
+
+  it("deletes one entry's photo", async () => {
+    const mocks = defaultMocks();
+    const response = await createWorker(mocks).fetch(
+      growthDelete("?plantId=plant-1&entryId=entry-1"),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ deleted: true, status: "deleted" });
+    expect(mocks.deleteGrowthPhoto).toHaveBeenCalledWith(env, "user-a", "plant-1", "entry-1");
+    expect(mocks.deletePlantGrowthPhotos).not.toHaveBeenCalled();
+  });
+
+  it("deletes every photo of a plant", async () => {
+    const mocks = defaultMocks();
+    const response = await createWorker(mocks).fetch(growthDelete("?plantId=plant-1"), env);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ deletedPhotos: 2 });
+    expect(mocks.deletePlantGrowthPhotos).toHaveBeenCalledWith(env, "user-a", "plant-1");
+  });
+
+  it.each(["", "?entryId=e", "?plantId=a/b", "?plantId=p&folder=x", "?plantId=p&plantId=q"])(
+    "rejects the delete query %j",
+    async (query) => {
+      const mocks = defaultMocks();
+      const response = await createWorker(mocks).fetch(growthDelete(query), env);
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: { code: "INVALID_ID" } });
+      expect(mocks.deleteGrowthPhoto).not.toHaveBeenCalled();
+      expect(mocks.deletePlantGrowthPhotos).not.toHaveBeenCalled();
+    },
+  );
 });

@@ -257,6 +257,10 @@ class AppStrings {
     'homeCardAddPlant': 'Grow a Plant',
     'homeCardDiagnosis': 'Check Your Plant',
     'navAskThamoor': 'Ask Thamoor',
+    // Home's Explore section (new layout).
+    'homeExplore': 'Explore',
+    'homeDiagnosisHint': 'Snap a leaf and find out what your plant needs',
+    'homeDiagnosisAction': 'Scan a leaf',
     'profile': 'Profile',
     'editProfile': 'Edit Profile',
     // Profile screen
@@ -392,6 +396,10 @@ class AppStrings {
     'addPlantChoose': 'Choose your crop',
     'addPlantDetails': 'Name & schedules',
     'addPlantChange': 'Change',
+    'cropSearchHint': 'Search crops',
+    'cropSearchClear': 'Clear search',
+    'cropSearchEmpty': 'No crop called "{q}" yet',
+    'cropSearchUseUnknown': 'Add it as an unknown plant',
     'addPlantNameLabel': 'Name your plant',
     'addPlantNameHint': 'e.g. Balcony tomato',
     'errPlantNameRequired': 'Give your plant a name',
@@ -450,6 +458,10 @@ class AppStrings {
     'notesLabel': 'Notes (optional)',
     'notesHint': 'e.g. First flowers appeared',
     'pictureAdded': 'Picture added to the growth timeline',
+    'growthDay': 'Day {n}',
+    'uploadingPicture': 'Uploading the picture…',
+    'errGrowthUpload':
+        "Couldn't add the picture. Check your connection and try again.",
     'careSchedule': 'Care schedule',
     'edit': 'Edit',
     'scheduleNext': 'Next: {when}',
@@ -457,6 +469,12 @@ class AppStrings {
     'tomorrow': 'Tomorrow',
     'editPlantTitle': 'Edit plant',
     'plantUpdated': 'Plant updated',
+    'deletePlant': 'Delete plant',
+    'deletePlantTitle': 'Delete this plant?',
+    'deletePlantMessage':
+        "Delete {name} and its growth records? This can't be undone.",
+    'plantDeleteFailed':
+        "Couldn't delete the plant. Check your connection and try again.",
     'farmSaveFailed': "Couldn't save. Check your connection and try again.",
     'leaderboardTitle': 'Leaderboard',
     'leaderboardAccent': "who's growing the most?",
@@ -713,6 +731,9 @@ class AppStrings {
     'homeCardAddPlant': 'ازرع نبتة',
     'homeCardDiagnosis': "افحص نبتتك",
     'navAskThamoor': 'اسأل ثمور',
+    'homeExplore': 'استكشف',
+    'homeDiagnosisHint': 'صوّر ورقة واعرف وش تحتاج نبتتك',
+    'homeDiagnosisAction': 'افحص ورقة',
     'profile': 'الملف الشخصي',
     'editProfile': 'تعديل الملف الشخصي',
     // Profile screen
@@ -846,6 +867,10 @@ class AppStrings {
     'addPlantChoose': 'اختر محصولك',
     'addPlantDetails': 'الاسم والمواعيد',
     'addPlantChange': 'تغيير',
+    'cropSearchHint': 'ابحث عن محصول',
+    'cropSearchClear': 'مسح البحث',
+    'cropSearchEmpty': 'ما فيه محصول باسم "{q}" حاليًا',
+    'cropSearchUseUnknown': 'أضفها كنبتة غير معروفة',
     'addPlantNameLabel': 'سمّ نبتتك',
     'addPlantNameHint': 'مثلًا: طماطم البلكونة',
     'errPlantNameRequired': 'اكتب اسم لنبتتك',
@@ -902,6 +927,9 @@ class AppStrings {
     'notesLabel': 'ملاحظات (اختياري)',
     'notesHint': 'مثلًا: طلعت أول زهرة',
     'pictureAdded': 'تمت إضافة الصورة لمراحل النمو',
+    'growthDay': 'اليوم {n}',
+    'uploadingPicture': 'جارٍ رفع الصورة…',
+    'errGrowthUpload': 'تعذر إضافة الصورة. تحقق من اتصالك وحاول مرة أخرى.',
     'careSchedule': 'جدول العناية',
     'edit': 'تعديل',
     'scheduleNext': 'القادم: {when}',
@@ -909,6 +937,12 @@ class AppStrings {
     'tomorrow': 'بكرة',
     'editPlantTitle': 'تعديل النبتة',
     'plantUpdated': 'تم تحديث النبتة',
+    'deletePlant': 'حذف النبتة',
+    'deletePlantTitle': 'حذف هذه النبتة؟',
+    'deletePlantMessage':
+        'هل تريد حذف {name} وسجل نموها؟ لا يمكن التراجع عن ذلك.',
+    'plantDeleteFailed':
+        'تعذر حذف النبتة. تحقق من اتصالك وحاول مرة أخرى.',
     'farmSaveFailed': 'تعذر الحفظ. تحقق من اتصالك وحاول مرة أخرى.',
     'leaderboardTitle': 'المتصدرون',
     'leaderboardAccent': 'مين يزرع أكثر؟',
@@ -1171,6 +1205,9 @@ class S {
   String get homeCardAddPlant => t('homeCardAddPlant');
   String get homeCardDiagnosis => t('homeCardDiagnosis');
   String get navAskThamoor => t('navAskThamoor');
+  String get homeExplore => t('homeExplore');
+  String get homeDiagnosisHint => t('homeDiagnosisHint');
+  String get homeDiagnosisAction => t('homeDiagnosisAction');
   String get profile => t('profile');
   String get editProfile => t('editProfile');
   String memberSince(String date) => t('memberSince').replaceAll('{date}', date);
@@ -1291,6 +1328,10 @@ class S {
   String get addPlantChoose => t('addPlantChoose');
   String get addPlantDetails => t('addPlantDetails');
   String get addPlantChange => t('addPlantChange');
+  String get cropSearchHint => t('cropSearchHint');
+  String get cropSearchClear => t('cropSearchClear');
+  String cropSearchEmpty(String q) => t('cropSearchEmpty').replaceAll('{q}', q);
+  String get cropSearchUseUnknown => t('cropSearchUseUnknown');
   String get addPlantNameLabel => t('addPlantNameLabel');
   String get addPlantNameHint => t('addPlantNameHint');
   String get errPlantNameRequired => t('errPlantNameRequired');
@@ -1358,6 +1399,10 @@ class S {
   String get notesLabel => t('notesLabel');
   String get notesHint => t('notesHint');
   String get pictureAdded => t('pictureAdded');
+  /// "Day 12": which day of the plant's life a growth picture is from.
+  String growthDay(int n) => t('growthDay').replaceAll('{n}', '$n');
+  String get uploadingPicture => t('uploadingPicture');
+  String get errGrowthUpload => t('errGrowthUpload');
   String get careSchedule => t('careSchedule');
   String get edit => t('edit');
   String scheduleNext(String when) =>
@@ -1366,6 +1411,11 @@ class S {
   String get tomorrow => t('tomorrow');
   String get editPlantTitle => t('editPlantTitle');
   String get plantUpdated => t('plantUpdated');
+  String get deletePlant => t('deletePlant');
+  String get deletePlantTitle => t('deletePlantTitle');
+  String deletePlantMessage(String name) =>
+      t('deletePlantMessage').replaceAll('{name}', name);
+  String get plantDeleteFailed => t('plantDeleteFailed');
   String get farmSaveFailed => t('farmSaveFailed');
   String get leaderboardTitle => t('leaderboardTitle');
   String get leaderboardAccent => t('leaderboardAccent');

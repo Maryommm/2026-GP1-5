@@ -11,7 +11,31 @@ class CatalogCrop {
   final CropCategory category;
 
   String get image => 'assets/ethmar_crops/$id.png';
+
+  /// Whether the English or Arabic name contains [query], ignoring case,
+  /// Arabic diacritics, letter variants (أ/ا, ة/ه, ى/ي) and a leading "ال".
+  /// An empty query matches every crop.
+  bool matches(String query) {
+    final q = _searchForm(query);
+    if (q.isEmpty) return true;
+    return _searchForm(name.en).contains(q) || _searchForm(name.ar).contains(q);
+  }
 }
+
+final _arabicMarks = RegExp('[ً-ْٰـ]');
+final _spaces = RegExp(r'\s+');
+
+/// [text] reduced to the form crop names are compared in.
+String _searchForm(String text) => text
+    .toLowerCase()
+    .replaceAll(_arabicMarks, '')
+    .replaceAll(RegExp('[أإآٱ]'), 'ا')
+    .replaceAll('ة', 'ه')
+    .replaceAll('ى', 'ي')
+    .trim()
+    .split(_spaces)
+    .map((w) => w.length > 3 && w.startsWith('ال') ? w.substring(2) : w)
+    .join(' ');
 
 /// Shown when a plant's own picture can't be loaded.
 const defaultPlantImage = 'assets/images/ethmar_sprout_pair.png';

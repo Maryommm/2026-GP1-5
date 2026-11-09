@@ -21,7 +21,8 @@ export class RequestValidationError extends Error {
       | "UNEXPECTED_FIELD"
       | "EMPTY_FILE"
       | "UNSUPPORTED_IMAGE"
-      | "INVALID_IMAGE",
+      | "INVALID_IMAGE"
+      | "INVALID_ID",
     readonly status: 400 | 413 | 415,
     readonly publicMessage: string,
   ) {
@@ -34,7 +35,7 @@ function requestTooLarge(): RequestValidationError {
   return new RequestValidationError(
     "REQUEST_TOO_LARGE",
     413,
-    "The request is too large. Profile images must be 5 MB or smaller.",
+    "The request is too large. Images must be 5 MB or smaller.",
   );
 }
 
@@ -59,7 +60,7 @@ async function readRequestBody(request: Request): Promise<Uint8Array> {
     throw new RequestValidationError(
       "FILE_REQUIRED",
       400,
-      "A profile image is required.",
+      "An image is required.",
     );
   }
 
@@ -270,8 +271,42 @@ function actualType(bytes: Uint8Array): SupportedImageType | null {
   return null;
 }
 
+// IDs a growth photo may name: Firestore document IDs made by the app.
+const GROWTH_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+// True for a plant or growth entry ID the Worker accepts.
+export function isValidGrowthId(value: string | null): value is string {
+  return value !== null && GROWTH_ID.test(value);
+}
+
 // Accept exactly one valid image from the multipart request.
 export async function parseProfileImageRequest(request: Request): Promise<ValidatedImage> {
+  return (await parseImageForm(request, [])).image;
+}
+
+// Accept one valid growth photo and the plant and growth entry it is for.
+export async function parseGrowthPhotoRequest(request: Request): Promise<{
+  image: ValidatedImage;
+  plantId: string;
+  entryId: string;
+}> {
+  const { image, fields } = await parseImageForm(request, ["plantId", "entryId"]);
+  const { plantId, entryId } = fields;
+  if (!isValidGrowthId(plantId) || !isValidGrowthId(entryId)) {
+    throw new RequestValidationError(
+      "INVALID_ID",
+      400,
+      "The plant or growth entry ID is invalid.",
+    );
+  }
+  return { image, plantId, entryId };
+}
+
+// Read one image file named "file" plus exactly one of each [textFields].
+async function parseImageForm(
+  request: Request,
+  textFields: string[],
+): Promise<{ image: ValidatedImage; fields: Record<string, string | null> }> {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().startsWith("multipart/form-data;")) {
     throw new RequestValidationError(
@@ -301,33 +336,41 @@ export async function parseProfileImageRequest(request: Request): Promise<Valida
   });
 
   // Reject unexpected fields and multiple files.
-  if (entries.some(([key]) => key !== "file")) {
+  if (entries.some(([key]) => key !== "file" && !textFields.includes(key))) {
     throw new RequestValidationError(
       "UNEXPECTED_FIELD",
       400,
-      "Only the profile image file may be submitted.",
+      "Only the image file and its expected fields may be submitted.",
     );
   }
-  if (entries.length !== 1 || entries[0][0] !== "file") {
+  const files = entries.filter(([key]) => key === "file");
+  if (files.length !== 1) {
     throw new RequestValidationError(
       "FILE_REQUIRED",
       400,
-      "Exactly one profile image is required.",
+      "Exactly one image is required.",
     );
   }
-  const value = entries[0][1];
+  const value = files[0][1];
   if (typeof value === "string") {
     throw new RequestValidationError(
       "FILE_REQUIRED",
       400,
-      "Exactly one profile image is required.",
+      "Exactly one image is required.",
     );
+  }
+
+  // Each text field must be sent once, as text.
+  const fields: Record<string, string | null> = {};
+  for (const name of textFields) {
+    const values = entries.filter(([key]) => key === name).map(([, entry]) => entry);
+    fields[name] = values.length === 1 && typeof values[0] === "string" ? values[0] : null;
   }
 
   // Reject empty or oversized image files.
   const file = value;
   if (file.size === 0) {
-    throw new RequestValidationError("EMPTY_FILE", 400, "The profile image is empty.");
+    throw new RequestValidationError("EMPTY_FILE", 400, "The image is empty.");
   }
   if (file.size > MAX_IMAGE_BYTES) throw requestTooLarge();
 
@@ -352,8 +395,11 @@ export async function parseProfileImageRequest(request: Request): Promise<Valida
 
   // Return the validated image data for uploading.
   return {
-    bytes,
-    mediaType: detectedType,
-    extension: TYPE_TO_EXTENSION[detectedType],
+    image: {
+      bytes,
+      mediaType: detectedType,
+      extension: TYPE_TO_EXTENSION[detectedType],
+    },
+    fields,
   };
 }

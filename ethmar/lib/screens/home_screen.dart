@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../app_layout.dart';
 import '../l10n/app_strings.dart';
 import '../models/farm_stats.dart';
 import '../services/daily_slogan_service.dart';
@@ -12,6 +13,7 @@ import '../theme/app_theme.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
+import '../widgets/today_tasks_card.dart';
 import '../widgets/user_avatar.dart';
 import 'add_plant_screen.dart';
 import 'agri_map_screen.dart';
@@ -20,9 +22,13 @@ import 'leaderboard_screen.dart';
 import 'leaf_scan_screen.dart';
 import 'profile_screen.dart';
 
-/// Home: logo and avatar on top, a time-of-day greeting, the weather card,
-/// the streak card, then five feature cards (Add Plant, Disease Diagnosis,
-/// Near Me, Recommended, Leaderboard).
+/// Home: logo and avatar on top, a time-of-day greeting and the weather
+/// card, then:
+/// - now: the "Today's Tasks" card (opens Daily Tasks), the streak card and
+///   Explore: a big Check Your Plant card and three tiles (Ethmar Map,
+///   Recommended, Leaderboard). Plants are added from Your Farm.
+/// - with [useClassicLayout]: the streak card and the five feature cards
+///   (Add Plant, Disease Diagnosis, Near Me, Recommended, Leaderboard).
 ///
 /// It is the first tab of MainShell, which draws the shared bottom bar.
 class HomeScreen extends StatelessWidget {
@@ -53,7 +59,13 @@ class HomeScreen extends StatelessWidget {
                   ScrollConfiguration.of(context).copyWith(overscroll: false),
               child: SingleChildScrollView(
                 // One shared side margin, so every section lines up.
-                padding: const EdgeInsetsDirectional.fromSTEB(24, 8, 24, 24),
+                // The bottom keeps clear of the farm button over the bar.
+                padding: EdgeInsetsDirectional.fromSTEB(
+                  24,
+                  8,
+                  24,
+                  24 + MediaQuery.paddingOf(context).bottom,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -81,12 +93,16 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     const Entrance(
                       delay: Duration(milliseconds: 150),
-                      child: _StreakCard(),
+                      child: useClassicLayout
+                          ? _StreakCard()
+                          : _TasksAndStreak(),
                     ),
                     const SizedBox(height: 20),
                     const Entrance(
                       delay: Duration(milliseconds: 200),
-                      child: _FeatureGrid(),
+                      child: useClassicLayout
+                          ? _FeatureGrid()
+                          : _ExploreSection(),
                     ),
                   ],
                 ),
@@ -496,8 +512,103 @@ class _WeatherRow extends StatelessWidget {
 // Streak states shown on Home.
 enum _StreakState { notStarted, active, lost }
 
-/// The user's streak from [FarmStore.stats]: active while it is above 0;
-/// lost when it went back to 0 after a completed day; otherwise not started.
+/// The streak's state, title and hint: active while it is above 0; lost
+/// when it went back to 0 after a completed day; otherwise not started.
+(_StreakState, String, String) _streakTexts(S s, FarmStats stats) {
+  final state = stats.currentStreak > 0
+      ? _StreakState.active
+      : stats.lastCompletedDate != null
+      ? _StreakState.lost
+      : _StreakState.notStarted;
+  final (title, hint) = switch (state) {
+    _StreakState.notStarted => (s.streakNotStartedTitle, s.streakNotStartedHint),
+    _StreakState.active =>
+      (s.streakActiveTitle(stats.currentStreak), s.streakActiveHint),
+    _StreakState.lost => (s.streakLostTitle, s.streakLostHint),
+  };
+  return (state, title, hint);
+}
+
+/// Current layout: the Today's Tasks card (a button) and the streak card
+/// side by side, as short rectangles (half as tall as they are wide). They
+/// grow together if large text needs more room.
+class _TasksAndStreak extends StatelessWidget {
+  const _TasksAndStreak();
+
+  static const _gap = 12.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height = (constraints.maxWidth - _gap) / 4;
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: height),
+                  child: const TodayTasksCard(),
+                ),
+              ),
+              const SizedBox(width: _gap),
+              const Expanded(child: _StreakSquare()),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The streak as a short pale-yellow card: the fire and the title (the
+/// hint is read out by screen readers). It isn't tappable, so it has no
+/// border or arrow.
+class _StreakSquare extends StatelessWidget {
+  const _StreakSquare();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<FarmStats>(
+      valueListenable: FarmStore.stats,
+      builder: (context, stats, _) {
+        final (state, title, hint) = _streakTexts(S.of(context), stats);
+        return Semantics(
+          label: '$title. $hint',
+          excludeSemantics: true,
+          child: Container(
+            padding: const EdgeInsetsDirectional.fromSTEB(10, 10, 12, 10),
+            decoration: BoxDecoration(
+              color: AppColors.sunTint,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Row(
+              children: [
+                _StreakFire(animate: state == _StreakState.active, size: 44),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.title(context).copyWith(
+                      fontSize: 16,
+                      height: 1.15,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Classic layout: the user's streak from [FarmStore.stats] as a full-width
+/// bar.
 class _StreakCard extends StatelessWidget {
   const _StreakCard();
 
@@ -510,18 +621,7 @@ class _StreakCard extends StatelessWidget {
   }
 
   Widget _buildCard(BuildContext context, FarmStats stats) {
-    final s = S.of(context);
-    final state = stats.currentStreak > 0
-        ? _StreakState.active
-        : stats.lastCompletedDate != null
-        ? _StreakState.lost
-        : _StreakState.notStarted;
-    final (title, hint) = switch (state) {
-      _StreakState.notStarted => (s.streakNotStartedTitle, s.streakNotStartedHint),
-      _StreakState.active =>
-        (s.streakActiveTitle(stats.currentStreak), s.streakActiveHint),
-      _StreakState.lost => (s.streakLostTitle, s.streakLostHint),
-    };
+    final (state, title, hint) = _streakTexts(S.of(context), stats);
     return Container(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
       decoration: BoxDecoration(
@@ -564,8 +664,9 @@ class _StreakCard extends StatelessWidget {
 /// pulses (a little bigger and back, with a very soft fade). It stays static
 /// when the phone asks for reduced motion.
 class _StreakFire extends StatefulWidget {
-  const _StreakFire({required this.animate});
+  const _StreakFire({required this.animate, this.size = 36});
   final bool animate;
+  final double size;
 
   @override
   State<_StreakFire> createState() => _StreakFireState();
@@ -617,8 +718,8 @@ class _StreakFireState extends State<_StreakFire>
   @override
   Widget build(BuildContext context) {
     final fire = SizedBox(
-      width: 36,
-      height: 36,
+      width: widget.size,
+      height: widget.size,
       child: Image.asset(
         'assets/images/ethmar_streak_icon.png',
         fit: BoxFit.contain,
@@ -633,7 +734,226 @@ class _StreakFireState extends State<_StreakFire>
 }
 
 // ---------------------------------------------------------------------------
-// Feature cards, all light green:
+// Explore (current layout): one big Check Your Plant card, then three tiles
+// side by side (Ethmar Map, Recommended, Leaderboard). The tile order stays
+// the same in both languages (LTR row), like the classic grid.
+// ---------------------------------------------------------------------------
+
+class _ExploreSection extends StatelessWidget {
+  const _ExploreSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          s.homeExplore,
+          style: AppText.title(context).copyWith(fontSize: 20),
+        ),
+        const SizedBox(height: 12),
+        const _DiagnosisCard(),
+        const SizedBox(height: 12),
+        Row(
+          textDirection: TextDirection.ltr,
+          children: [
+            Expanded(
+              child: _ExploreTile(
+                image: 'ethmar_location_icon',
+                accent: AppColors.sea,
+                label: s.homeCardNearMe,
+                onTap: () => Navigator.of(context)
+                    .push(riseRoute(const AgriMapScreen())),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _ExploreTile(
+                image: 'ethmar_recomender_icon',
+                accent: AppColors.sun,
+                label: s.homeCardRecommended,
+                onTap: () => Navigator.of(context)
+                    .push(riseRoute(const CropRecommendationScreen())),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _ExploreTile(
+                image: 'ethmar_leaderboard_icon',
+                accent: AppColors.coral,
+                label: s.homeCardLeaderboard,
+                onTap: () => Navigator.of(context)
+                    .push(riseRoute(const LeaderboardScreen())),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// The big light-green Check Your Plant card: name, a short line and a
+/// "Scan a leaf" pill, with the diagnosis picture large on the end side.
+class _DiagnosisCard extends StatelessWidget {
+  const _DiagnosisCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Semantics(
+      button: true,
+      label: '${s.homeCardDiagnosis}. ${s.homeDiagnosisHint}',
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.featureCard,
+        borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () =>
+              Navigator.of(context).push(riseRoute(const LeafScanScreen())),
+          splashColor: AppColors.forest.withValues(alpha: 0.08),
+          highlightColor: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(18, 18, 10, 18),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.homeCardDiagnosis,
+                        style: AppText.title(context).copyWith(fontSize: 20),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        s.homeDiagnosisHint,
+                        style: AppText.small(context).copyWith(fontSize: 13),
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 9,
+                        ),
+                        decoration: const ShapeDecoration(
+                          color: AppColors.forest,
+                          shape: StadiumBorder(),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.photo_camera_rounded,
+                              size: 16,
+                              color: AppColors.onForest,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              s.homeDiagnosisAction,
+                              style: AppText.label(
+                                context,
+                                color: AppColors.onForest,
+                              ).copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Image.asset(
+                  'assets/images/ethmar_plant_diseases_icon.png',
+                  width: 104,
+                  height: 104,
+                  fit: BoxFit.contain,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A white tile with a coloured border: the feature's picture, large, and
+/// its name below.
+class _ExploreTile extends StatelessWidget {
+  const _ExploreTile({
+    required this.image,
+    required this.accent,
+    required this.label,
+    required this.onTap,
+  });
+
+  /// Picture in assets/images/ (without .png).
+  final String image;
+
+  /// The border's colour, different for each tile.
+  final Color accent;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: accent, width: 2),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          splashColor: AppColors.forest.withValues(alpha: 0.08),
+          highlightColor: Colors.transparent,
+          child: SizedBox(
+            height: 128,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 12, 8, 10),
+              child: Column(
+                children: [
+                  Image.asset(
+                    'assets/images/$image.png',
+                    width: 66,
+                    height: 66,
+                    fit: BoxFit.contain,
+                  ),
+                  const Spacer(),
+                  Text(
+                    label,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.label(
+                      context,
+                      color: AppColors.textPrimary,
+                    ).copyWith(fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Feature cards (classic layout, useClassicLayout = true), all light green:
 //   Add Plant      | Disease Diagnosis
 //   Near Me        | Recommended
 //   Leaderboard (full width)

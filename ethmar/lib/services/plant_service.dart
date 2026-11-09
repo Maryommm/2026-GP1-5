@@ -51,10 +51,63 @@ class PlantService {
   DocumentReference<Map<String, dynamic>> _taskLog(String uid, String date) =>
       _userDoc(uid).collection('taskLog').doc(date);
 
+  CollectionReference<Map<String, dynamic>> _growth(
+    String uid,
+    String plantId,
+  ) => _plants(uid).doc(plantId).collection('growth');
+
+  /// Live growth timeline of [plantId], newest first. Empty when signed out.
+  Stream<List<GrowthEntry>> watchGrowth(String plantId) => _forEachUser(
+    signedOut: const [],
+    watch: (uid) => _growth(
+      uid,
+      plantId,
+    ).snapshots().map((snapshot) => _readGrowth(snapshot.docs)),
+  );
+
+  /// A new, unused id for a growth entry of [plantId]. The photo is
+  /// uploaded under it first, then the entry is saved with it.
+  String newGrowthEntryId(String plantId) => _growth(_uid, plantId).doc().id;
+
+  /// Saves growth entry [entryId] of [plantId]. The date is the server's
+  /// time of saving; the rules accept no other.
+  Future<void> saveGrowthEntry(
+    String plantId,
+    String entryId, {
+    required GrowthPhoto photo,
+    String? notes,
+  }) => _growth(_uid, plantId).doc(entryId).set({
+    'date': FieldValue.serverTimestamp(),
+    'notes': notes,
+    'photo': photo.toMap(),
+  });
+
+  /// Builds the entries, newest first. One bad document is skipped.
+  List<GrowthEntry> _readGrowth(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    final entries = <GrowthEntry>[];
+    for (final doc in docs) {
+      var data = doc.data();
+      // Saved on this phone but not yet on the server: the server's date
+      // isn't known yet, so show it as now.
+      if (data['date'] == null && doc.metadata.hasPendingWrites) {
+        data = {...data, 'date': Timestamp.now()};
+      }
+      try {
+        entries.add(GrowthEntry.fromMap(doc.id, data));
+      } on FormatException catch (e) {
+        debugPrint('Skipping growth entry ${doc.id}: $e');
+      }
+    }
+    return entries..sort((a, b) => b.date.compareTo(a.date));
+  }
+
   /// Live list of the user's plants, sorted by land, then square. Empty when
   /// signed out; it switches over when another user signs in.
   ///
-  /// The plants have no growth entries: those live in their own subcollection.
+  /// The plants have no growth entries: those live in their own subcollection
+  /// (see [watchGrowth]).
   Stream<List<FarmPlant>> watchPlants() => _forEachUser(
     signedOut: const [],
     watch: (uid) =>

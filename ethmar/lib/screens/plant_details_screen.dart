@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
+import '../services/growth_photo_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../widgets/auth_header.dart' show showEthmarToast;
+import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
+import '../widgets/camera_access.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
@@ -20,14 +24,79 @@ import 'edit_plant_screen.dart';
 /// care schedule with an Edit button.
 ///
 /// [plantId] is the plant's Firestore document id.
-class PlantDetailsScreen extends StatelessWidget {
+class PlantDetailsScreen extends StatefulWidget {
   const PlantDetailsScreen({super.key, required this.plantId});
   final String plantId;
 
-  /// "Upload a picture": pick where it comes from, then add optional notes.
+  @override
+  State<PlantDetailsScreen> createState() => _PlantDetailsScreenState();
+}
+
+class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
+  bool _deleting = false;
+  bool _closing = false;
+
+  /// True while a growth picture is being uploaded and saved.
+  bool _uploading = false;
+
+  final _picker = ImagePicker();
+
+  /// The growth timeline, newest first, live from Firestore.
+  late final Stream<List<GrowthEntry>> _growth = FarmStore.watchGrowth(
+    widget.plantId,
+  );
+
+  String get plantId => widget.plantId;
+
+  /// Asks first, then deletes the plant and its growth entries.
+  Future<void> _requestDelete(FarmPlant plant) async {
+    if (_deleting) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: AppColors.overlay,
+      builder: (_) => _DeletePlantDialog(plantName: plant.name),
+    );
+    if (confirmed != true || !mounted || _deleting) return;
+
+    setState(() => _deleting = true);
+    try {
+      await FarmStore.deletePlant(plantId);
+      _closeOnce();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      showEthmarToast(
+        context,
+        S.of(context).plantDeleteFailed,
+        type: EthmarToastType.error,
+      );
+    }
+  }
+
+  /// Closes this screen once the plant is gone. Firestore takes a deleted
+  /// plant off the farm straight away, before the server confirms (offline,
+  /// that can take a long time), so the screen doesn't wait for the delete.
+  /// It may not be the top screen, e.g. when the plant was deleted on
+  /// another device while Edit was open.
+  void _closeOnce() {
+    if (_closing || !mounted) return;
+    _closing = true;
+    final route = ModalRoute.of(context);
+    final navigator = Navigator.of(context);
+    if (route == null || route.isCurrent) {
+      navigator.pop();
+    } else {
+      navigator.removeRoute(route);
+    }
+  }
+
+  /// "Upload a picture": camera or gallery, then optional notes, then the
+  /// picture is uploaded and added to the timeline. A picture is required;
+  /// the date is set when it's saved.
   Future<void> _addPicture(BuildContext context) async {
+    if (_uploading) return;
     final s = S.of(context);
-    final picked = await showModalBottomSheet<bool>(
+    final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
@@ -39,37 +108,101 @@ class PlantDetailsScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // TODO(photo): Open the camera / gallery and keep the
-              //   picture. Prototype: both just move on to the notes.
               _SourceTile(
                 icon: Icons.photo_camera_rounded,
                 label: s.takePhoto,
-                onTap: () => Navigator.of(context).pop(true),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
               ),
               _SourceTile(
                 icon: Icons.photo_library_rounded,
                 label: s.chooseFromGallery,
-                onTap: () => Navigator.of(context).pop(true),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
               ),
             ],
           ),
         ),
       ),
     );
-    if (picked != true || !context.mounted) return;
+    if (source == null || !context.mounted) return;
+
+    final image = await _pick(context, source);
+    if (image == null || !context.mounted) return;
+    final Uint8List preview;
+    try {
+      preview = await image.readAsBytes();
+    } catch (_) {
+      if (context.mounted) _error(context, s.errImageRead);
+      return;
+    }
+    if (!context.mounted) return;
+
     final notes = await showDialog<String>(
       context: context,
       barrierColor: AppColors.overlay,
-      builder: (_) => const _NotesDialog(),
+      builder: (_) => _NotesDialog(preview: preview),
     );
     if (notes == null || !context.mounted) return;
-    // TODO(backend): Upload the picture and save the entry for this plant.
-    FarmStore.addGrowth(
-      plantId,
-      GrowthEntry(date: DateTime.now(), notes: notes.isEmpty ? null : notes),
-    );
-    showEthmarToast(context, s.pictureAdded);
+
+    setState(() => _uploading = true);
+    try {
+      await FarmStore.addGrowth(
+        plantId,
+        image,
+        notes: notes.isEmpty ? null : notes,
+      );
+      if (context.mounted) showEthmarToast(context, s.pictureAdded);
+    } on GrowthPhotoException catch (e) {
+      debugPrint('Growth picture not added: $e');
+      if (context.mounted) {
+        _error(context, switch (e.error) {
+          GrowthPhotoError.network => s.errNetwork,
+          GrowthPhotoError.rateLimited => s.errProfilePhotoRateLimit,
+          GrowthPhotoError.unreadableImage ||
+          GrowthPhotoError.unsupportedImage => s.errImageRead,
+          _ => s.errGrowthUpload,
+        });
+      }
+    } catch (e) {
+      debugPrint('Growth entry not saved: $e');
+      if (context.mounted) _error(context, s.errGrowthUpload);
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
+
+  /// Opens the camera or gallery. Null when cancelled or not allowed.
+  /// The photo comes back shrunk (see [GrowthPhotoService.pickWidth]).
+  Future<XFile?> _pick(BuildContext context, ImageSource source) async {
+    final s = S.of(context);
+    if (source == ImageSource.camera && !await ensureCameraAccess(context)) {
+      return null;
+    }
+    try {
+      return await _picker.pickImage(
+        source: source,
+        maxWidth: GrowthPhotoService.pickWidth,
+        maxHeight: GrowthPhotoService.pickWidth,
+        imageQuality: GrowthPhotoService.pickQuality,
+        requestFullMetadata: false,
+      );
+    } on PlatformException catch (e) {
+      if (!context.mounted) return null;
+      if (e.code == 'camera_access_denied') {
+        await ensureCameraAccess(context);
+      } else {
+        _error(context, switch (e.code) {
+          'no_available_camera' => s.errCameraOpen,
+          'no_valid_image_uri' => s.errImageRead,
+          _ =>
+            source == ImageSource.camera ? s.errPhotoCapture : s.errPhotoSelect,
+        });
+      }
+      return null;
+    }
+  }
+
+  void _error(BuildContext context, String message) =>
+      showEthmarToast(context, message, type: EthmarToastType.error);
 
   Future<void> _edit(BuildContext context) async {
     final saved = await Navigator.of(context)
@@ -88,8 +221,11 @@ class PlantDetailsScreen extends StatelessWidget {
           valueListenable: FarmStore.plants,
           builder: (context, plants, _) {
             final plant = FarmStore.plantById(plantId);
-            // It was deleted while this screen was open.
-            if (plant == null) return const SizedBox.shrink();
+            // It was deleted (here or on another device): close.
+            if (plant == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) => _closeOnce());
+              return const SizedBox.shrink();
+            }
             final crop = plant.crop;
             final irrigation = plant.irrigation;
             return Column(
@@ -98,6 +234,10 @@ class PlantDetailsScreen extends StatelessWidget {
                 EthmarPageHeader(
                   title: plant.name,
                   accent: crop.name.of(context),
+                  trailing: _DeleteButton(
+                    deleting: _deleting,
+                    onPressed: () => _requestDelete(plant),
+                  ),
                 ),
                 Expanded(
                   child: ListView(
@@ -142,9 +282,15 @@ class PlantDetailsScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       _Panel(
                         title: s.stagesTitle,
-                        child: _GrowthTimeline(
-                          entries: plant.growth,
-                          onAdd: () => _addPicture(context),
+                        child: StreamBuilder<List<GrowthEntry>>(
+                          stream: _growth,
+                          builder: (context, snapshot) => _GrowthTimeline(
+                            entries: snapshot.data ?? const [],
+                            loading: !snapshot.hasData && !snapshot.hasError,
+                            uploading: _uploading,
+                            plantedAt: plant.plantedAt,
+                            onAdd: () => _addPicture(context),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -172,6 +318,95 @@ class PlantDetailsScreen extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Building blocks
 // ---------------------------------------------------------------------------
+
+/// Round delete button for the header; shows a spinner while deleting.
+class _DeleteButton extends StatelessWidget {
+  const _DeleteButton({required this.deleting, required this.onPressed});
+
+  final bool deleting;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      shape: const CircleBorder(),
+      child: IconButton(
+        key: const ValueKey('delete-plant'),
+        tooltip: S.of(context).deletePlant,
+        onPressed: deleting ? null : onPressed,
+        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+        icon: deleting
+            ? const SizedBox.square(
+                dimension: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: AppColors.error,
+                ),
+              )
+            : const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+      ),
+    );
+  }
+}
+
+/// Asks before deleting; the plant's growth entries go with it.
+class _DeletePlantDialog extends StatelessWidget {
+  const _DeletePlantDialog({required this.plantName});
+
+  final String plantName;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(
+              Icons.delete_outline_rounded,
+              size: 42,
+              color: AppColors.error,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              s.deletePlantTitle,
+              textAlign: TextAlign.center,
+              style: AppText.title(context).copyWith(fontSize: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              s.deletePlantMessage(plantName),
+              textAlign: TextAlign.center,
+              style: AppText.body(context),
+            ),
+            const SizedBox(height: 22),
+            EthmarButton(
+              key: const ValueKey('confirm-delete-plant'),
+              label: s.deletePlant,
+              color: AppColors.error,
+              textColor: AppColors.surface,
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            const SizedBox(height: 4),
+            Center(
+              child: EthmarLink(
+                label: s.cancel,
+                onTap: () => Navigator.of(context).pop(false),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 /// Small white box: a label on top, the value below (from the sketch).
 class _StatCard extends StatelessWidget {
@@ -255,12 +490,16 @@ class _SmallButton extends StatelessWidget {
   });
   final String label;
   final IconData icon;
-  final VoidCallback onPressed;
+
+  /// Null greys it out (e.g. while a picture uploads).
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.forest,
+      color: onPressed == null
+          ? AppColors.forest.withValues(alpha: 0.45)
+          : AppColors.forest,
       shape: const StadiumBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -288,21 +527,49 @@ class _SmallButton extends StatelessWidget {
   }
 }
 
-/// The growth timeline: oldest at the top, a dot and line down the side,
-/// then the "Upload a picture" button.
+/// The growth timeline: newest at the top, a dot and line down the side,
+/// then the "Upload a picture" button. Each entry shows its picture, which
+/// day of the plant's life it's from, its notes and its date.
 class _GrowthTimeline extends StatelessWidget {
-  const _GrowthTimeline({required this.entries, required this.onAdd});
+  const _GrowthTimeline({
+    required this.entries,
+    required this.loading,
+    required this.uploading,
+    required this.plantedAt,
+    required this.onAdd,
+  });
   final List<GrowthEntry> entries;
+
+  /// True until the entries first arrive.
+  final bool loading;
+
+  /// True while a new picture is being uploaded: it shows on top.
+  final bool uploading;
+  final DateTime plantedAt;
   final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
     final loc = MaterialLocalizations.of(context);
+    final rows = entries.length + (uploading ? 1 : 0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (entries.isEmpty)
+        if (loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: SizedBox.square(
+                dimension: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: AppColors.forest,
+                ),
+              ),
+            ),
+          )
+        else if (rows == 0)
           Row(
             children: [
               const _PhotoFrame(),
@@ -313,41 +580,35 @@ class _GrowthTimeline extends StatelessWidget {
             ],
           )
         else
-          for (var i = 0; i < entries.length; i++)
+          for (var i = 0; i < rows; i++)
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _TimelineRail(first: i == 0, last: i == entries.length - 1),
+                  _TimelineRail(first: i == 0, last: i == rows - 1),
                   const SizedBox(width: 10),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: const _PhotoFrame(),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 6, bottom: 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            entries[i].notes ?? '—',
-                            style: AppText.label(context).copyWith(
-                              color: entries[i].notes == null
-                                  ? AppColors.textSecondary
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            loc.formatMediumDate(entries[i].date),
-                            style: AppText.small(context),
-                          ),
-                        ],
+                  if (uploading && i == 0) ...[
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 14),
+                      child: _PhotoFrame(busy: true),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 6, bottom: 14),
+                        child: Text(
+                          s.uploadingPicture,
+                          style: AppText.small(context),
+                        ),
                       ),
                     ),
-                  ),
+                  ] else
+                    ..._entryRow(
+                      context,
+                      s,
+                      loc,
+                      entries[uploading ? i - 1 : i],
+                    ),
                 ],
               ),
             ),
@@ -356,10 +617,70 @@ class _GrowthTimeline extends StatelessWidget {
           child: _SmallButton(
             label: s.uploadPicture,
             icon: Icons.add_a_photo_rounded,
-            onPressed: onAdd,
+            onPressed: uploading ? null : onAdd,
           ),
         ),
       ],
+    );
+  }
+
+  List<Widget> _entryRow(
+    BuildContext context,
+    S s,
+    MaterialLocalizations loc,
+    GrowthEntry entry,
+  ) {
+    final notes = entry.notes;
+    final photo = entry.photo;
+    return [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: _PhotoFrame(
+          photo: photo,
+          onTap: photo == null ? null : () => _showPhoto(context, entry),
+        ),
+      ),
+      const SizedBox(width: 14),
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 6, bottom: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                s.growthDay(entry.dayOf(plantedAt)),
+                style: AppText.label(context)
+                    .copyWith(fontWeight: FontWeight.w700),
+              ),
+              if (notes != null) ...[
+                const SizedBox(height: 2),
+                Text(notes, style: AppText.label(context)),
+              ],
+              const SizedBox(height: 4),
+              Text(
+                loc.formatMediumDate(entry.date),
+                style: AppText.small(context),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
+
+  /// The picture full screen, to zoom in, with its notes underneath.
+  void _showPhoto(BuildContext context, GrowthEntry entry) {
+    final photo = entry.photo!;
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => _PhotoViewer(
+        photo: photo,
+        caption: [
+          S.of(context).growthDay(entry.dayOf(plantedAt)),
+          ?entry.notes,
+        ].join(' · '),
+      ),
     );
   }
 }
@@ -401,26 +722,140 @@ class _TimelineRail extends StatelessWidget {
   }
 }
 
-/// A picture on the timeline: the sketch's dotted square.
-/// TODO(photo): Show the entry's picture inside the frame.
+/// A picture on the timeline: the sketch's dotted square, with the photo
+/// inside once there is one ([photo] from Cloudinary, or [preview] bytes
+/// just picked). [busy] shows a spinner while it uploads.
 class _PhotoFrame extends StatelessWidget {
-  const _PhotoFrame();
+  const _PhotoFrame({
+    this.photo,
+    this.preview,
+    this.busy = false,
+    this.onTap,
+    this.size = 76,
+  });
+  final GrowthPhoto? photo;
+  final Uint8List? preview;
+  final bool busy;
+  final VoidCallback? onTap;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: const _DottedFrame(),
-      child: Container(
-        width: 76,
-        height: 76,
-        decoration: BoxDecoration(
-          color: AppColors.forestTint,
-          borderRadius: BorderRadius.circular(14),
+    final cache = (size * MediaQuery.devicePixelRatioOf(context)).round();
+    const placeholder = Icon(
+      Icons.image_outlined,
+      color: AppColors.forest,
+      size: 28,
+    );
+    final p = photo;
+    final bytes = preview;
+    final Widget inside;
+    if (busy) {
+      inside = const Center(
+        child: SizedBox.square(
+          dimension: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.4,
+            color: AppColors.forest,
+          ),
         ),
-        child: const Icon(
-          Icons.image_outlined,
-          color: AppColors.forest,
-          size: 28,
+      );
+    } else if (bytes != null) {
+      inside = Image.memory(bytes, fit: BoxFit.cover, cacheWidth: cache);
+    } else if (p != null) {
+      inside = Image.network(
+        p.url,
+        fit: BoxFit.cover,
+        cacheWidth: cache,
+        loadingBuilder: (context, child, progress) =>
+            progress == null ? child : placeholder,
+        errorBuilder: (_, _, _) => placeholder,
+      );
+    } else {
+      inside = placeholder;
+    }
+
+    final framed = Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.forestTint,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: inside,
+    );
+    final tap = onTap;
+    return CustomPaint(
+      // The dotted outline only while there's no picture inside.
+      foregroundPainter: p == null && bytes == null
+          ? const _DottedFrame()
+          : null,
+      child: tap == null
+          ? framed
+          : Semantics(
+              button: true,
+              child: GestureDetector(onTap: tap, child: framed),
+            ),
+    );
+  }
+}
+
+/// A growth picture full screen: pinch to zoom, X (or back) to close.
+class _PhotoViewer extends StatelessWidget {
+  const _PhotoViewer({required this.photo, required this.caption});
+  final GrowthPhoto photo;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog.fullscreen(
+      backgroundColor: Colors.transparent,
+      child: SafeArea(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: InteractiveViewer(
+                maxScale: 4,
+                child: Center(
+                  child: Image.network(
+                    photo.url,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, progress) =>
+                        progress == null
+                        ? child
+                        : const CircularProgressIndicator(
+                            color: AppColors.onForest,
+                          ),
+                    errorBuilder: (_, _, _) => const Icon(
+                      Icons.broken_image_outlined,
+                      color: AppColors.onForest,
+                      size: 48,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            PositionedDirectional(
+              top: 8,
+              end: 8,
+              child: IconButton(
+                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+              ),
+            ),
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: 24,
+              child: Text(
+                caption,
+                textAlign: TextAlign.center,
+                style: AppText.label(context, color: Colors.white),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -597,16 +1032,22 @@ class _SourceTile extends StatelessWidget {
   }
 }
 
-/// After choosing a picture: optional notes for this growth stage.
-/// Pops with the notes ('' when left empty), or null on cancel.
+/// After choosing a picture: the picture, and optional notes for this
+/// growth stage. Pops with the notes ('' when left empty), or null on cancel.
 class _NotesDialog extends StatefulWidget {
-  const _NotesDialog();
+  const _NotesDialog({required this.preview});
+
+  /// The picture just picked.
+  final Uint8List preview;
 
   @override
   State<_NotesDialog> createState() => _NotesDialogState();
 }
 
 class _NotesDialogState extends State<_NotesDialog> {
+  /// The rules accept notes up to this long.
+  static const _maxNotes = 500;
+
   final _notes = TextEditingController();
 
   @override
@@ -628,7 +1069,7 @@ class _NotesDialogState extends State<_NotesDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Center(child: _PhotoFrame()),
+            Center(child: _PhotoFrame(preview: widget.preview, size: 160)),
             const SizedBox(height: 14),
             Text(
               s.notesTitle,
@@ -641,6 +1082,7 @@ class _NotesDialogState extends State<_NotesDialog> {
               hint: s.notesHint,
               controller: _notes,
               textInputAction: TextInputAction.done,
+              inputFormatters: [LengthLimitingTextInputFormatter(_maxNotes)],
               onSubmitted: (_) => Navigator.of(context).pop(_notes.text.trim()),
             ),
             const SizedBox(height: 20),

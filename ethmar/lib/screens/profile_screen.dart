@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
 import '../l10n/locale_controller.dart';
+import '../models/farm_plant.dart';
 import '../services/auth_service.dart';
+import '../services/farm_store.dart';
 import '../services/user_service.dart' show currentUsername;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -338,41 +340,44 @@ class _Stats extends StatelessWidget {
 
   // TODO(stats): Temporary fixed values for this stage. Connect to the
   //   user's real plants and leaderboard rank once they are stored.
-  static const _plantCount = '0';
-  static const _rank = '—';
+
+  static const _rank = '\u2014';
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return IntrinsicHeight(
-      child: Row(
-        // My Plants stays on the left and My Rank on the right in both
-        // languages; text inside each card keeps the app's direction.
-        textDirection: TextDirection.ltr,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _StatCard(
-              image: 'assets/images/ethmar_plant_icon.png',
-              imageSize: 32,
-              color: AppColors.featureCard,
-              value: _plantCount,
-              label: s.statMyPlants,
+    return ValueListenableBuilder<List<FarmPlant>>(
+      valueListenable: FarmStore.plants,
+      builder: (context, plants, _) => IntrinsicHeight(
+        child: Row(
+          // My Plants stays on the left and My Rank on the right in both
+          // languages; text inside each card keeps the app's direction.
+          textDirection: TextDirection.ltr,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _StatCard(
+                image: 'assets/images/ethmar_plant_icon.png',
+                imageSize: 32,
+                color: AppColors.featureCard,
+                value: plants.length.toString(),
+                label: s.statMyPlants,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _StatCard(
-              // The trophy image has more empty space around it, so it is
-              // drawn a little larger to look the same size as the plant.
-              image: 'assets/images/ethmar_rank_icon.png',
-              imageSize: 36,
-              color: AppColors.sunTint,
-              value: _rank,
-              label: s.statMyRank,
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                // The trophy image has more empty space around it, so it is
+                // drawn a little larger to look the same size as the plant.
+                image: 'assets/images/ethmar_rank_icon.png',
+                imageSize: 36,
+                color: AppColors.sunTint,
+                value: _rank,
+                label: s.statMyRank,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
