@@ -217,7 +217,7 @@ class AppStrings {
     'navDailyTasks': 'Daily Tasks',
     // Daily Tasks screen
     'dailyTasksSubtitle': 'Care for your plants today',
-    'dailyProgress': 'Daily Progress',
+    'dailyProgress': 'Your Progress',
     'dailyProgressOf': '{done} of {total} tasks completed',
     'todaysTasks': "Today's Tasks",
     'taskWatering': 'Watering',
@@ -226,8 +226,7 @@ class AppStrings {
     'statusOverdue': 'Overdue',
     'statusUpcoming': 'Upcoming',
     'taskMarkDone': 'Mark as done',
-    'noTasksToday':
-        'No tasks today. Set a watering or fertilizing schedule for a plant to see its tasks here.',
+    'noTasksToday': 'No tasks today. Enjoy your day!',
     'taskSaveFailed': "Couldn't save the task. Check your connection and try again",
     // Today's date, e.g. "Wednesday, October 21".
     'todayDate': '{weekday}, {month} {day}',
@@ -406,24 +405,18 @@ class AppStrings {
     'reminderChannel': 'Care reminders',
     'reminderChannelInfo': 'Watering and fertilizing reminders for your plants',
     // Care reminders: three messages per task, one per day in turn.
-    'reminderWater1Title': 'Time to water {plant}',
-    'reminderWater1Body':
-        'Your plant is thirsty. Water it now to keep it from drying out!',
-    'reminderWater2Title': '{plant} is waiting for a drink',
-    'reminderWater2Body':
-        "Today's watering keeps its roots strong and its leaves green.",
-    'reminderWater3Title': 'Watering time for {plant}',
-    'reminderWater3Body':
-        'Water it now, then tick the task to keep your streak going.',
-    'reminderFertilize1Title': 'Time to feed {plant}',
-    'reminderFertilize1Body':
-        'A little fertilizer now gives your plant the strength to grow and fruit.',
-    'reminderFertilize2Title': '{plant} is hungry!',
-    'reminderFertilize2Body':
-        'Feed it today so it grows healthy and gives you a bigger harvest.',
-    'reminderFertilize3Title': 'Fertilizing time for {plant}',
-    'reminderFertilize3Body':
-        'Fertilize it now, then tick the task to keep your streak going.',
+    'reminderWater1Title': 'Time to Water! 💧',
+    'reminderWater1Body': "It's time to water {plant}!",
+    'reminderWater2Title': "Don't Forget to Water! 🌱",
+    'reminderWater2Body': 'Your {plant} is scheduled for watering today.',
+    'reminderWater3Title': 'Plant Care Time! 💧',
+    'reminderWater3Body': 'Your watering task for {plant} is waiting for you.',
+    'reminderFertilize1Title': 'Time to Fertilize! 🌿',
+    'reminderFertilize1Body': "It's time to fertilize {plant}!",
+    'reminderFertilize2Title': "Don't Forget to Fertilize! 🌱",
+    'reminderFertilize2Body': 'Your {plant} is scheduled for fertilizing today.',
+    'reminderFertilize3Title': 'Feeding Time! 🌾',
+    'reminderFertilize3Body': 'Today is fertilizing day for {plant}.',
     'schedLessOften': 'Less often',
     'schedMoreOften': 'More often',
     'repeatEveryDay': 'Every day',
@@ -681,7 +674,7 @@ class AppStrings {
     'navDailyTasks': 'المهام اليومية',
     // Daily Tasks screen
     'dailyTasksSubtitle': 'اعتنِ بنباتاتك اليوم',
-    'dailyProgress': 'التقدم اليومي',
+    'dailyProgress': 'إنجازك',
     'dailyProgressOf': 'أُنجزت {done} من {total} مهام',
     'todaysTasks': 'مهام اليوم',
     'taskWatering': 'الري',
@@ -690,8 +683,7 @@ class AppStrings {
     'statusOverdue': 'متأخرة',
     'statusUpcoming': 'قادمة',
     'taskMarkDone': 'تحديد كمكتملة',
-    'noTasksToday':
-        'لا توجد مهام اليوم. حدّد موعد سقي أو تسميد لنبتة لتظهر مهامها هنا.',
+    'noTasksToday': 'ما عندك مهام اليوم، استمتع بيومك!',
     'taskSaveFailed': 'تعذّر حفظ المهمة. تحقق من اتصالك وحاول مرة أخرى',
     // تاريخ اليوم، مثل "الأربعاء، 21 أكتوبر".
     'todayDate': '{weekday}، {day} {month}',
@@ -866,18 +858,18 @@ class AppStrings {
     'schedAlarmTime': 'وقت التنبيه',
     'reminderChannel': 'تذكيرات العناية',
     'reminderChannelInfo': 'تذكيرات سقي نباتاتك وتسميدها',
-    'reminderWater1Title': 'حان وقت الري لنبتتك  {plant}',
-    'reminderWater1Body': 'نبتتك عطشى، قم بريّها الآن لتحافظ عليها من الجفاف!',
-    'reminderWater2Title': ' الـ {plant} تنتظر منك أن تقوم بريّها',
-    'reminderWater2Body': 'عنايتك اليوم تُبقي جذورها قوية وأوراقها خضراء.',
-    'reminderWater3Title': 'موعد الريّ لنبتتك {plant}',
-    'reminderWater3Body': 'قم بريّها الآن، ثم سجّل المهمة لتحافظ على سلسلتك.',
-    'reminderFertilize1Title': 'حان وقت تسميد الـ {plant}',
-    'reminderFertilize1Body': 'قليل من السماد الآن يمنح نبتتك قوة لتنمو وتثمر.',
-    'reminderFertilize2Title': 'نبتتك {plant} جائعة!',
-    'reminderFertilize2Body': 'سمّدها اليوم لتنمو بصحة وتمنحك محصولًا أوفر.',
-    'reminderFertilize3Title': 'موعد السماد لنبتتك {plant}',
-    'reminderFertilize3Body': 'سمّدها الآن، ثم سجّل المهمة لتحافظ على سلسلتك.',
+    'reminderWater1Title': 'وقت الري 💧',
+    'reminderWater1Body': 'حان وقت ري {plant}!',
+    'reminderWater2Title': 'لا تنسَ الري 🌱',
+    'reminderWater2Body': 'نبتة {plant} لديها موعد ري اليوم.',
+    'reminderWater3Title': 'وقت العناية 💧',
+    'reminderWater3Body': 'مهمة الري لنبتة {plant} تنتظرك.',
+    'reminderFertilize1Title': 'وقت التسميد 🌿',
+    'reminderFertilize1Body': 'حان موعد تسميد {plant}!',
+    'reminderFertilize2Title': 'لا تنسَ التسميد 🌱',
+    'reminderFertilize2Body': 'نبتة {plant} لديها موعد تسميد اليوم.',
+    'reminderFertilize3Title': 'وقت التغذية 🌾',
+    'reminderFertilize3Body': 'اليوم موعد تسميد {plant}.',
     'schedLessOften': 'أقل تكرار',
     'schedMoreOften': 'أكثر تكرار',
     'repeatEveryDay': 'كل يوم',
@@ -1314,20 +1306,18 @@ class S {
   /// How many messages each reminder type has (see [reminderTitle]).
   static const reminderVariants = 3;
 
-  /// A care reminder's title, after a 💧 (watering) or 🌱 (fertilizing).
-  /// [watering] picks watering or fertilizing, [variant] (0-2) one of its
-  /// messages, and [plant] is the plant's name.
-  String reminderTitle({
+  /// A care reminder's title. [watering] picks watering or fertilizing and
+  /// [variant] (0-2) one of its messages; each title has its own emoji.
+  String reminderTitle({required bool watering, required int variant}) =>
+      t(_reminderKey(watering, variant, 'Title'));
+
+  /// The body that goes with [reminderTitle], with [plant], the plant's name.
+  String reminderBody({
     required bool watering,
     required int variant,
     required String plant,
   }) =>
-      '${watering ? '💧' : '🌱'} '
-      '${t(_reminderKey(watering, variant, 'Title')).replaceAll('{plant}', plant)}';
-
-  /// The body that goes with [reminderTitle].
-  String reminderBody({required bool watering, required int variant}) =>
-      t(_reminderKey(watering, variant, 'Body'));
+      t(_reminderKey(watering, variant, 'Body')).replaceAll('{plant}', plant);
 
   static String _reminderKey(bool watering, int variant, String part) =>
       'reminder${watering ? 'Water' : 'Fertilize'}'

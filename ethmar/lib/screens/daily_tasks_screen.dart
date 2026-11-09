@@ -15,6 +15,7 @@ import '../widgets/backgrounds.dart';
 import '../widgets/centered_header.dart';
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
+import '../widgets/ethmar_logo.dart' show parseSvgPath;
 
 /// Today's care tasks: the date, a progress card, and one card per task.
 ///
@@ -135,6 +136,12 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
     final tasks = _tasks(FarmStore.plants.value);
     final doneCount =
         tasks.where((t) => t.status == TaskStatus.completed).length;
+    // Shown order only: tasks still to do first, completed ones last, each
+    // group keeping its time order.
+    final shown = [
+      ...tasks.where((t) => t.status != TaskStatus.completed),
+      ...tasks.where((t) => t.status == TaskStatus.completed),
+    ];
     return Scaffold(
       body: LeafPrintBackground(
         child: Column(
@@ -159,15 +166,20 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                           textAlign: TextAlign.center,
                           style: AppText.accent(context, size: 17),
                         ),
-                        const SizedBox(height: 8),
-                        // Thamoor planting a seedling, kept small.
-                        const ExcludeSemantics(
-                          child: EthmarCharacter(
-                            name: 'ethmar_thamoor_planting',
-                            height: 120,
+                        const SizedBox(height: 4),
+                        // Thamoor planting a seedling, kept small and still
+                        // so the tasks show sooner. With no tasks, the empty
+                        // state shows Thamoor instead.
+                        if (tasks.isNotEmpty) ...[
+                          const ExcludeSemantics(
+                            child: EthmarCharacter(
+                              name: 'ethmar_thamoor_planting',
+                              height: 96,
+                              bob: false,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
+                          const SizedBox(height: 2),
+                        ],
                         Text(
                           s.todayDate(DateTime.now()),
                           textAlign: TextAlign.center,
@@ -179,50 +191,44 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Entrance(
-                    delay: const Duration(milliseconds: 100),
-                    child: _ProgressCard(done: doneCount, total: tasks.length),
-                  ),
-                  const SizedBox(height: 24),
-                  // Section title with the number of tasks on the other side.
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          s.todaysTasks,
-                          style: AppText.title(context).copyWith(fontSize: 20),
+                  if (tasks.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 32),
+                      child: Entrance(
+                        delay: Duration(milliseconds: 100),
+                        child: _EmptyTasks(),
+                      ),
+                    )
+                  else ...[
+                    const SizedBox(height: 12),
+                    Entrance(
+                      delay: const Duration(milliseconds: 100),
+                      child:
+                          _ProgressCard(done: doneCount, total: tasks.length),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      s.todaysTasks,
+                      style: AppText.title(context).copyWith(fontSize: 20),
+                    ),
+                    const SizedBox(height: 10),
+                    for (var i = 0; i < shown.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 10),
+                      Entrance(
+                        // Keyed by task, so a card that moves to the bottom
+                        // when ticked keeps its state and doesn't animate in
+                        // again.
+                        key: ValueKey(shown[i].id),
+                        delay: Duration(milliseconds: 150 + 50 * i),
+                        offset: 16,
+                        child: _TaskCard(
+                          task: shown[i],
+                          status: shown[i].status,
+                          done: shown[i].status == TaskStatus.completed,
+                          onToggle: () => _toggle(shown[i], tasks),
                         ),
                       ),
-                      Text(
-                        '${tasks.length}',
-                        style: AppText.label(context, color: AppColors.earthBrown)
-                            .copyWith(fontWeight: FontWeight.w700),
-                      ),
                     ],
-                  ),
-                  const SizedBox(height: 10),
-                  if (tasks.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
-                        s.noTasksToday,
-                        textAlign: TextAlign.center,
-                        style: AppText.body(context),
-                      ),
-                    ),
-                  for (var i = 0; i < tasks.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 10),
-                    Entrance(
-                      delay: Duration(milliseconds: 150 + 50 * i),
-                      offset: 16,
-                      child: _TaskCard(
-                        task: tasks[i],
-                        status: tasks[i].status,
-                        done: tasks[i].status == TaskStatus.completed,
-                        onToggle: () => _toggle(tasks[i], tasks),
-                      ),
-                    ),
                   ],
                 ],
               ),
@@ -240,6 +246,11 @@ class _ProgressCard extends StatelessWidget {
   final int done;
   final int total;
 
+  // White card with a sage green bar. Text uses the app's colours.
+  static const _background = AppColors.surface;
+  static const _fill = Color(0xFF648A65);
+  static const _track = Color(0xFFCBD8C3);
+
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
@@ -248,10 +259,20 @@ class _ProgressCard extends StatelessWidget {
       label: '${s.dailyProgress}: ${s.dailyProgressOf(done, total)}',
       excludeSemantics: true,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        // Stands out from the task cards below: a sage outline and a deeper
+        // shadow than theirs.
         decoration: BoxDecoration(
-          color: AppColors.featureCard,
-          borderRadius: BorderRadius.circular(20),
+          color: _background,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _track, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: _fill.withValues(alpha: 0.18),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -261,32 +282,34 @@ class _ProgressCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     s.dailyProgress,
-                    style: AppText.title(context).copyWith(fontSize: 18),
+                    style: AppText.title(context)
+                        .copyWith(fontSize: 17, color: AppColors.textPrimary),
                   ),
                 ),
                 Text(
                   '$done / $total',
                   // Keep "1 / 3" in this order in Arabic too.
                   textDirection: TextDirection.ltr,
-                  style: AppText.label(context)
-                      .copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+                  style: AppText.label(context, color: AppColors.textPrimary)
+                      .copyWith(fontSize: 17, fontWeight: FontWeight.w700),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               child: LinearProgressIndicator(
                 value: value,
-                minHeight: 8,
-                color: AppColors.forest,
-                backgroundColor: AppColors.surface,
+                minHeight: 10,
+                color: _fill,
+                backgroundColor: _track,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               s.dailyProgressOf(done, total),
-              style: AppText.small(context).copyWith(fontSize: 13),
+              // AppText.small: the app's secondary description style.
+              style: AppText.small(context),
             ),
           ],
         ),
@@ -312,16 +335,48 @@ class _TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final (icon, typeLabel) = switch (task.type) {
-      TaskType.watering => (Icons.water_drop_rounded, s.taskWatering),
-      TaskType.fertilizing => (Icons.compost_rounded, s.taskFertilizing),
+    // Blue for watering, warm yellow for fertilizing.
+    final (icon, typeLabel, iconColor, iconBackground) = switch (task.type) {
+      TaskType.watering => (
+          Icons.water_drop_rounded,
+          s.taskWatering,
+          AppColors.info,
+          AppColors.infoTint,
+        ),
+      TaskType.fertilizing => (
+          // Drawn as a fertilizer sack below; Material has no such icon.
+          null,
+          s.taskFertilizing,
+          AppColors.sunDark,
+          AppColors.sunTint,
+        ),
     };
+    // A thin outline in the status colour: green when done, soft red when
+    // overdue, none while upcoming.
+    final outline = switch (status) {
+      TaskStatus.completed => AppColors.success.withValues(alpha: 0.45),
+      TaskStatus.overdue => AppColors.error.withValues(alpha: 0.3),
+      TaskStatus.upcoming => null,
+    };
+    // Done tasks: a very light green card and slightly softer text and icon,
+    // still easy to read.
+    final background = done
+        ? Color.lerp(AppColors.surface, AppColors.successTint, 0.15)!
+        : AppColors.surface;
+    final nameColor = done ? AppColors.textSecondary : AppColors.textPrimary;
+    final iconTint =
+        done ? Color.lerp(iconColor, AppColors.surface, 0.3)! : iconColor;
+    final iconFill =
+        done ? Color.lerp(iconBackground, AppColors.surface, 0.4)! : iconBackground;
     final time = MaterialLocalizations.of(context).formatTimeOfDay(task.time);
     return Container(
       padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 6, 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: background,
         borderRadius: BorderRadius.circular(20),
+        border: outline == null
+            ? null
+            : Border.all(color: outline, width: done ? 1.4 : 1.2),
         boxShadow: [
           BoxShadow(
             color: AppColors.forest.withValues(alpha: 0.06),
@@ -337,11 +392,13 @@ class _TaskCard extends StatelessWidget {
             width: 40,
             height: 40,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AppColors.featureCard,
+            decoration: BoxDecoration(
+              color: iconFill,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 22, color: AppColors.forest),
+            child: icon == null
+                ? _FertilizerSack(size: 22, color: iconTint)
+                : Icon(icon, size: 22, color: iconTint),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -356,7 +413,7 @@ class _TaskCard extends StatelessWidget {
                         '${task.plant.of(context)} · $typeLabel',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: AppText.label(context)
+                        style: AppText.label(context, color: nameColor)
                             .copyWith(fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -395,6 +452,85 @@ class _TaskCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A fertilizer sack: a tied top over a round bag with a leaf on the front.
+class _FertilizerSack extends StatelessWidget {
+  const _FertilizerSack({required this.size, required this.color});
+  final double size;
+  final Color color;
+
+  // Drawn on a 24 × 24 grid, like Material icons.
+  static final _path = parseSvgPath(
+    // Tied top.
+    'M9 6L8 2.8L10.5 4.1L12 2.4L13.5 4.1L16 2.8L15 6Z'
+    // Tie band.
+    'M8.6 6.3H15.4A0.7 0.7 0 0 1 15.4 7.7H8.6A0.7 0.7 0 0 1 8.6 6.3Z'
+    // Bag.
+    'M7.2 8.2C4.6 10.3 4 14 4.5 18C4.8 20.4 6.5 21.6 8.6 21.6H15.4'
+    'C17.5 21.6 19.2 20.4 19.5 18C20 14 19.4 10.3 16.8 8.2Z'
+    // A slanted leaf cut out of the bag, with its middle vein (a leaf, not
+    // a drop, so it isn't mistaken for watering).
+    'M9.2 18.4C9.2 14.6 11.4 12.4 15.2 12.1C15.2 15.9 13 18.2 9.2 18.4Z'
+    'M9.7 17.7L13.6 13.5L14 13.9L10.1 18.1Z',
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: size,
+      child: CustomPaint(painter: _FertilizerSackPainter(_path, color)),
+    );
+  }
+}
+
+class _FertilizerSackPainter extends CustomPainter {
+  const _FertilizerSackPainter(this.path, this.color);
+  final Path path;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.scale(size.width / 24, size.height / 24);
+    // evenOdd leaves the leaf hollow on the bag.
+    canvas.drawPath(
+      path..fillType = PathFillType.evenOdd,
+      Paint()..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FertilizerSackPainter old) => old.color != color;
+}
+
+/// No tasks today: a still Thamoor and a friendly line, centred.
+class _EmptyTasks extends StatelessWidget {
+  const _EmptyTasks();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const ExcludeSemantics(
+          child: EthmarCharacter(
+            name: 'ethmar_sunny_day_character',
+            height: 120,
+            bob: false,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            S.of(context).noTasksToday,
+            textAlign: TextAlign.center,
+            style: AppText.body(context)
+                .copyWith(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
     );
   }
 }

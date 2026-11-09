@@ -89,9 +89,7 @@ void main() {
         plant('a', water: const CareSchedule(Repeat.everyDay, at8)),
         plant('b', fertilize: const CareSchedule(Repeat.everyWeek, at17)),
       ], now, en);
-      final water = plan.where((r) => r.title.contains('Mint') &&
-          !r.title.contains('feed') && !r.title.contains('hungry') &&
-          !r.title.contains('Fertiliz')).toList();
+      final water = plan.where((r) => r.body.contains('water')).toList();
       // 08:00 today has passed, so it starts tomorrow.
       expect([for (final r in water) r.at], [
         DateTime(2026, 11, 6, 8),
@@ -158,8 +156,8 @@ void main() {
         plant('a', name: 'نعناعي', fertilize: const CareSchedule(Repeat.everyDay, at8)),
       ], now, ar);
       for (final r in plan) {
-        expect(r.title, contains('نعناعي'));
-        expect(r.body, isNotEmpty);
+        expect(r.title, isNotEmpty);
+        expect(r.body, contains('نعناعي'));
       }
     });
 
@@ -177,10 +175,11 @@ void main() {
       for (final lang in [en, ar]) {
         for (final watering in [true, false]) {
           for (var v = 0; v < S.reminderVariants; v++) {
-            final title = lang.reminderTitle(
+            final title = lang.reminderTitle(watering: watering, variant: v);
+            final body = lang.reminderBody(
                 watering: watering, variant: v, plant: 'X');
-            final body = lang.reminderBody(watering: watering, variant: v);
-            expect(title, contains('X'));
+            expect(body, contains('X'));
+            expect(body, isNot(contains('{plant}')));
             expect(title, isNot(startsWith('reminder')));
             expect(body, isNot(startsWith('reminder')));
           }

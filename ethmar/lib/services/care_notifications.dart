@@ -89,12 +89,12 @@ List<PlannedReminder> planReminders(
       planned.add(PlannedReminder(
         id: reminderId(task.plant.id!, task.type, slot),
         at: task.at,
-        title: s.reminderTitle(
+        title: s.reminderTitle(watering: watering, variant: variant),
+        body: s.reminderBody(
           watering: watering,
           variant: variant,
           plant: task.plant.name,
         ),
-        body: s.reminderBody(watering: watering, variant: variant),
       ));
     }
   }
