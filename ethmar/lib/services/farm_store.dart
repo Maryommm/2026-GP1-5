@@ -137,7 +137,11 @@ class FarmStore {
 
   /// Live task log of the day [date] ("yyyy-mm-dd", see [TaskLog.dateKey]).
   static Stream<TaskLog> watchTaskLog(String date) =>
-      _service.watchTaskLog(date);
+      (taskLogForTests ?? _service.watchTaskLog)(date);
+
+  /// Replaces [watchTaskLog] in widget tests, which have no Firebase.
+  @visibleForTesting
+  static Stream<TaskLog> Function(String date)? taskLogForTests;
 
   /// Marks a task of [today] done or not done, and updates the streak.
   /// [todayTaskIds] are the ids of every task due today.

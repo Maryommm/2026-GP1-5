@@ -21,8 +21,12 @@ import '../widgets/entrance.dart';
 /// The tasks come from the user's plants and their care schedules
 /// ([dueTasks]); ticking one saves it in today's task log and updates the
 /// streak (see [FarmStore.setTaskDone]).
+///
+/// In the current layout it opens from Home's "Today's Tasks" card, with a
+/// back button; in the classic layout it is a tab ([asTab]), without one.
 class DailyTasksScreen extends StatefulWidget {
-  const DailyTasksScreen({super.key});
+  const DailyTasksScreen({super.key, this.asTab = false});
+  final bool asTab;
 
   @override
   State<DailyTasksScreen> createState() => _DailyTasksScreenState();
@@ -97,14 +101,10 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
 
   /// Today's tasks in time order, with any tick that is still being saved.
   List<DailyTask> _tasks(List<FarmPlant> plants) {
-    final now = DateTime.now();
-    final saved = [for (final p in plants) if (p.id != null) p];
     final completed = {..._log.completed};
     _pending.forEach((id, done) => done ? completed.add(id) : completed.remove(id));
     final log = TaskLog(date: _log.date, completed: [...completed]);
-    return [
-      for (final task in dueTasks(saved, _today)) DailyTask.from(task, log, now),
-    ];
+    return tasksForDay(plants, _today, log, DateTime.now());
   }
 
   Future<void> _toggle(DailyTask task, List<DailyTask> all) async {
@@ -140,8 +140,11 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // A main tab: no back button.
-            EthmarCenteredHeader(title: s.navDailyTasks, showBack: false),
+            // As a main tab there is nothing to go back to.
+            EthmarCenteredHeader(
+              title: s.navDailyTasks,
+              showBack: !widget.asTab,
+            ),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.fromLTRB(

@@ -258,6 +258,10 @@ class AppStrings {
     'homeCardAddPlant': 'Grow a Plant',
     'homeCardDiagnosis': 'Check Your Plant',
     'navAskThamoor': 'Ask Thamoor',
+    // Home's Explore section (new layout).
+    'homeExplore': 'Explore',
+    'homeDiagnosisHint': 'Snap a leaf and find out what your plant needs',
+    'homeDiagnosisAction': 'Scan a leaf',
     'profile': 'Profile',
     'editProfile': 'Edit Profile',
     // Profile screen
@@ -735,6 +739,9 @@ class AppStrings {
     'homeCardAddPlant': 'ازرع نبتة',
     'homeCardDiagnosis': "افحص نبتتك",
     'navAskThamoor': 'اسأل ثمور',
+    'homeExplore': 'استكشف',
+    'homeDiagnosisHint': 'صوّر ورقة واعرف وش تحتاج نبتتك',
+    'homeDiagnosisAction': 'افحص ورقة',
     'profile': 'الملف الشخصي',
     'editProfile': 'تعديل الملف الشخصي',
     // Profile screen
@@ -1206,6 +1213,9 @@ class S {
   String get homeCardAddPlant => t('homeCardAddPlant');
   String get homeCardDiagnosis => t('homeCardDiagnosis');
   String get navAskThamoor => t('navAskThamoor');
+  String get homeExplore => t('homeExplore');
+  String get homeDiagnosisHint => t('homeDiagnosisHint');
+  String get homeDiagnosisAction => t('homeDiagnosisAction');
   String get profile => t('profile');
   String get editProfile => t('editProfile');
   String memberSince(String date) => t('memberSince').replaceAll('{date}', date);

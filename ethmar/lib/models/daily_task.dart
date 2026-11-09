@@ -2,7 +2,23 @@ import 'package:flutter/material.dart';
 
 import 'care_task.dart';
 import 'crop_recommendation.dart' show BiText;
+import 'farm_plant.dart';
 import 'task_log.dart';
+
+/// The tasks of [day] for the saved [plants], in time order, ticked from
+/// [log]. Used by Daily Tasks and by Home's "Today's Tasks" card.
+List<DailyTask> tasksForDay(
+  List<FarmPlant> plants,
+  DateTime day,
+  TaskLog log,
+  DateTime now,
+) => [
+  for (final task in dueTasks([
+    for (final p in plants)
+      if (p.id != null) p,
+  ], day))
+    DailyTask.from(task, log, now),
+];
 
 /// What the task asks the user to do.
 enum TaskType { watering, fertilizing }
