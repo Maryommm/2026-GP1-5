@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
+import '../models/crop_recommendation.dart' show CropCategory;
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/backgrounds.dart';
+import '../widgets/category_chip.dart' show categoryIcon, categoryLabel;
+import '../widgets/centered_header.dart' show HeaderPillButton;
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
@@ -17,8 +20,37 @@ import 'plant_details_screen.dart';
 
 /// "My plants": every plant on the farm, newest first, by the name the
 /// user gave it. Tapping one opens its details.
-class MyPlantsScreen extends StatelessWidget {
+///
+/// The Filter button in the header lists the plant categories; picking one
+/// shows only the plants in it, and clearing it shows them all again.
+class MyPlantsScreen extends StatefulWidget {
   const MyPlantsScreen({super.key});
+
+  @override
+  State<MyPlantsScreen> createState() => _MyPlantsScreenState();
+}
+
+class _MyPlantsScreenState extends State<MyPlantsScreen> {
+  /// The chosen category; null shows every plant.
+  CropCategory? _filter;
+
+  void _setFilter(CropCategory? category) =>
+      setState(() => _filter = category);
+
+  Future<void> _openFilter(List<FarmPlant> plants) async {
+    final choice = await showModalBottomSheet<({CropCategory? category})>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) => _FilterSheet(plants: plants, selected: _filter),
+    );
+    // Closed without a choice: keep the current filter.
+    if (choice != null && mounted) _setFilter(choice.category);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,15 +60,46 @@ class MyPlantsScreen extends StatelessWidget {
         child: ValueListenableBuilder<List<FarmPlant>>(
           valueListenable: FarmStore.plants,
           builder: (context, plants, _) {
-            final newestFirst = [...plants]
-              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            final filter = _filter;
+            final newestFirst = [
+              for (final p in plants)
+                if (filter == null || p.crop.category == filter) p,
+            ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                EthmarPageHeader(title: s.myPlants, accent: s.myPlantsAccent),
+                EthmarPageHeader(
+                  title: s.myPlants,
+                  accent: s.myPlantsAccent,
+                  // Nothing to filter on an empty farm.
+                  trailing: plants.isEmpty
+                      ? null
+                      : HeaderPillButton(
+                          key: const Key('plantsFilter'),
+                          icon: Icons.tune_rounded,
+                          label: s.filter,
+                          onPressed: () => _openFilter(plants),
+                        ),
+                ),
+                if (filter != null && plants.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 0),
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: _ActiveFilter(
+                        category: filter,
+                        onClear: () => _setFilter(null),
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: plants.isEmpty
                       ? const _NoPlants()
+                      : newestFirst.isEmpty
+                      ? _NoMatch(
+                          category: filter!,
+                          onClear: () => _setFilter(null),
+                        )
                       : ListView.separated(
                           padding: EdgeInsets.fromLTRB(
                             16,
@@ -184,6 +247,188 @@ class _InfoChip extends StatelessWidget {
             ).copyWith(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The filtering options: "All" and every plant category, each with how
+/// many of the user's plants are in it. Picking one closes the sheet with
+/// that choice (a null category means all plants).
+class _FilterSheet extends StatelessWidget {
+  const _FilterSheet({required this.plants, required this.selected});
+  final List<FarmPlant> plants;
+  final CropCategory? selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    int countOf(CropCategory c) =>
+        plants.where((p) => p.crop.category == c).length;
+    void pick(CropCategory? c) => Navigator.of(context).pop((category: c));
+
+    Widget option({
+      required CropCategory? category,
+      required String label,
+      required int count,
+    }) {
+      final isSelected = category == selected;
+      final icon = category == null ? null : categoryIcon(category);
+      return ListTile(
+        key: Key('filterOption_${category?.name ?? 'all'}'),
+        selected: isSelected,
+        selectedTileColor: AppColors.forestTint,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        leading: SizedBox(
+          width: 32,
+          height: 32,
+          child: icon == null
+              ? const Icon(Icons.eco_rounded, color: AppColors.forest)
+              : Image.asset(icon, cacheWidth: 96),
+        ),
+        title: Text(
+          label,
+          style: AppText.label(context).copyWith(
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$count', style: AppText.small(context)),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.check_rounded, color: AppColors.forest),
+            ],
+          ],
+        ),
+        onTap: () => pick(category),
+      );
+    }
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(8, 0, 8, 8),
+              child: Text(
+                s.filterByCategory,
+                style: AppText.title(context).copyWith(fontSize: 20),
+              ),
+            ),
+            option(category: null, label: s.filterAll, count: plants.length),
+            for (final c in CropCategory.values)
+              option(
+                category: c,
+                label: categoryLabel(c, context),
+                count: countOf(c),
+              ),
+            if (selected != null) ...[
+              const SizedBox(height: 12),
+              EthmarButton(label: s.clearFilter, onPressed: () => pick(null)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The chosen category under the header; tapping it clears the filter.
+class _ActiveFilter extends StatelessWidget {
+  const _ActiveFilter({required this.category, required this.onClear});
+  final CropCategory category;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Semantics(
+      button: true,
+      label: '${categoryLabel(category, context)}, ${s.clearFilter}',
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.featureCard,
+        shape: StadiumBorder(
+          side: BorderSide(color: AppColors.earthBrown.withValues(alpha: 0.5)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const Key('clearPlantsFilter'),
+          onTap: onClear,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 40),
+            child: Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(8, 0, 10, 0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    categoryIcon(category),
+                    width: 24,
+                    height: 24,
+                    cacheWidth: 96,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    categoryLabel(category, context),
+                    style: AppText.label(context).copyWith(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// No plant in the chosen category: says so, with a way back to all plants.
+class _NoMatch extends StatelessWidget {
+  const _NoMatch({required this.category, required this.onClear});
+  final CropCategory category;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const EthmarCharacter(name: 'ethmar_buddy_seedling', height: 140),
+            const SizedBox(height: 20),
+            Text(
+              s.filterNoMatch,
+              textAlign: TextAlign.center,
+              style: AppText.title(context).copyWith(fontSize: 22),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              s.filterNoMatchBody(categoryLabel(category, context)),
+              textAlign: TextAlign.center,
+              style: AppText.body(context),
+            ),
+            const SizedBox(height: 24),
+            EthmarButton(label: s.clearFilter, onPressed: onClear),
+          ],
+        ),
       ),
     );
   }

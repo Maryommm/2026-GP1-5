@@ -446,6 +446,12 @@ class AppStrings {
     'myPlantsAccent': 'everything growing on your farm',
     'myPlantsEmpty': 'No plants yet',
     'myPlantsEmptyBody': 'Add your first plant and it will show up here.',
+    'filter': 'Filter',
+    'filterByCategory': 'Filter by category',
+    'clearFilter': 'Clear filter',
+    'filterNoMatch': 'No matching plants',
+    'filterNoMatchBody':
+        'None of your plants are in {category}. Try another category or clear the filter.',
     'plantedToday': 'Planted today',
     'plantDays': '{n} days',
     'plantDayOne': '1 day',
@@ -916,6 +922,12 @@ class AppStrings {
     'myPlantsAccent': 'كل اللي يكبر في مزرعتك',
     'myPlantsEmpty': 'ما عندك نباتات للحين',
     'myPlantsEmptyBody': 'أضف أول نبتة وبتطلع لك هنا.',
+    'filter': 'تصفية',
+    'filterByCategory': 'تصفية حسب الفئة',
+    'clearFilter': 'إزالة التصفية',
+    'filterNoMatch': 'ما فيه نباتات مطابقة',
+    'filterNoMatchBody':
+        'ما عندك نباتات من فئة {category}. جرّب فئة ثانية أو أزل التصفية.',
     'plantedToday': 'انزرعت اليوم',
     'plantDays': '{n} يوم',
     'plantDayOne': 'يوم واحد',
@@ -1384,6 +1396,12 @@ class S {
   String get myPlantsAccent => t('myPlantsAccent');
   String get myPlantsEmpty => t('myPlantsEmpty');
   String get myPlantsEmptyBody => t('myPlantsEmptyBody');
+  String get filter => t('filter');
+  String get filterByCategory => t('filterByCategory');
+  String get clearFilter => t('clearFilter');
+  String get filterNoMatch => t('filterNoMatch');
+  String filterNoMatchBody(String category) =>
+      t('filterNoMatchBody').replaceAll('{category}', category);
 
   /// "Planted today", "1 day", "24 days".
   String plantAge(int days) => switch (days) {
