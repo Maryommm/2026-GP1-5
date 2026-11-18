@@ -452,6 +452,16 @@ class AppStrings {
     'filterNoMatch': 'No matching plants',
     'filterNoMatchBody':
         'None of your plants are in {category}. Try another category or clear the filter.',
+    'selectPlants': 'Select plants',
+    'selectedCount': '{n} selected',
+    'selectAll': 'Select all',
+    'deselectAll': 'Deselect all',
+    'deleteSelected': 'Delete ({n})',
+    'deletePlantsTitle': 'Delete {n} plants?',
+    'deletePlantsMessage':
+        "These plants and their growth records will be deleted. This can't be undone.",
+    'plantsDeleteFailed':
+        "Couldn't delete some plants. Check your connection and try again.",
     'plantedToday': 'Planted today',
     'plantDays': '{n} days',
     'plantDayOne': '1 day',
@@ -928,6 +938,16 @@ class AppStrings {
     'filterNoMatch': 'ما فيه نباتات مطابقة',
     'filterNoMatchBody':
         'ما عندك نباتات من فئة {category}. جرّب فئة ثانية أو أزل التصفية.',
+    'selectPlants': 'تحديد النباتات',
+    'selectedCount': 'المحدد: {n}',
+    'selectAll': 'تحديد الكل',
+    'deselectAll': 'إلغاء تحديد الكل',
+    'deleteSelected': 'حذف ({n})',
+    'deletePlantsTitle': 'حذف النباتات المحددة ({n})؟',
+    'deletePlantsMessage':
+        'راح تنحذف هذه النباتات وسجلات نموها، وما تقدر تتراجع بعدين.',
+    'plantsDeleteFailed':
+        'ما قدرنا نحذف بعض النباتات. تأكد من اتصالك وحاول مرة ثانية.',
     'plantedToday': 'انزرعت اليوم',
     'plantDays': '{n} يوم',
     'plantDayOne': 'يوم واحد',
@@ -1402,6 +1422,15 @@ class S {
   String get filterNoMatch => t('filterNoMatch');
   String filterNoMatchBody(String category) =>
       t('filterNoMatchBody').replaceAll('{category}', category);
+  String get selectPlants => t('selectPlants');
+  String selectedCount(int n) => t('selectedCount').replaceAll('{n}', '$n');
+  String get selectAll => t('selectAll');
+  String get deselectAll => t('deselectAll');
+  String deleteSelected(int n) => t('deleteSelected').replaceAll('{n}', '$n');
+  String deletePlantsTitle(int n) =>
+      t('deletePlantsTitle').replaceAll('{n}', '$n');
+  String get deletePlantsMessage => t('deletePlantsMessage');
+  String get plantsDeleteFailed => t('plantsDeleteFailed');
 
   /// "Planted today", "1 day", "24 days".
   String plantAge(int days) => switch (days) {

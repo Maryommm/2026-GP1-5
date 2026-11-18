@@ -6,6 +6,7 @@ import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/category_chip.dart' show categoryIcon, categoryLabel;
 import '../widgets/centered_header.dart' show HeaderPillButton;
@@ -23,6 +24,10 @@ import 'plant_details_screen.dart';
 ///
 /// The Filter button in the header lists the plant categories; picking one
 /// shows only the plants in it, and clearing it shows them all again.
+///
+/// The Select button puts a box next to every plant: tapping plants ticks
+/// them, and Delete removes all the ticked ones after asking. Cancel or
+/// Back leaves select mode without deleting anything.
 class MyPlantsScreen extends StatefulWidget {
   const MyPlantsScreen({super.key});
 
@@ -34,8 +39,65 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
   /// The chosen category; null shows every plant.
   CropCategory? _filter;
 
-  void _setFilter(CropCategory? category) =>
-      setState(() => _filter = category);
+  /// True while the boxes are shown.
+  bool _selecting = false;
+
+  /// Ids of the ticked plants. Only the ones still on screen count (see
+  /// [_ticked]), so a plant hidden by the filter or deleted elsewhere is
+  /// never deleted by mistake.
+  final _selected = <String>{};
+
+  void _setFilter(CropCategory? category) => setState(() => _filter = category);
+
+  void _startSelecting() => setState(() {
+    _selecting = true;
+    _selected.clear();
+  });
+
+  void _stopSelecting() => setState(() {
+    _selecting = false;
+    _selected.clear();
+  });
+
+  void _toggle(String id) => setState(
+    () => _selected.contains(id) ? _selected.remove(id) : _selected.add(id),
+  );
+
+  /// The ticked plants among [shown].
+  List<FarmPlant> _ticked(List<FarmPlant> shown) => [
+    for (final p in shown)
+      if (_selected.contains(p.id)) p,
+  ];
+
+  /// Asks first, then deletes [plants] and their growth entries.
+  ///
+  /// The plants leave the list straight away: Firestore removes them from
+  /// the farm before the server confirms (offline, that can take a long
+  /// time), so the screen doesn't wait. If any delete fails, it says so.
+  Future<void> _deleteTicked(List<FarmPlant> plants) async {
+    if (plants.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: AppColors.overlay,
+      builder: (_) => _DeletePlantsDialog(plants: plants),
+    );
+    if (confirmed != true || !mounted) return;
+    final failed = S.of(context).plantsDeleteFailed;
+    _stopSelecting();
+    final results = await Future.wait([
+      for (final p in plants)
+        FarmStore.deletePlant(p.id!).then(
+          (_) => true,
+          onError: (Object e) {
+            debugPrint('Could not delete plant ${p.id}: $e');
+            return false;
+          },
+        ),
+    ]);
+    if (mounted && results.contains(false)) {
+      showEthmarToast(context, failed, type: EthmarToastType.error);
+    }
+  }
 
   Future<void> _openFilter(List<FarmPlant> plants) async {
     final choice = await showModalBottomSheet<({CropCategory? category})>(
@@ -55,80 +117,277 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return Scaffold(
-      body: LeafPrintBackground(
-        child: ValueListenableBuilder<List<FarmPlant>>(
-          valueListenable: FarmStore.plants,
-          builder: (context, plants, _) {
-            final filter = _filter;
-            final newestFirst = [
-              for (final p in plants)
-                if (filter == null || p.crop.category == filter) p,
-            ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                EthmarPageHeader(
-                  title: s.myPlants,
-                  accent: s.myPlantsAccent,
-                  // Nothing to filter on an empty farm.
-                  trailing: plants.isEmpty
-                      ? null
-                      : HeaderPillButton(
-                          key: const Key('plantsFilter'),
-                          icon: Icons.tune_rounded,
-                          label: s.filter,
-                          onPressed: () => _openFilter(plants),
-                        ),
-                ),
-                if (filter != null && plants.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 0),
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: _ActiveFilter(
-                        category: filter,
-                        onClear: () => _setFilter(null),
-                      ),
-                    ),
-                  ),
-                Expanded(
-                  child: plants.isEmpty
-                      ? const _NoPlants()
-                      : newestFirst.isEmpty
-                      ? _NoMatch(
-                          category: filter!,
-                          onClear: () => _setFilter(null),
-                        )
-                      : ListView.separated(
-                          padding: EdgeInsets.fromLTRB(
-                            16,
-                            16,
-                            16,
-                            16 + MediaQuery.paddingOf(context).bottom,
-                          ),
-                          itemCount: newestFirst.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, i) {
-                            final plant = newestFirst[i];
-                            return Entrance(
-                              delay: Duration(milliseconds: 40 * i.clamp(0, 8)),
-                              child: _PlantCard(
-                                plant: plant,
-                                onTap: () => Navigator.of(context).push(
-                                  riseRoute(
-                                    PlantDetailsScreen(plantId: plant.id!),
+    return PopScope(
+      // Back leaves select mode first, then the screen.
+      canPop: !_selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _selecting) _stopSelecting();
+      },
+      child: Scaffold(
+        body: LeafPrintBackground(
+          child: ValueListenableBuilder<List<FarmPlant>>(
+            valueListenable: FarmStore.plants,
+            builder: (context, plants, _) {
+              final filter = _filter;
+              final newestFirst = [
+                for (final p in plants)
+                  if (filter == null || p.crop.category == filter) p,
+              ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              // Nothing left to select (e.g. the last plants were deleted).
+              final selecting = _selecting && plants.isNotEmpty;
+              final ticked = _ticked(newestFirst);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  EthmarPageHeader(
+                    title: s.myPlants,
+                    accent: s.myPlantsAccent,
+                    // Nothing to filter or select on an empty farm.
+                    trailing: plants.isEmpty
+                        ? null
+                        : selecting
+                        ? HeaderPillButton(
+                            key: const Key('cancelSelecting'),
+                            icon: Icons.close_rounded,
+                            label: s.cancel,
+                            onPressed: _stopSelecting,
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Material(
+                                color: AppColors.surface,
+                                shape: const CircleBorder(),
+                                child: IconButton(
+                                  key: const Key('selectPlants'),
+                                  tooltip: s.selectPlants,
+                                  onPressed: _startSelecting,
+                                  style: IconButton.styleFrom(
+                                    minimumSize: const Size(48, 48),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.checklist_rounded,
+                                    color: AppColors.forest,
                                   ),
                                 ),
                               ),
-                            );
-                          },
+                              const SizedBox(width: 8),
+                              HeaderPillButton(
+                                key: const Key('plantsFilter'),
+                                icon: Icons.tune_rounded,
+                                label: s.filter,
+                                onPressed: () => _openFilter(plants),
+                              ),
+                            ],
+                          ),
+                  ),
+                  if (filter != null && plants.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        16,
+                        12,
+                        16,
+                        0,
+                      ),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: _ActiveFilter(
+                          category: filter,
+                          onClear: () => _setFilter(null),
                         ),
-                ),
-              ],
-            );
-          },
+                      ),
+                    ),
+                  if (selecting && newestFirst.isNotEmpty)
+                    _SelectionBar(
+                      count: ticked.length,
+                      allTicked: ticked.length == newestFirst.length,
+                      onToggleAll: () => setState(() {
+                        if (ticked.length == newestFirst.length) {
+                          _selected.clear();
+                        } else {
+                          _selected.addAll([
+                            for (final p in newestFirst) p.id!,
+                          ]);
+                        }
+                      }),
+                    ),
+                  Expanded(
+                    child: plants.isEmpty
+                        ? const _NoPlants()
+                        : newestFirst.isEmpty
+                        ? _NoMatch(
+                            category: filter!,
+                            onClear: () => _setFilter(null),
+                          )
+                        : ListView.separated(
+                            padding: EdgeInsets.fromLTRB(
+                              16,
+                              16,
+                              16,
+                              // The delete bar below takes the safe area.
+                              16 +
+                                  (selecting
+                                      ? 0
+                                      : MediaQuery.paddingOf(context).bottom),
+                            ),
+                            itemCount: newestFirst.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, i) {
+                              final plant = newestFirst[i];
+                              return Entrance(
+                                delay: Duration(
+                                  milliseconds: 40 * i.clamp(0, 8),
+                                ),
+                                child: _PlantCard(
+                                  plant: plant,
+                                  selected: selecting
+                                      ? _selected.contains(plant.id)
+                                      : null,
+                                  onTap: selecting
+                                      ? () => _toggle(plant.id!)
+                                      : () => Navigator.of(context).push(
+                                          riseRoute(
+                                            PlantDetailsScreen(
+                                              plantId: plant.id!,
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  if (selecting)
+                    Container(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        12,
+                        16,
+                        12 + MediaQuery.paddingOf(context).bottom,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        border: Border(
+                          top: BorderSide(color: AppColors.border),
+                        ),
+                      ),
+                      child: EthmarButton(
+                        key: const Key('deleteSelected'),
+                        label: s.deleteSelected(ticked.length),
+                        color: AppColors.error,
+                        textColor: AppColors.surface,
+                        onPressed: ticked.isEmpty
+                            ? null
+                            : () => _deleteTicked(ticked),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Under the header in select mode: how many plants are ticked, and a
+/// button to tick (or untick) every plant on screen.
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.count,
+    required this.allTicked,
+    required this.onToggleAll,
+  });
+  final int count;
+  final bool allTicked;
+  final VoidCallback onToggleAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 8, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              s.selectedCount(count),
+              style: AppText.label(context)
+                  .copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            key: const Key('toggleAllPlants'),
+            onPressed: onToggleAll,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.forest,
+              minimumSize: const Size(48, 48),
+            ),
+            child: Text(allTicked ? s.deselectAll : s.selectAll),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Asks before deleting the ticked plants; their growth entries go too.
+/// One plant is named, as on its details page.
+class _DeletePlantsDialog extends StatelessWidget {
+  const _DeletePlantsDialog({required this.plants});
+  final List<FarmPlant> plants;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final one = plants.length == 1;
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(
+              Icons.delete_outline_rounded,
+              size: 42,
+              color: AppColors.error,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              one ? s.deletePlantTitle : s.deletePlantsTitle(plants.length),
+              textAlign: TextAlign.center,
+              style: AppText.title(context).copyWith(fontSize: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              one
+                  ? s.deletePlantMessage(plants.single.name)
+                  : s.deletePlantsMessage,
+              textAlign: TextAlign.center,
+              style: AppText.body(context),
+            ),
+            const SizedBox(height: 22),
+            EthmarButton(
+              key: const Key('confirmDeletePlants'),
+              label: s.deleteSelected(plants.length),
+              color: AppColors.error,
+              textColor: AppColors.surface,
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            const SizedBox(height: 4),
+            Center(
+              child: EthmarLink(
+                label: s.cancel,
+                onTap: () => Navigator.of(context).pop(false),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -137,10 +396,14 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
 
 /// The plant's picture, its name, what it is, how old it is and how often
 /// it's watered.
+///
+/// In select mode ([selected] isn't null) a box at the start shows whether
+/// it's ticked, and tapping the card ticks or unticks it.
 class _PlantCard extends StatelessWidget {
-  const _PlantCard({required this.plant, required this.onTap});
+  const _PlantCard({required this.plant, required this.onTap, this.selected});
   final FarmPlant plant;
   final VoidCallback onTap;
+  final bool? selected;
 
   @override
   Widget build(BuildContext context) {
@@ -148,72 +411,100 @@ class _PlantCard extends StatelessWidget {
     final crop = plant.crop;
     final cat = crop.category;
     final irrigation = plant.irrigation;
-    return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 8, 12),
-          child: Row(
-            children: [
-              Container(
-                width: 76,
-                height: 76,
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: cat.tint,
-                  borderRadius: BorderRadius.circular(16),
+    final ticked = selected;
+    return Semantics(
+      checked: ticked,
+      child: Material(
+        color: ticked == true ? AppColors.forestTint : AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: ticked == true
+              ? const BorderSide(color: AppColors.forest, width: 1.6)
+              : const BorderSide(color: AppColors.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsetsDirectional.fromSTEB(
+              ticked == null ? 12 : 4,
+              12,
+              8,
+              12,
+            ),
+            child: Row(
+              children: [
+                if (ticked != null)
+                  Checkbox(
+                    key: Key('selectPlant_${plant.id}'),
+                    value: ticked,
+                    onChanged: (_) => onTap(),
+                    activeColor: AppColors.forest,
+                    side: const BorderSide(
+                      color: AppColors.textSecondary,
+                      width: 1.6,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                Container(
+                  width: 76,
+                  height: 76,
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: cat.tint,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: PlantPicture(crop.image, cacheWidth: 220),
                 ),
-                child: PlantPicture(crop.image, cacheWidth: 220),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      plant.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.label(context)
-                          .copyWith(fontSize: 17, fontWeight: FontWeight.w700),
-                    ),
-                    Text(
-                      '${crop.name.of(context)} · ${cat.label.of(context)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.small(context),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _InfoChip(
-                          icon: Icons.calendar_today_rounded,
-                          text: s.plantAge(plant.daysSincePlanting),
-                        ),
-                        _InfoChip(
-                          icon: Icons.water_drop_rounded,
-                          text: irrigation == null
-                              ? s.summaryNotSet
-                              : irrigation.repeat.label(s),
-                        ),
-                      ],
-                    ),
-                  ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        plant.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.label(
+                          context,
+                        ).copyWith(fontSize: 17, fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        '${crop.name.of(context)} · ${cat.label.of(context)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.small(context),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _InfoChip(
+                            icon: Icons.calendar_today_rounded,
+                            text: s.plantAge(plant.daysSincePlanting),
+                          ),
+                          _InfoChip(
+                            icon: Icons.water_drop_rounded,
+                            text: irrigation == null
+                                ? s.summaryNotSet
+                                : irrigation.repeat.label(s),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textSecondary,
-              ),
-            ],
+                // Tapping opens the details only outside select mode.
+                if (ticked == null)
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textSecondary,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -376,10 +667,8 @@ class _ActiveFilter extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     categoryLabel(category, context),
-                    style: AppText.label(context).copyWith(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppText.label(context)
+                        .copyWith(fontSize: 13.5, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: 6),
                   const Icon(
