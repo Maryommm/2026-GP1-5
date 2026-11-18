@@ -2,6 +2,22 @@ import 'package:flutter/services.dart';
 
 import '../l10n/app_strings.dart';
 
+// The rules a new password must follow, in the order they're listed.
+enum PasswordRule {
+  length,
+  upper,
+  digit,
+  special;
+
+  // "at least 8 characters", "a capital letter"...
+  String label(S s) => switch (this) {
+        PasswordRule.length => s.errPasswordLength,
+        PasswordRule.upper => s.errPasswordUpper,
+        PasswordRule.digit => s.errPasswordDigit,
+        PasswordRule.special => s.errPasswordSpecial,
+      };
+}
+
 // Check if the user's input follows the required rules.
 class Validators {
   Validators._();
@@ -43,6 +59,16 @@ class Validators {
   static final _digitRe = RegExp(r'[0-9]');
   static final _specialRe = RegExp(r'[^A-Za-z0-9\s]');
 
+  // Whether [password] follows [rule]. The sign-up checklist and the checks
+  // below both use this, so they always agree.
+  static bool passwordRuleMet(PasswordRule rule, String password) =>
+      switch (rule) {
+        PasswordRule.length => password.length >= 8,
+        PasswordRule.upper => _upperRe.hasMatch(password),
+        PasswordRule.digit => _digitRe.hasMatch(password),
+        PasswordRule.special => _specialRe.hasMatch(password),
+      };
+
   // Require 8 characters, a capital letter, a number, and a special character.
   // The error lists only the rules that are still missing.
   static String? password(String? v, S s) {
@@ -51,13 +77,20 @@ class Validators {
     if (t.isEmpty) return s.errPasswordRequired;
 
     final missing = [
-      if (t.length < 8) s.errPasswordLength,
-      if (!_upperRe.hasMatch(t)) s.errPasswordUpper,
-      if (!_digitRe.hasMatch(t)) s.errPasswordDigit,
-      if (!_specialRe.hasMatch(t)) s.errPasswordSpecial,
+      for (final rule in PasswordRule.values)
+        if (!passwordRuleMet(rule, t)) rule.label(s),
     ];
 
     return missing.isEmpty ? null : s.passwordNeeds(missing);
+  }
+
+  // Sign-up, where the checklist under the field already shows which rules
+  // are missing: the error only says that some are.
+  static String? newPassword(String? v, S s) {
+    final t = v ?? '';
+    if (t.isEmpty) return s.errPasswordRequired;
+    final allMet = PasswordRule.values.every((r) => passwordRuleMet(r, t));
+    return allMet ? null : s.errPasswordRules;
   }
 
   // Check that the password field is not empty.

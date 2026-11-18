@@ -39,6 +39,7 @@ class AppStrings {
     'errPasswordUpper': 'a capital letter',
     'errPasswordDigit': 'a number',
     'errPasswordSpecial': 'a special character (like ! or @)',
+    'errPasswordRules': 'Your password doesn\'t follow all the rules below yet',
     'showPassword': 'Show password',
     'hidePassword': 'Hide password',
     'back': 'Back',
@@ -550,6 +551,7 @@ class AppStrings {
     'errPasswordUpper': 'حرف كبير',
     'errPasswordDigit': 'رقم',
     'errPasswordSpecial': 'رمز خاص (مثل ! أو @)',
+    'errPasswordRules': 'كلمة المرور لا تحقق كل الشروط أدناه بعد',
     'showPassword': 'إظهار كلمة المرور',
     'hidePassword': 'إخفاء كلمة المرور',
     'back': 'عودة',
@@ -1045,6 +1047,10 @@ class S {
   String get errPasswordUpper => t('errPasswordUpper');
   String get errPasswordDigit => t('errPasswordDigit');
   String get errPasswordSpecial => t('errPasswordSpecial');
+  String get errPasswordRules => t('errPasswordRules');
+
+  /// "Your password needs:", above the sign-up checklist.
+  String get passwordRulesTitle => '${t('errPasswordNeeds')}:';
 
   /// Every password rule (used when the server says the password is weak).
   String get errPasswordWeak => passwordNeeds([

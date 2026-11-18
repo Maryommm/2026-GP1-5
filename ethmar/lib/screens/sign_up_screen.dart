@@ -15,6 +15,7 @@ import '../widgets/email_verification_dialog.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
+import '../widgets/password_rules.dart';
 import 'login_screen.dart';
 import 'main_shell.dart';
 import 'validators.dart';
@@ -442,9 +443,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             isPassword: true,
                             textInputAction: TextInputAction.done,
                             autofillHints: const [AutofillHints.newPassword],
-                            validator: (v) => Validators.password(v, s),
+                            // The list below shows which rules are missing.
+                            validator: (v) => Validators.newPassword(v, s),
                             onSubmitted: _loading ? null : (_) => _submit(),
                           ),
+
+                          // The password rules: dim, then green once followed.
+                          PasswordRules(controller: _password),
 
                           const SizedBox(height: 36),
 
