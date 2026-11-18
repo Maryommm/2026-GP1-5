@@ -68,6 +68,13 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   CropCategory? _filter;
   CatalogCrop? _crop;
 
+  /// An unknown plant's category, chosen by the user in step 2; it must be
+  /// set before saving. Catalog crops already have theirs.
+  CropCategory? _unknownCategory;
+  bool _showCategoryError = false;
+
+  bool get _isUnknown => _crop?.id == unknownCropId;
+
   /// What the user typed to find a crop in step 1.
   final _search = TextEditingController();
 
@@ -106,9 +113,14 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   }
 
   Future<void> _submit() async {
-    if (_saving || !_form.currentState!.validate()) return;
+    if (_saving) return;
+    final named = _form.currentState!.validate();
+    final missingCategory = _isUnknown && _unknownCategory == null;
+    setState(() => _showCategoryError = missingCategory);
+    if (!named || missingCategory) return;
     final plant = FarmPlant(
       crop: _crop!,
+      category: _unknownCategory,
       name: _name.text.trim(),
       irrigation: _irrigation.result,
       fertilization: _fertilization.result,
@@ -290,9 +302,21 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
               children: [
                 _ChosenCrop(
                   crop: _crop!,
+                  category: _isUnknown ? _unknownCategory : _crop!.category,
                   onChange: () => setState(() => _step = 0),
                 ),
                 const SizedBox(height: 20),
+                if (_isUnknown) ...[
+                  _CategoryPicker(
+                    selected: _unknownCategory,
+                    showError: _showCategoryError,
+                    onSelected: (c) => setState(() {
+                      _unknownCategory = c;
+                      _showCategoryError = false;
+                    }),
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 EthmarTextField(
                   label: s.addPlantNameLabel,
                   hint: s.addPlantNameHint,
@@ -515,15 +539,73 @@ class _CropCard extends StatelessWidget {
 
 // Step 2 classes: chosen crop and summary dialog
 
-/// The crop picked in step 1, with a link back to change it.
+/// An unknown plant's category: one chip per category, and a short line on
+/// why it's needed. [showError] asks for a choice after a save attempt.
+class _CategoryPicker extends StatelessWidget {
+  const _CategoryPicker({
+    required this.selected,
+    required this.showError,
+    required this.onSelected,
+  });
+  final CropCategory? selected;
+  final bool showError;
+  final ValueChanged<CropCategory> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Column(
+      key: const Key('unknownCategoryPicker'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          s.addPlantCategoryLabel,
+          style: AppText.label(context).copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 4),
+        Text(s.addPlantCategoryHint, style: AppText.small(context)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final c in CropCategory.values)
+              CategoryChip(
+                key: Key('unknownCategory_${c.name}'),
+                label: categoryLabel(c, context),
+                icon: categoryIcon(c),
+                selected: c == selected,
+                onTap: () => onSelected(c),
+              ),
+          ],
+        ),
+        if (showError) ...[
+          const SizedBox(height: 8),
+          Text(
+            s.errPlantCategoryRequired,
+            style: AppText.small(context, color: AppColors.error),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// The crop picked in step 1, with a link back to change it. [category] is
+/// null while an unknown plant has none chosen yet.
 class _ChosenCrop extends StatelessWidget {
-  const _ChosenCrop({required this.crop, required this.onChange});
+  const _ChosenCrop({
+    required this.crop,
+    required this.category,
+    required this.onChange,
+  });
   final CatalogCrop crop;
+  final CropCategory? category;
   final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context) {
-    final cat = crop.category;
+    final cat = category;
     return Entrance(
       child: Container(
         padding: const EdgeInsetsDirectional.fromSTEB(10, 10, 6, 10),
@@ -548,10 +630,11 @@ class _ChosenCrop extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    categoryLabel(cat, context),
-                    style: AppText.small(context),
-                  ),
+                  if (cat != null)
+                    Text(
+                      categoryLabel(cat, context),
+                      style: AppText.small(context),
+                    ),
                   Text(
                     crop.name.of(context),
                     style: AppText.title(context).copyWith(fontSize: 18),
@@ -578,7 +661,7 @@ class _SummaryDialog extends StatelessWidget {
     final s = S.of(context);
     final loc = MaterialLocalizations.of(context);
     final crop = plant.crop;
-    final cat = crop.category;
+    final cat = plant.category;
     String describe(CareSchedule? c) => c == null
         ? s.summaryNotSet
         : s.summaryAt(c.repeat.label(s), loc.formatTimeOfDay(c.time));

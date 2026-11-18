@@ -1,4 +1,5 @@
 import 'package:ethmar/models/crop_catalog.dart';
+import 'package:ethmar/models/crop_recommendation.dart' show CropCategory;
 import 'package:ethmar/models/farm_plant.dart';
 import 'package:ethmar/screens/add_plant_screen.dart';
 import 'package:ethmar/screens/plant_details_screen.dart';
@@ -101,14 +102,87 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AddPlantScreen()));
     await settle(tester);
 
-    await tester.ensureVisible(find.text('Other crops'));
-    await tester.tap(find.text('Other crops'));
+    await tester.ensureVisible(find.text('Other plants'));
+    await tester.tap(find.text('Other plants'));
     await settle(tester);
     expect(find.text('Tomato'), findsNothing);
 
     await tester.tap(find.text('Unknown plant'));
     await settle(tester);
     expect(typedName(tester), isEmpty);
+  });
+
+  /// Opens step 2 for an unknown plant named "Moringa".
+  Future<void> openUnknown(WidgetTester tester) async {
+    await tester.enterText(find.byType(TextField), 'Moringa');
+    await settle(tester);
+    await tester.tap(find.text('Add it as an unknown plant'));
+    await settle(tester);
+  }
+
+  testWidgets('an unknown plant needs a category before saving', (
+    tester,
+  ) async {
+    var saves = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AddPlantScreen(
+          savePlant: (p) async {
+            saves++;
+            return p;
+          },
+        ),
+      ),
+    );
+    await settle(tester);
+    await openUnknown(tester);
+    expect(find.byKey(const Key('unknownCategoryPicker')), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Add plant'));
+    await tester.tap(find.text('Add plant'));
+    await settle(tester);
+    expect(find.text('Choose a category for your plant'), findsOneWidget);
+    expect(find.text('Confirm'), findsNothing);
+    expect(saves, 0);
+  });
+
+  testWidgets('the chosen category is saved with the unknown plant', (
+    tester,
+  ) async {
+    FarmPlant? saved;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AddPlantScreen(
+          savePlant: (p) async => saved = p,
+        ),
+      ),
+    );
+    await settle(tester);
+    await openUnknown(tester);
+
+    final herb = find.byKey(const Key('unknownCategory_herb'));
+    await tester.ensureVisible(herb);
+    await tester.tap(herb);
+    await settle(tester);
+    await tester.ensureVisible(find.text('Add plant'));
+    await tester.tap(find.text('Add plant'));
+    await settle(tester);
+    await tester.tap(find.text('Confirm'));
+    await settle(tester);
+
+    expect(saved!.crop.id, unknownCropId);
+    expect(saved!.category, CropCategory.herb);
+    expect(saved!.toMap()['category'], 'herb');
+  });
+
+  testWidgets('catalog crops keep their own category, without a picker', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: AddPlantScreen()));
+    await settle(tester);
+    await tester.tap(find.text('Tomato'));
+    await settle(tester);
+    expect(find.byKey(const Key('unknownCategoryPicker')), findsNothing);
   });
 
   testWidgets('searching narrows the crops to matching names', (tester) async {

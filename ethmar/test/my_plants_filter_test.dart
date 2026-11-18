@@ -39,7 +39,7 @@ void main() {
   /// The sample plants' names in [category], or all of them.
   List<String> namesIn(CropCategory? category) => [
         for (final p in samplePlants)
-          if (category == null || p.crop.category == category) p.name,
+          if (category == null || p.category == category) p.name,
       ];
 
   void expectShown(List<String> shown) {
@@ -53,7 +53,7 @@ void main() {
   }
 
   // A category with some, but not all, sample plants, and one with none.
-  final used = {for (final p in samplePlants) p.crop.category};
+  final used = {for (final p in samplePlants) p.category};
   final some = used.first;
   final none = CropCategory.values.firstWhere((c) => !used.contains(c));
 

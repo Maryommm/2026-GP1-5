@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:ethmar/data/sample_plants.dart';
 import 'package:ethmar/models/crop_catalog.dart';
+import 'package:ethmar/models/crop_recommendation.dart' show CropCategory;
 import 'package:ethmar/models/farm_plant.dart';
 import 'package:ethmar/models/farm_spot.dart';
 import 'package:ethmar/models/farm_stats.dart';
@@ -93,6 +94,55 @@ void main() {
   });
 
   group('FarmPlant', () {
+    final unknown = cropCatalog.firstWhere((c) => c.id == unknownCropId);
+
+    test("an unknown plant keeps the category the user chose", () {
+      final plant = FarmPlant(
+        id: 'u1',
+        crop: unknown,
+        category: CropCategory.herb,
+        name: 'Moringa',
+      );
+      expect(plant.category, CropCategory.herb);
+      final map = plant.toMap();
+      expect(map['category'], 'herb');
+      final back = FarmPlant.fromMap('u1', map);
+      expect(back.category, CropCategory.herb);
+      // Edits and moves keep it.
+      expect(
+        back.edited(name: 'M', irrigation: null, fertilization: null).category,
+        CropCategory.herb,
+      );
+      expect(back.placed(id: 'u1', land: 1, square: 3).category,
+          CropCategory.herb);
+    });
+
+    test('an unknown plant without a valid saved category is "other"', () {
+      final map = FarmPlant(id: 'u2', crop: unknown, name: 'X').toMap()
+        ..['category'] = 'not-a-category';
+      expect(FarmPlant.fromMap('u2', map).category, CropCategory.other);
+    });
+
+    test('a catalog crop always has its own category', () {
+      final tomato = cropCatalog.firstWhere((c) => c.id == 'tomato');
+      final plant = FarmPlant(
+        crop: tomato,
+        category: CropCategory.herb,
+        name: 'Tomato',
+      );
+      expect(plant.category, CropCategory.vegetable);
+      final map = plant.toMap()..['category'] = 'herb';
+      expect(FarmPlant.fromMap('t1', map).category, CropCategory.vegetable);
+    });
+
+    test('every catalog crop has a unique id and a picture file', () {
+      final ids = [for (final c in cropCatalog) c.id];
+      expect(ids.toSet(), hasLength(ids.length));
+      for (final c in cropCatalog) {
+        expect(File(c.image).existsSync(), isTrue, reason: c.image);
+      }
+    });
+
     test('every sample plant round-trips (growth is saved separately)', () {
       for (final plant in samplePlants) {
         final map = plant.toMap();

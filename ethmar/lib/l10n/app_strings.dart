@@ -446,6 +446,10 @@ class AppStrings {
     'plantAdded': '{name} was added to your farm',
     'farmLandFull':
         'Your land is full. Add a new land in your virtual farm to keep planting.',
+    'addPlantCategoryLabel': 'What kind of plant is it?',
+    'addPlantCategoryHint':
+        'Pick a category so it shows up in the right place when you filter your plants.',
+    'errPlantCategoryRequired': 'Choose a category for your plant',
     'myPlants': 'My plants',
     'myPlantsAccent': 'everything growing on your farm',
     'myPlantsEmpty': 'No plants yet',
@@ -470,7 +474,7 @@ class AppStrings {
     'plantDays': '{n} days',
     'plantDayOne': '1 day',
     'daysSincePlanting': 'Days since planting',
-    'stagesTitle': 'Stages of growth',
+    'stagesTitle': 'My Plant’s Journey',
     'stagesEmpty':
         'No pictures yet. Upload one now and then to see how your plant grows.',
     'uploadPicture': 'Upload a picture',
@@ -935,6 +939,10 @@ class AppStrings {
     'plantAdded': 'تمت إضافة {name} لمزرعتك',
     'farmLandFull':
         'أرضك امتلأت! أضف أرض جديدة في مزرعتك الافتراضية عشان تكمل الزراعة.',
+    'addPlantCategoryLabel': 'وش نوع النبتة؟',
+    'addPlantCategoryHint':
+        'اختر فئة عشان تطلع في مكانها الصحيح لما تصفّي نباتاتك.',
+    'errPlantCategoryRequired': 'اختر فئة لنبتتك',
     'myPlants': 'نباتاتي',
     'myPlantsAccent': 'كل اللي يكبر في مزرعتك',
     'myPlantsEmpty': 'ما عندك نباتات للحين',
@@ -959,7 +967,7 @@ class AppStrings {
     'plantDays': '{n} يوم',
     'plantDayOne': 'يوم واحد',
     'daysSincePlanting': 'أيام منذ الزراعة',
-    'stagesTitle': 'مراحل النمو',
+    'stagesTitle': ' رحلة نبتتي',
     'stagesEmpty': 'ما فيه صور للحين. ارفع صورة كل فترة عشان تشوف نبتتك وهي تكبر.',
     'uploadPicture': 'ارفع صورة',
     'notesTitle': 'تضيف ملاحظة؟',
@@ -1421,6 +1429,9 @@ class S {
   String get confirm => t('confirm');
   String plantAdded(String name) => t('plantAdded').replaceAll('{name}', name);
   String get farmLandFull => t('farmLandFull');
+  String get addPlantCategoryLabel => t('addPlantCategoryLabel');
+  String get addPlantCategoryHint => t('addPlantCategoryHint');
+  String get errPlantCategoryRequired => t('errPlantCategoryRequired');
   String get myPlants => t('myPlants');
   String get myPlantsAccent => t('myPlantsAccent');
   String get myPlantsEmpty => t('myPlantsEmpty');

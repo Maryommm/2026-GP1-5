@@ -131,7 +131,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
               final filter = _filter;
               final newestFirst = [
                 for (final p in plants)
-                  if (filter == null || p.crop.category == filter) p,
+                  if (filter == null || p.category == filter) p,
               ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
               // Nothing left to select (e.g. the last plants were deleted).
               final selecting = _selecting && plants.isNotEmpty;
@@ -409,7 +409,7 @@ class _PlantCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final crop = plant.crop;
-    final cat = crop.category;
+    final cat = plant.category;
     final irrigation = plant.irrigation;
     final ticked = selected;
     return Semantics(
@@ -555,7 +555,7 @@ class _FilterSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     int countOf(CropCategory c) =>
-        plants.where((p) => p.crop.category == c).length;
+        plants.where((p) => p.category == c).length;
     void pick(CropCategory? c) => Navigator.of(context).pop((category: c));
 
     Widget option({

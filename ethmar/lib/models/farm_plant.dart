@@ -4,7 +4,9 @@
 ///   - cropId         String     a [cropCatalog] id, e.g. "tomato" (also
 ///                               picks the picture)
 ///   - name           String     the user's name for it (at most 30 chars)
-///   - category       String     [CropCategory.name], e.g. "vegetable"
+///   - category       String     [CropCategory.name], e.g. "vegetable":
+///                               the crop's own, or for an unknown plant
+///                               the one the user picked
 ///   - land           int        which land it's on (0 = the first land)
 ///   - square         int        its square on that land, 0-24
 ///   - irrigation     map|null   {everyDays: int, time: "HH:mm"};
@@ -250,16 +252,25 @@ class FarmPlant {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.growth = const [],
-  }) : plantedAt = plantedAt ?? DateTime.now(),
+    CropCategory? category,
+  }) : category = crop.id == unknownCropId
+           ? category ?? crop.category
+           : crop.category,
+       plantedAt = plantedAt ?? DateTime.now(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
   /// The Firestore document id. Null until the plant is saved.
   final String? id;
 
-  /// Saved as its `cropId`; the category comes from it too.
+  /// Saved as its `cropId`, which also picks the picture.
   final CatalogCrop crop;
   final String name;
+
+  /// What kind of plant it is, for the filters and labels. A catalog crop
+  /// always has its own category; an unknown plant has the one the user
+  /// chose when adding it.
+  final CropCategory category;
 
   /// Where it sits on the farm: land 0 is the first land, and square is
   /// 0-24 on that land. Use `firstFreeSpot` (farm_spot.dart) to pick them
@@ -295,6 +306,7 @@ class FarmPlant {
   }) => FarmPlant(
     id: id,
     crop: crop,
+    category: category,
     name: name,
     land: land,
     square: square,
@@ -314,6 +326,7 @@ class FarmPlant {
   }) => FarmPlant(
     id: id,
     crop: crop,
+    category: category,
     name: name,
     land: land,
     square: square,
@@ -331,6 +344,7 @@ class FarmPlant {
   FarmPlant withGrowth(GrowthEntry entry) => FarmPlant(
     id: id,
     crop: crop,
+    category: category,
     name: name,
     land: land,
     square: square,
@@ -347,7 +361,7 @@ class FarmPlant {
   Map<String, Object?> toMap() => {
     'cropId': crop.id,
     'name': name,
-    'category': crop.category.name,
+    'category': category.name,
     'land': land,
     'square': square,
     'irrigation': irrigation?.toMap(),
@@ -381,9 +395,13 @@ class FarmPlant {
     if (crop == null) {
       throw FormatException('Plant $id has unknown cropId "$cropId".');
     }
+    // Only an unknown plant's saved category is used (see [category]); an
+    // old or unreadable one counts as "other".
+    final saved = data['category'];
     return FarmPlant(
       id: id,
       crop: crop,
+      category: CropCategory.values.where((c) => c.name == saved).firstOrNull,
       name: name,
       land: land,
       square: square,

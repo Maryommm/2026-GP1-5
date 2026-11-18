@@ -253,7 +253,7 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                           height: 170,
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: crop.category.tint,
+                            color: plant.category.tint,
                             borderRadius: BorderRadius.circular(28),
                           ),
                           child: PlantPicture(crop.image, cacheWidth: 400),
