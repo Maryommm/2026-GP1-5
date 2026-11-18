@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_layout.dart';
 import '../l10n/app_strings.dart';
 import '../models/farm_stats.dart';
+import '../models/streak.dart' show streakBrokenByMissedTasks;
 import '../services/daily_slogan_service.dart';
 import '../services/farm_store.dart';
 import '../services/user_service.dart' show currentUsername;
@@ -514,8 +515,14 @@ enum _StreakState { notStarted, active, lost }
 
 /// The streak's state, title and hint: active while it is above 0; lost
 /// when it went back to 0 after a completed day; otherwise not started.
-(_StreakState, String, String) _streakTexts(S s, FarmStats stats) {
-  final state = stats.currentStreak > 0
+/// [missed] is true when it was lost because earlier tasks weren't done
+/// (see [streakBrokenByMissedTasks]); the hint then says so.
+(_StreakState, String, String) _streakTexts(
+  S s,
+  FarmStats stats, {
+  bool missed = false,
+}) {
+  final state = stats.currentStreak > 0 && !missed
       ? _StreakState.active
       : stats.lastCompletedDate != null
       ? _StreakState.lost
@@ -524,10 +531,15 @@ enum _StreakState { notStarted, active, lost }
     _StreakState.notStarted => (s.streakNotStartedTitle, s.streakNotStartedHint),
     _StreakState.active =>
       (s.streakActiveTitle(stats.currentStreak), s.streakActiveHint),
-    _StreakState.lost => (s.streakLostTitle, s.streakLostHint),
+    _StreakState.lost =>
+      (s.streakLostTitle, missed ? s.streakMissedMessage : s.streakLostHint),
   };
   return (state, title, hint);
 }
+
+/// Whether the streak was lost to missed tasks, for the streak cards.
+bool _missedTasks(FarmStats stats) =>
+    streakBrokenByMissedTasks(stats, FarmStore.plants.value, DateTime.now());
 
 /// Current layout: the Today's Tasks card (a button) and the streak card
 /// side by side, as short rectangles (half as tall as they are wide). They
@@ -570,10 +582,14 @@ class _StreakSquare extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<FarmStats>(
-      valueListenable: FarmStore.stats,
-      builder: (context, stats, _) {
-        final (state, title, hint) = _streakTexts(S.of(context), stats);
+    // The plants too: they decide whether tasks were missed.
+    return ListenableBuilder(
+      listenable: Listenable.merge([FarmStore.stats, FarmStore.plants]),
+      builder: (context, _) {
+        final stats = FarmStore.stats.value;
+        final s = S.of(context);
+        final missed = _missedTasks(stats);
+        final (state, title, hint) = _streakTexts(s, stats, missed: missed);
         return Semantics(
           label: '$title. $hint',
           excludeSemantics: true,
@@ -588,14 +604,31 @@ class _StreakSquare extends StatelessWidget {
                 _StreakFire(animate: state == _StreakState.active, size: 44),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.title(context).copyWith(
-                      fontSize: 16,
-                      height: 1.15,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.title(context).copyWith(
+                          fontSize: 16,
+                          height: 1.15,
+                        ),
+                      ),
+                      // The short version of the Daily Tasks message.
+                      if (missed)
+                        Text(
+                          s.streakMissedShort,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.small(
+                            context,
+                            color: AppColors.sunDark,
+                          ).copyWith(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -614,14 +647,15 @@ class _StreakCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<FarmStats>(
-      valueListenable: FarmStore.stats,
-      builder: (context, stats, _) => _buildCard(context, stats),
+    return ListenableBuilder(
+      listenable: Listenable.merge([FarmStore.stats, FarmStore.plants]),
+      builder: (context, _) => _buildCard(context, FarmStore.stats.value),
     );
   }
 
   Widget _buildCard(BuildContext context, FarmStats stats) {
-    final (state, title, hint) = _streakTexts(S.of(context), stats);
+    final (state, title, hint) =
+        _streakTexts(S.of(context), stats, missed: _missedTasks(stats));
     return Container(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
       decoration: BoxDecoration(

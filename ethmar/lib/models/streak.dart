@@ -38,6 +38,28 @@ FarmStats streakAfterMissedDays(
   return stats;
 }
 
+/// True when the streak was lost because a day with tasks, after the last
+/// completed day and before [today], wasn't completed. Daily Tasks and Home
+/// then say so. It turns false again once a new day is completed.
+///
+/// False when there never was a streak (no completed day yet), or when the
+/// streak ended for another reason (e.g. no plants have a schedule).
+bool streakBrokenByMissedTasks(
+  FarmStats stats,
+  List<FarmPlant> plants,
+  DateTime today,
+) {
+  final last = _parseDate(stats.lastCompletedDate);
+  if (last == null) return false;
+  final day = _dateOnly(today);
+  // Missed for over a year: the streak is gone, but this isn't news.
+  if (day.difference(last).inDays > 366) return false;
+  for (var d = _nextDay(last); d.isBefore(day); d = _nextDay(d)) {
+    if (dueTasks(plants, d).isNotEmpty) return true;
+  }
+  return false;
+}
+
 /// The streak after a task of [today] is ticked or un-ticked.
 ///
 /// [allDone] says whether every task of today is now done. When a completed

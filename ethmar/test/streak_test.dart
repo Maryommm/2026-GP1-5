@@ -23,6 +23,45 @@ void main() {
   final daily = [plant('a', Repeat.everyDay)];
   final every3 = [plant('a', Repeat.every3Days)];
 
+  group('streak lost to missed tasks', () {
+    final today = DateTime(2026, 11, 5, 9);
+
+    test('a day with tasks after the last completed day was missed', () {
+      expect(
+          streakBrokenByMissedTasks(stats(0, '2026-11-03'), daily, today),
+          isTrue);
+    });
+
+    test('nothing missed while every task day was completed', () {
+      expect(
+          streakBrokenByMissedTasks(stats(2, '2026-11-04'), daily, today),
+          isFalse);
+      // Today completed: a new streak has started.
+      expect(
+          streakBrokenByMissedTasks(stats(1, '2026-11-05'), daily, today),
+          isFalse);
+    });
+
+    test('days without tasks are not missed', () {
+      // Every 3 days from 1 November: due on the 4th and the 7th.
+      expect(
+          streakBrokenByMissedTasks(
+              stats(1, '2026-11-04'), every3, DateTime(2026, 11, 6)),
+          isFalse);
+      expect(
+          streakBrokenByMissedTasks(
+              stats(0, '2026-11-04'), every3, DateTime(2026, 11, 8)),
+          isTrue);
+    });
+
+    test('no streak yet, or no plants: nothing to say', () {
+      expect(streakBrokenByMissedTasks(stats(0, null), daily, today), isFalse);
+      expect(
+          streakBrokenByMissedTasks(stats(0, '2026-11-03'), const [], today),
+          isFalse);
+    });
+  });
+
   group('completing a day', () {
     final today = DateTime(2026, 11, 5, 20);
 

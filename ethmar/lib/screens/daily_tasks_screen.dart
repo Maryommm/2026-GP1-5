@@ -6,6 +6,8 @@ import '../l10n/app_strings.dart';
 import '../models/care_task.dart';
 import '../models/daily_task.dart';
 import '../models/farm_plant.dart';
+import '../models/farm_stats.dart';
+import '../models/streak.dart' show streakBrokenByMissedTasks;
 import '../models/task_log.dart';
 import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
@@ -233,6 +235,22 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       ),
                     ],
                   ],
+                  // Only today's tasks are listed; earlier days that weren't
+                  // finished are summed up here instead.
+                  ValueListenableBuilder<FarmStats>(
+                    valueListenable: FarmStore.stats,
+                    builder: (context, stats, _) => streakBrokenByMissedTasks(
+                            stats, FarmStore.plants.value, _today)
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 18),
+                            child: Entrance(
+                              delay: Duration(
+                                  milliseconds: 150 + 50 * shown.length),
+                              child: const _StreakMissedNote(),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
@@ -506,6 +524,43 @@ class _FertilizerSackPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FertilizerSackPainter old) => old.color != color;
+}
+
+/// Under the tasks: the streak was reset because tasks of earlier days
+/// weren't done.
+class _StreakMissedNote extends StatelessWidget {
+  const _StreakMissedNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('streakMissedNote'),
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: AppColors.sunTint,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.sun.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.local_fire_department_rounded,
+            color: AppColors.sunDark,
+            size: 26,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              S.of(context).streakMissedMessage,
+              style: AppText.body(context, color: AppColors.textPrimary)
+                  .copyWith(fontSize: 14, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// No tasks today: a still Thamoor and a friendly line, centred.

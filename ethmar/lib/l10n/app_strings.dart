@@ -211,6 +211,10 @@ class AppStrings {
         'Great job! Keep caring for your plants to maintain your streak.',
     'streakLostTitle': 'Streak lost',
     'streakLostHint': 'Take care of your plants and start your streak again.',
+    // Shown when the streak was lost because earlier tasks weren't done.
+    'streakMissedShort': 'Missed tasks',
+    'streakMissedMessage':
+        "Your streak was reset because some tasks from previous days weren't done. Finish all of today's tasks to start a new streak.",
     'homeAddPlant': 'Add Plant',
     'homeNearMe': 'Near me',
     'navHome': 'Home',
@@ -702,6 +706,9 @@ class AppStrings {
     'streakActiveHint': 'أحسنت! واصل العناية بنباتاتك للحفاظ على السلسلة.',
     'streakLostTitle': 'انقطعت السلسلة',
     'streakLostHint': 'حافظ على نباتاتك وابدأ السلسلة من جديد.',
+    'streakMissedShort': 'مهام فائتة',
+    'streakMissedMessage':
+        'انقطعت سلسلتك لأن بعض مهام الأيام السابقة لم تُنجز. أكمل جميع مهام اليوم لتبدأ سلسلة جديدة.',
     'homeAddPlant': 'أضف نبتة',
     'homeNearMe': 'قريب مني',
     'navHome': 'الرئيسية',
@@ -1196,6 +1203,8 @@ class S {
   String get streakActiveHint => t('streakActiveHint');
   String get streakLostTitle => t('streakLostTitle');
   String get streakLostHint => t('streakLostHint');
+  String get streakMissedShort => t('streakMissedShort');
+  String get streakMissedMessage => t('streakMissedMessage');
 
   /// "{n} day streak", with the correct Arabic number form:
   /// 1 → يوم واحد, 2 → يومان, 3–10 → أيام, 11+ → يومًا.
