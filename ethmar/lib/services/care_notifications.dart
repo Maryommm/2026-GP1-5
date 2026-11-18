@@ -10,8 +10,9 @@ import 'package:timezone/timezone.dart' as tz;
 import '../l10n/app_strings.dart';
 import '../l10n/locale_controller.dart';
 import '../models/care_task.dart';
-import '../models/daily_task.dart' show TaskType;
+import '../models/daily_task.dart' show DailyTask, TaskType;
 import '../models/farm_plant.dart';
+import '../models/task_log.dart';
 import 'farm_store.dart';
 
 /// One notification to schedule: when, with which id and text.
@@ -33,14 +34,23 @@ class PlannedReminder {
   String get payload => at.toIso8601String();
 }
 
-/// How many upcoming alarms each plant's watering (or fertilizing) gets.
-/// Android can only repeat a notification every day or every week, and
-/// schedules here can repeat every 2, 3, 14 or 30 days, so the next few
-/// alarms are scheduled one by one and topped up on every sync.
-const remindersPerTask = 4;
+/// How many days ahead every task's alarms are scheduled. Android can only
+/// repeat a notification every day or every week, and schedules here can
+/// repeat every 2, 3, 14 or 30 days, so the alarms are scheduled one by one
+/// and topped up on every sync. If the app isn't opened, reminders keep
+/// coming for this many days.
+const reminderHorizonDays = 30;
 
-/// How far ahead to look: enough for [remindersPerTask] monthly alarms.
+/// Tasks that repeat rarely still get at least this many alarms, even past
+/// [reminderHorizonDays] (a monthly task would otherwise get only one).
+const minRemindersPerTask = 4;
+
+/// How far ahead to look: enough for [minRemindersPerTask] monthly alarms.
 const reminderLookAheadDays = 120;
+
+/// The most alarms one task can get (one a day over the horizon), and so
+/// the number of id slots each task needs.
+const maxRemindersPerTask = 100;
 
 /// Android allows an app about 500 alarms; stay well below that.
 const maxReminders = 400;
@@ -52,36 +62,48 @@ const maxReminders = 400;
 /// it, so syncing again never makes duplicates. String.hashCode isn't used:
 /// Dart doesn't promise it stays the same between runs. This is FNV-1a.
 int reminderId(String plantId, TaskType type, int slot) {
-  assert(slot >= 0 && slot < 10);
+  assert(slot >= 0 && slot < maxRemindersPerTask);
   var hash = 0x811c9dc5;
   for (final unit in '$plantId/${type.name}'.codeUnits) {
     hash ^= unit;
     hash = (hash * 0x01000193) & 0xffffffff;
   }
   // At most 499,999,999: a positive 32-bit int, as Android needs.
-  return (hash % 50000000) * 10 + slot;
+  return (hash % 5000000) * maxRemindersPerTask + slot;
 }
 
 /// The notifications to schedule for [plants] after [now], built from
-/// [dueTasks] day by day: the next [remindersPerTask] alarms of every
-/// plant's watering and fertilizing, at most [maxReminders] in all, the
-/// soonest first. [s] gives the text in the app's language.
+/// [dueTasks] day by day: every alarm of every plant's watering and
+/// fertilizing in the next [reminderHorizonDays] days, and at least the next
+/// [minRemindersPerTask] of each; at most [maxReminders] in all, the soonest
+/// first. [s] gives the text in the app's language.
+///
+/// Tasks already ticked in [done] (a day's task log) get no reminder that
+/// day: someone who watered early isn't told to water again.
 List<PlannedReminder> planReminders(
   List<FarmPlant> plants,
   DateTime now,
-  S s,
-) {
+  S s, {
+  TaskLog? done,
+}) {
   final saved = [for (final p in plants) if (p.id != null) p];
   final slots = <String, int>{};
   final planned = <PlannedReminder>[];
   final today = DateTime(now.year, now.month, now.day);
+  final horizon = DateTime(now.year, now.month, now.day + reminderHorizonDays,
+      now.hour, now.minute);
   for (var offset = 0; offset <= reminderLookAheadDays; offset++) {
     final day = DateTime(today.year, today.month, today.day + offset);
+    final ticked = done != null && done.date == TaskLog.dateKey(day)
+        ? done.completed.toSet()
+        : const <String>{};
     for (final task in dueTasks(saved, day)) {
       if (!task.at.isAfter(now)) continue;
+      if (ticked.contains(DailyTask.taskId(task))) continue;
       final key = '${task.plant.id}/${task.type.name}';
       final slot = slots[key] ?? 0;
-      if (slot >= remindersPerTask) continue;
+      final wanted = slot < minRemindersPerTask || !task.at.isAfter(horizon);
+      if (!wanted || slot >= maxRemindersPerTask) continue;
       slots[key] = slot + 1;
       // A different message each day, the same one on every sync.
       final variant = _dayNumber(task.at) % S.reminderVariants;
@@ -116,6 +138,8 @@ int _dayNumber(DateTime t) =>
 /// - [init] runs once at startup. From then on the reminders follow
 ///   [FarmStore.plants]: editing a plant schedules its alarms again,
 ///   deleting it cancels them, and signing out cancels all of them.
+/// - They also follow today's task log: ticking a task cancels its
+///   reminder for today, unticking it brings the reminder back.
 /// - [askPermissions] asks for the notification and exact-alarm
 ///   permissions; the main shell calls it once the user is signed in.
 /// - Tapping a notification sets [openDailyTasks]; the main shell listens
@@ -144,6 +168,26 @@ class CareNotifications {
   // ignore: unused_field
   static AppLifecycleListener? _lifecycle;
 
+  /// Today's ticked tasks, and the subscription that keeps them current.
+  static TaskLog? _todayLog;
+  static StreamSubscription<TaskLog>? _todayLogChanges;
+
+  /// Follows the task log of today's date. Called again on resume, so a
+  /// new day switches to the new day's log.
+  static void _watchToday() {
+    final date = TaskLog.dateKey(DateTime.now());
+    if (_todayLogChanges != null && _todayLog?.date == date) return;
+    _todayLogChanges?.cancel();
+    _todayLog = TaskLog(date: date);
+    _todayLogChanges = FarmStore.watchTaskLog(date).listen(
+      (log) {
+        _todayLog = log;
+        sync();
+      },
+      onError: (Object e) => debugPrint('Could not load the task log: $e'),
+    );
+  }
+
   /// Starts the reminders. Call once after Firebase and [FarmStore.start].
   static Future<void> init() async {
     if (_started || defaultTargetPlatform != TargetPlatform.android) return;
@@ -169,7 +213,13 @@ class CareNotifications {
     appLocale.addListener(sync);
     // Top up the alarms and pick up a changed permission when the user
     // comes back to the app.
-    _lifecycle = AppLifecycleListener(onResume: sync);
+    _lifecycle = AppLifecycleListener(
+      onResume: () {
+        _watchToday();
+        sync();
+      },
+    );
+    _watchToday();
     unawaited(sync());
   }
 
@@ -232,7 +282,12 @@ class CareNotifications {
     final s = S(appLocale.value.languageCode == 'ar'
         ? AppStrings.ar
         : AppStrings.en);
-    final plan = planReminders(FarmStore.plants.value, DateTime.now(), s);
+    final plan = planReminders(
+      FarmStore.plants.value,
+      DateTime.now(),
+      s,
+      done: _todayLog,
+    );
     final wanted = {for (final r in plan) r.id: r};
 
     // Without the exact-alarm permission Android may deliver late, but the
