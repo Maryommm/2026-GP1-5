@@ -11,6 +11,7 @@ import '../services/user_service.dart' show currentUsername;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/entrance.dart';
+import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/today_tasks_card.dart';
@@ -91,6 +92,8 @@ class HomeScreen extends StatelessWidget {
                       child: _WeatherCard(),
                     ),
                     const SizedBox(height: 16),
+                    // Tells the user once when a missed day ends the streak.
+                    const _StreakLostAlert(),
                     const Entrance(
                       delay: Duration(milliseconds: 150),
                       child: useClassicLayout
@@ -527,6 +530,109 @@ enum _StreakState { notStarted, active, lost }
     _StreakState.lost => (s.streakLostTitle, s.streakLostHint),
   };
   return (state, title, hint);
+}
+
+/// Shows a friendly dialog once when the streak was just lost because a day
+/// with tasks was missed ([FarmStore.streakLost]). It waits until Home is
+/// the screen on show, so it never pops up over another page. It takes no
+/// room on Home itself; the streak card then shows "Streak lost".
+class _StreakLostAlert extends StatefulWidget {
+  const _StreakLostAlert();
+
+  @override
+  State<_StreakLostAlert> createState() => _StreakLostAlertState();
+}
+
+class _StreakLostAlertState extends State<_StreakLostAlert> {
+  bool _showing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    FarmStore.streakLost.addListener(_maybeShow);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Also runs when Home becomes the visible tab or route again.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShow());
+  }
+
+  @override
+  void dispose() {
+    FarmStore.streakLost.removeListener(_maybeShow);
+    super.dispose();
+  }
+
+  Future<void> _maybeShow() async {
+    final lost = FarmStore.streakLost.value;
+    if (lost == 0 || _showing || !mounted) return;
+    final onShow = (ModalRoute.of(context)?.isCurrent ?? true) &&
+        TickerMode.valuesOf(context).enabled;
+    if (!onShow) return;
+    _showing = true;
+    FarmStore.streakLost.value = 0;
+    await showDialog<void>(
+      context: context,
+      barrierColor: AppColors.overlay,
+      builder: (_) => _StreakLostDialog(streak: lost),
+    );
+    _showing = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Rebuilt when the tab's ticker mode or the route changes, so the dialog
+    // shows as soon as Home is on screen.
+    TickerMode.valuesOf(context);
+    ModalRoute.of(context);
+    return const SizedBox.shrink();
+  }
+}
+
+/// "Your streak ended": the still fire, a kind line with the lost streak's
+/// length, and a button to carry on.
+class _StreakLostDialog extends StatelessWidget {
+  const _StreakLostDialog({required this.streak});
+  final int streak;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Center(child: _StreakFire(animate: false, size: 56)),
+            const SizedBox(height: 12),
+            Text(
+              s.streakLostDialogTitle,
+              textAlign: TextAlign.center,
+              style: AppText.title(context).copyWith(fontSize: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              s.streakLostDialogBody(streak),
+              textAlign: TextAlign.center,
+              style: AppText.body(context),
+            ),
+            const SizedBox(height: 22),
+            EthmarButton(
+              label: s.streakLostDialogButton,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Current layout: the Today's Tasks card (a button) and the streak card

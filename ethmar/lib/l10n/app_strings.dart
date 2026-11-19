@@ -223,8 +223,19 @@ class AppStrings {
     'taskWatering': 'Watering',
     'taskFertilizing': 'Fertilizing',
     'statusCompleted': 'Completed',
-    'statusOverdue': 'Overdue',
+    'statusDue': 'Due now',
     'statusUpcoming': 'Upcoming',
+    'statusMissed': 'Missed',
+    'statusDoneLate': 'Done late',
+    'missedTasks': 'Missed Tasks',
+    'missedTasksHint':
+        "You can still do them, but they won't count toward your streak.",
+    'missedYesterday': 'Yesterday',
+    'missedDaysAgo': '{n} days ago',
+    'streakLostDialogTitle': 'Your streak ended',
+    'streakLostDialogBody':
+        'You missed a day of care, so your {n}-day streak ended. Your plants are waiting for you, start a new streak today! 🌱',
+    'streakLostDialogButton': "Let's start again",
     'taskMarkDone': 'Mark as done',
     'noTasksToday': 'No tasks today. Enjoy your day!',
     'taskSaveFailed': "Couldn't save the task. Check your connection and try again",
@@ -698,8 +709,19 @@ class AppStrings {
     'taskWatering': 'الري',
     'taskFertilizing': 'التسميد',
     'statusCompleted': 'مكتملة',
-    'statusOverdue': 'متأخرة',
+    'statusDue': 'حان وقتها',
     'statusUpcoming': 'قادمة',
+    'statusMissed': 'فائتة',
+    'statusDoneLate': 'أُنجزت متأخرة',
+    'missedTasks': 'المهام الفائتة',
+    'missedTasksHint': 'تقدر تنجزها الآن، لكنها ما تُحتسب في السلسلة.',
+    'missedYesterday': 'أمس',
+    'missedTwoDaysAgo': 'قبل يومين',
+    'missedDaysAgo': 'قبل {n} أيام',
+    'streakLostDialogTitle': 'انقطعت سلسلتك',
+    'streakLostDialogBody':
+        'فاتك يوم من العناية بنباتاتك، فانقطعت سلسلة {streak}. نباتاتك بانتظارك، ابدأ سلسلة جديدة اليوم! 🌱',
+    'streakLostDialogButton': 'لنبدأ من جديد',
     'taskMarkDone': 'تحديد كمكتملة',
     'noTasksToday': 'ما عندك مهام اليوم، استمتع بيومك!',
     'taskSaveFailed': 'تعذّر حفظ المهمة. تحقق من اتصالك وحاول مرة أخرى',
@@ -1186,8 +1208,28 @@ class S {
   String get taskWatering => t('taskWatering');
   String get taskFertilizing => t('taskFertilizing');
   String get statusCompleted => t('statusCompleted');
-  String get statusOverdue => t('statusOverdue');
+  String get statusDue => t('statusDue');
   String get statusUpcoming => t('statusUpcoming');
+  String get statusMissed => t('statusMissed');
+  String get statusDoneLate => t('statusDoneLate');
+  String get missedTasks => t('missedTasks');
+  String get missedTasksHint => t('missedTasksHint');
+
+  /// When a missed task was due: "Yesterday", "2 days ago"...
+  String missedDaysAgo(int n) => switch (n) {
+        1 => t('missedYesterday'),
+        2 when _map.containsKey('missedTwoDaysAgo') =>
+          t('missedTwoDaysAgo'),
+        _ => t('missedDaysAgo').replaceAll('{n}', '$n'),
+      };
+
+  String get streakLostDialogTitle => t('streakLostDialogTitle');
+
+  /// "Your 5-day streak ended..." with the Arabic number form for {streak}.
+  String streakLostDialogBody(int n) => t('streakLostDialogBody')
+      .replaceAll('{n}', '$n')
+      .replaceAll('{streak}', streakActiveTitle(n));
+  String get streakLostDialogButton => t('streakLostDialogButton');
   String get taskMarkDone => t('taskMarkDone');
   String get noTasksToday => t('noTasksToday');
   String get taskSaveFailed => t('taskSaveFailed');

@@ -150,16 +150,35 @@ class FarmStore {
     required String taskId,
     required bool done,
     required List<String> todayTaskIds,
-  }) => _service.setTaskDone(
-    today: today,
-    taskId: taskId,
-    done: done,
-    todayTaskIds: todayTaskIds,
-    plants: _savedPlants,
-  );
+  }) async {
+    _reportLost(await _service.setTaskDone(
+      today: today,
+      taskId: taskId,
+      done: done,
+      todayTaskIds: todayTaskIds,
+      plants: _savedPlants,
+    ));
+  }
+
+  /// Marks a missed task of the past day [day] done late, or not. The
+  /// streak doesn't change.
+  static Future<void> setLateTaskDone({
+    required DateTime day,
+    required String taskId,
+    required bool done,
+  }) => _service.setLateTaskDone(day: day, taskId: taskId, done: done);
 
   /// Resets the streak if a day with tasks was missed (see streak.dart).
-  static Future<void> checkStreak() => _service.checkStreak(DateTime.now());
+  static Future<void> checkStreak() async =>
+      _reportLost(await _service.checkStreak(DateTime.now()));
+
+  /// The streak just lost because a day was missed, until Home has told
+  /// the user (it then sets it back to 0).
+  static final streakLost = ValueNotifier<int>(0);
+
+  static void _reportLost(int streak) {
+    if (streak > 0) streakLost.value = streak;
+  }
 
   /// Saves one more land, up to [maxLands].
   static Future<void> addLand() async {
