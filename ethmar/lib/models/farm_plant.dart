@@ -37,8 +37,12 @@ enum Repeat {
   everyDay(1),
   every2Days(2),
   every3Days(3),
+  every4Days(4),
+  every5Days(5),
+  every6Days(6),
   everyWeek(7),
   every2Weeks(14),
+  every3Weeks(21),
   everyMonth(30);
 
   const Repeat(this.days);
@@ -46,7 +50,8 @@ enum Repeat {
   /// Days between reminders (a month counts as 30). Saved as `everyDays`.
   final int days;
 
-  /// The choice for a saved `everyDays`. Only 1, 2, 3, 7, 14 and 30 exist.
+  /// The choice for a saved `everyDays`. Only 1-7, 14, 21 and 30 exist
+  /// (the same list as in firestore.rules).
   static Repeat fromDays(int days) => Repeat.values.firstWhere(
     (r) => r.days == days,
     orElse: () => throw FormatException('No repeat every $days days.'),
@@ -56,8 +61,12 @@ enum Repeat {
     Repeat.everyDay => s.repeatEveryDay,
     Repeat.every2Days => s.repeatEvery2Days,
     Repeat.every3Days => s.repeatEvery3Days,
+    Repeat.every4Days => s.repeatEvery4Days,
+    Repeat.every5Days => s.repeatEvery5Days,
+    Repeat.every6Days => s.repeatEvery6Days,
     Repeat.everyWeek => s.repeatEveryWeek,
     Repeat.every2Weeks => s.repeatEvery2Weeks,
+    Repeat.every3Weeks => s.repeatEvery3Weeks,
     Repeat.everyMonth => s.repeatEveryMonth,
   };
 }

@@ -52,9 +52,25 @@ void main() {
       expect(CareSchedule.fromMap(null), isNull);
     });
 
+    test('offers every day up to a week, every week up to 3, then a month', () {
+      expect(
+        [for (final r in Repeat.values) r.days],
+        [1, 2, 3, 4, 5, 6, 7, 14, 21, 30],
+      );
+      for (final r in Repeat.values) {
+        expect(Repeat.fromDays(r.days), r);
+      }
+    });
+
+    test('the same choices are allowed by the Firestore rules', () {
+      final rules = File('firestore.rules').readAsStringSync();
+      final days = [for (final r in Repeat.values) r.days].join(', ');
+      expect(rules, contains('schedule.everyDays in [$days]'));
+    });
+
     test('rejects a repeat or time the app does not offer', () {
       expect(
-        () => CareSchedule.fromMap({'everyDays': 5, 'time': '07:00'}),
+        () => CareSchedule.fromMap({'everyDays': 8, 'time': '07:00'}),
         throwsFormatException,
       );
       expect(

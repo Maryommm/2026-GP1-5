@@ -435,8 +435,12 @@ class AppStrings {
     'repeatEveryDay': 'Every day',
     'repeatEvery2Days': 'Every 2 days',
     'repeatEvery3Days': 'Every 3 days',
+    'repeatEvery4Days': 'Every 4 days',
+    'repeatEvery5Days': 'Every 5 days',
+    'repeatEvery6Days': 'Every 6 days',
     'repeatEveryWeek': 'Every week',
     'repeatEvery2Weeks': 'Every 2 weeks',
+    'repeatEvery3Weeks': 'Every 3 weeks',
     'repeatEveryMonth': 'Every month',
     'summaryTitle': 'Ready to plant?',
     'summaryIrrigation': 'Irrigation',
@@ -929,8 +933,12 @@ class AppStrings {
     'repeatEveryDay': 'كل يوم',
     'repeatEvery2Days': 'كل يومين',
     'repeatEvery3Days': 'كل ٣ أيام',
+    'repeatEvery4Days': 'كل ٤ أيام',
+    'repeatEvery5Days': 'كل ٥ أيام',
+    'repeatEvery6Days': 'كل ٦ أيام',
     'repeatEveryWeek': 'كل أسبوع',
     'repeatEvery2Weeks': 'كل أسبوعين',
+    'repeatEvery3Weeks': 'كل ٣ أسابيع',
     'repeatEveryMonth': 'كل شهر',
     'summaryTitle': 'جاهز تزرعها؟',
     'summaryIrrigation': 'الري',
@@ -1423,8 +1431,12 @@ class S {
   String get repeatEveryDay => t('repeatEveryDay');
   String get repeatEvery2Days => t('repeatEvery2Days');
   String get repeatEvery3Days => t('repeatEvery3Days');
+  String get repeatEvery4Days => t('repeatEvery4Days');
+  String get repeatEvery5Days => t('repeatEvery5Days');
+  String get repeatEvery6Days => t('repeatEvery6Days');
   String get repeatEveryWeek => t('repeatEveryWeek');
   String get repeatEvery2Weeks => t('repeatEvery2Weeks');
+  String get repeatEvery3Weeks => t('repeatEvery3Weeks');
   String get repeatEveryMonth => t('repeatEveryMonth');
   String get summaryTitle => t('summaryTitle');
   String get summaryIrrigation => t('summaryIrrigation');

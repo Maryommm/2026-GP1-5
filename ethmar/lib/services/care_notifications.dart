@@ -36,7 +36,7 @@ class PlannedReminder {
 
 /// How many days ahead every task's alarms are scheduled. Android can only
 /// repeat a notification every day or every week, and schedules here can
-/// repeat every 2, 3, 14 or 30 days, so the alarms are scheduled one by one
+/// repeat every 2 to 6, 14, 21 or 30 days, so the alarms are scheduled one by one
 /// and topped up on every sync. If the app isn't opened, reminders keep
 /// coming for this many days.
 const reminderHorizonDays = 30;
