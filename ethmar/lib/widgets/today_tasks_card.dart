@@ -16,7 +16,11 @@ import 'page_routes.dart';
 /// The whole card opens Daily Tasks (which used to be a tab), where the
 /// tasks themselves are listed. Home sets its size; it fills it.
 class TodayTasksCard extends StatefulWidget {
-  const TodayTasksCard({super.key});
+  const TodayTasksCard({super.key, this.titleSize = 15});
+
+  /// The title's font size. Home passes the size of the streak card's
+  /// "Streak lost", so the two titles match.
+  final double titleSize;
 
   @override
   State<TodayTasksCard> createState() => _TodayTasksCardState();
@@ -126,7 +130,7 @@ class _TodayTasksCardState extends State<TodayTasksCard> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppText.title(context).copyWith(
-                        fontSize: 15,
+                        fontSize: widget.titleSize,
                         height: 1.15,
                       ),
                     ),

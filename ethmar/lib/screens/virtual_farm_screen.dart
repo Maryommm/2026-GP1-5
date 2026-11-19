@@ -10,7 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
-import '../widgets/page_header.dart';
+import '../widgets/centered_header.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/plant_picture.dart';
 import 'add_plant_screen.dart';
@@ -261,11 +261,8 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
             Align(
               alignment: Alignment.topCenter,
               // A main tab: no back button.
-              child: EthmarPageHeader(
+              child: EthmarCenteredHeader(
                 title: s.farmTitle,
-                accent: FarmStore.plants.value.isEmpty
-                    ? s.farmAccent
-                    : s.farmAccentPlanted,
                 trailing: const _MyPlantsButton(),
                 showBack: false,
               ),

@@ -166,12 +166,6 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                   Entrance(
                     child: Column(
                       children: [
-                        Text(
-                          s.dailyTasksSubtitle,
-                          textAlign: TextAlign.center,
-                          style: AppText.accent(context, size: 17),
-                        ),
-                        const SizedBox(height: 4),
                         // Thamoor planting a seedling, kept small and still
                         // so the tasks show sooner. With no tasks, the empty
                         // state shows Thamoor instead.
@@ -544,10 +538,12 @@ class _StreakMissedNote extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.local_fire_department_rounded,
-            color: AppColors.sunDark,
-            size: 26,
+          // The same fire as Home's streak card.
+          Image.asset(
+            'assets/images/ethmar_streak_icon.png',
+            width: 28,
+            height: 28,
+            fit: BoxFit.contain,
           ),
           const SizedBox(width: 10),
           Expanded(

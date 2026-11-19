@@ -9,11 +9,10 @@ import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/category_chip.dart' show categoryIcon, categoryLabel;
-import '../widgets/centered_header.dart' show HeaderPillButton;
+import '../widgets/centered_header.dart';
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
-import '../widgets/page_header.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/plant_picture.dart';
 import 'add_plant_screen.dart';
@@ -139,53 +138,38 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  EthmarPageHeader(
-                    title: s.myPlants,
-                    accent: s.myPlantsAccent,
-                    // Nothing to filter or select on an empty farm.
-                    trailing: plants.isEmpty
-                        ? null
-                        : selecting
-                        ? HeaderPillButton(
-                            key: const Key('cancelSelecting'),
-                            icon: Icons.close_rounded,
-                            label: s.cancel,
-                            onPressed: _stopSelecting,
+                  // Just the title and Back; the actions are in the
+                  // toolbar below.
+                  EthmarCenteredHeader(title: s.myPlants),
+                  // Nothing to filter or select on an empty farm.
+                  if (plants.isNotEmpty)
+                    selecting
+                        ? _SelectionBar(
+                            count: ticked.length,
+                            allTicked: ticked.length == newestFirst.length,
+                            // Nothing to tick when the filter shows none.
+                            onToggleAll: newestFirst.isEmpty
+                                ? null
+                                : () => setState(() {
+                                    if (ticked.length == newestFirst.length) {
+                                      _selected.clear();
+                                    } else {
+                                      _selected.addAll([
+                                        for (final p in newestFirst) p.id!,
+                                      ]);
+                                    }
+                                  }),
+                            onCancel: _stopSelecting,
                           )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Material(
-                                color: AppColors.surface,
-                                shape: const CircleBorder(),
-                                child: IconButton(
-                                  key: const Key('selectPlants'),
-                                  tooltip: s.selectPlants,
-                                  onPressed: _startSelecting,
-                                  style: IconButton.styleFrom(
-                                    minimumSize: const Size(48, 48),
-                                  ),
-                                  icon: const Icon(
-                                    Icons.checklist_rounded,
-                                    color: AppColors.forest,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              HeaderPillButton(
-                                key: const Key('plantsFilter'),
-                                icon: Icons.tune_rounded,
-                                label: s.filter,
-                                onPressed: () => _openFilter(plants),
-                              ),
-                            ],
+                        : _Toolbar(
+                            onFilter: () => _openFilter(plants),
+                            onSelect: _startSelecting,
                           ),
-                  ),
                   if (filter != null && plants.isNotEmpty)
                     Padding(
                       padding: const EdgeInsetsDirectional.fromSTEB(
                         16,
-                        12,
+                        10,
                         16,
                         0,
                       ),
@@ -196,20 +180,6 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
                           onClear: () => _setFilter(null),
                         ),
                       ),
-                    ),
-                  if (selecting && newestFirst.isNotEmpty)
-                    _SelectionBar(
-                      count: ticked.length,
-                      allTicked: ticked.length == newestFirst.length,
-                      onToggleAll: () => setState(() {
-                        if (ticked.length == newestFirst.length) {
-                          _selected.clear();
-                        } else {
-                          _selected.addAll([
-                            for (final p in newestFirst) p.id!,
-                          ]);
-                        }
-                      }),
                     ),
                   Expanded(
                     child: plants.isEmpty
@@ -226,7 +196,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
                               16,
                               // The delete bar below takes the safe area.
                               16 +
-                                  (selecting
+                                  (selecting && ticked.isNotEmpty
                                       ? 0
                                       : MediaQuery.paddingOf(context).bottom),
                             ),
@@ -258,7 +228,8 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
                             },
                           ),
                   ),
-                  if (selecting)
+                  // Delete appears once a plant is ticked.
+                  if (selecting && ticked.isNotEmpty)
                     Container(
                       padding: EdgeInsets.fromLTRB(
                         16,
@@ -277,9 +248,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
                         label: s.deleteSelected(ticked.length),
                         color: AppColors.error,
                         textColor: AppColors.surface,
-                        onPressed: ticked.isEmpty
-                            ? null
-                            : () => _deleteTicked(ticked),
+                        onPressed: () => _deleteTicked(ticked),
                       ),
                     ),
                 ],
@@ -292,42 +261,159 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
   }
 }
 
-/// Under the header in select mode: how many plants are ticked, and a
-/// button to tick (or untick) every plant on screen.
-class _SelectionBar extends StatelessWidget {
-  const _SelectionBar({
-    required this.count,
-    required this.allTicked,
-    required this.onToggleAll,
-  });
-  final int count;
-  final bool allTicked;
-  final VoidCallback onToggleAll;
+/// Under the header: Filter and Select, on the end side.
+class _Toolbar extends StatelessWidget {
+  const _Toolbar({required this.onFilter, required this.onSelect});
+  final VoidCallback onFilter;
+  final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
     return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 8, 0),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 0),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Expanded(
-            child: Text(
-              s.selectedCount(count),
-              style: AppText.label(context)
-                  .copyWith(fontWeight: FontWeight.w600),
-            ),
+          _ToolbarButton(
+            key: const Key('plantsFilter'),
+            icon: Icons.filter_alt_outlined,
+            label: s.filter,
+            onPressed: onFilter,
           ),
-          TextButton(
-            key: const Key('toggleAllPlants'),
-            onPressed: onToggleAll,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.forest,
-              minimumSize: const Size(48, 48),
-            ),
-            child: Text(allTicked ? s.deselectAll : s.selectAll),
+          const SizedBox(width: 8),
+          _ToolbarButton(
+            key: const Key('selectPlants'),
+            icon: Icons.check_box_outlined,
+            label: s.select,
+            semanticLabel: s.selectPlants,
+            onPressed: onSelect,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// In place of the toolbar in select mode, on a pale green band so the
+/// mode is clear: how many plants are ticked, a button to tick (or untick)
+/// every plant on screen, and Cancel.
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.count,
+    required this.allTicked,
+    required this.onToggleAll,
+    required this.onCancel,
+  });
+  final int count;
+  final bool allTicked;
+
+  /// Null when the filter shows no plants to tick.
+  final VoidCallback? onToggleAll;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final toggleAll = onToggleAll;
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 0),
+      child: Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 6, 6, 6),
+        decoration: BoxDecoration(
+          color: AppColors.forestTint,
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                s.selectedCount(count),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.label(context, color: AppColors.forest)
+                    .copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            if (toggleAll != null) ...[
+              _ToolbarButton(
+                key: const Key('toggleAllPlants'),
+                label: allTicked ? s.deselectAll : s.selectAll,
+                onPressed: toggleAll,
+              ),
+              const SizedBox(width: 6),
+            ],
+            _ToolbarButton(
+              key: const Key('cancelSelecting'),
+              icon: Icons.close_rounded,
+              label: s.cancel,
+              onPressed: onCancel,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact white pill with an optional icon and a short label, in the
+/// app's dark green, for the toolbar and the select-mode bar.
+class _ToolbarButton extends StatelessWidget {
+  const _ToolbarButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.semanticLabel,
+  });
+  final String label;
+  final VoidCallback onPressed;
+  final IconData? icon;
+
+  /// What screen readers say, when it should say more than [label].
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final glyph = icon;
+    return Semantics(
+      button: true,
+      label: semanticLabel ?? label,
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.surface,
+        shape: const StadiumBorder(side: BorderSide(color: AppColors.border)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: ConstrainedBox(
+            // An easy tap target, still compact.
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: EdgeInsetsDirectional.fromSTEB(
+                glyph == null ? 14 : 12,
+                0,
+                14,
+                0,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (glyph != null) ...[
+                    Icon(glyph, size: 18, color: AppColors.forest),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(
+                    label,
+                    maxLines: 1,
+                    style: AppText.label(context, color: AppColors.forest)
+                        .copyWith(fontSize: 13.5, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
