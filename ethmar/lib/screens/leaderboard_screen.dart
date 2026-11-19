@@ -11,7 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/backgrounds.dart';
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
-import '../widgets/page_header.dart';
+import '../widgets/centered_header.dart';
 
 // ASK FOR PERMISSION FROM THE USER TO ACCESS THEIR NAME AND PROFILE PICTURE.
 /// UI only for now: the other players are made up and the user's count comes from their farm.
@@ -35,9 +35,9 @@ class LeaderboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            EthmarPageHeader(
+            EthmarCenteredHeader(
               title: s.leaderboardTitle,
-              accent: s.leaderboardAccent,
+              subtitle: s.leaderboardAccent,
               trailing: const EthmarCharacter(
                 name: 'ethmar_buddy_jumping',
                 height: 64,

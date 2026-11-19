@@ -6,6 +6,7 @@ import '../l10n/app_strings.dart';
 import '../models/crop_recommendation.dart' show BiText;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/centered_header.dart';
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
@@ -317,13 +318,9 @@ class _MapHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return Container(
-      padding: EdgeInsetsDirectional.fromSTEB(
-        16,
-        MediaQuery.paddingOf(context).top + 8,
-        12,
-        10,
-      ),
+    // The app's centred header, on a panel so the title stays readable
+    // over the map moving underneath.
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.forestTint,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
@@ -335,25 +332,13 @@ class _MapHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          EthmarBackButton(tooltip: s.back),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.homeNearMe,
-                  style: AppText.title(context).copyWith(fontSize: 24),
-                ),
-                Text(s.mapAccent, style: AppText.accent(context, size: 16)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const EthmarCharacter(name: 'ethmar_buddy_crate', height: 76),
-        ],
+      child: EthmarCenteredHeader(
+        title: s.homeNearMe,
+        subtitle: s.mapAccent,
+        trailing: const EthmarCharacter(
+          name: 'ethmar_buddy_crate',
+          height: 76,
+        ),
       ),
     );
   }

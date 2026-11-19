@@ -61,7 +61,8 @@ enum CropCategory {
     AppColors.info,
   ),
   other(
-    BiText('Other crops', 'محاصيل أخرى'),
+    // Mostly plants grown for looks (see cropCatalog), so "plants".
+    BiText('Other plants', 'نباتات أخرى'),
     'assets/images/GRAIN.png',
     'assets/images/GRAINicon.png',
     AppColors.forest,

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
 import '../models/care_task.dart';
 import '../models/daily_task.dart';
+import '../models/farm_stats.dart';
+import '../models/streak.dart' show streakBrokenByMissedTasks;
 import '../models/task_log.dart';
 import '../services/farm_store.dart';
 import '../theme/app_colors.dart';
@@ -215,12 +217,6 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                   Entrance(
                     child: Column(
                       children: [
-                        Text(
-                          s.dailyTasksSubtitle,
-                          textAlign: TextAlign.center,
-                          style: AppText.accent(context, size: 17),
-                        ),
-                        const SizedBox(height: 4),
                         // Thamoor planting a seedling, kept small and still
                         // so the tasks show sooner. With no tasks, the empty
                         // state shows Thamoor instead.
@@ -287,6 +283,22 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       _entry(shownMissed[i], shown.length + i, tasks),
                     ],
                   ],
+                  // Only today's tasks are listed; earlier days that weren't
+                  // finished are summed up here instead.
+                  ValueListenableBuilder<FarmStats>(
+                    valueListenable: FarmStore.stats,
+                    builder: (context, stats, _) => streakBrokenByMissedTasks(
+                            stats, FarmStore.plants.value, _today)
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 18),
+                            child: Entrance(
+                              delay: Duration(
+                                  milliseconds: 150 + 50 * shown.length),
+                              child: const _StreakMissedNote(),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
@@ -578,6 +590,45 @@ class _FertilizerSackPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FertilizerSackPainter old) => old.color != color;
+}
+
+/// Under the tasks: the streak was reset because tasks of earlier days
+/// weren't done.
+class _StreakMissedNote extends StatelessWidget {
+  const _StreakMissedNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('streakMissedNote'),
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: AppColors.sunTint,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.sun.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // The same fire as Home's streak card.
+          Image.asset(
+            'assets/images/ethmar_streak_icon.png',
+            width: 28,
+            height: 28,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              S.of(context).streakMissedMessage,
+              style: AppText.body(context, color: AppColors.textPrimary)
+                  .copyWith(fontSize: 14, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// No tasks today: a still Thamoor and a friendly line, centred.

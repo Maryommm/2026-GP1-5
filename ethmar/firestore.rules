@@ -29,7 +29,7 @@ service cloud.firestore {
           schedule is map &&
           schedule.keys().hasAll(['everyDays', 'time']) &&
           schedule.keys().hasOnly(['everyDays', 'time']) &&
-          schedule.everyDays in [1, 2, 3, 7, 14, 30] &&
+          schedule.everyDays in [1, 2, 3, 4, 5, 6, 7, 14, 21, 30] &&
           validTime(schedule.time));
     }
 

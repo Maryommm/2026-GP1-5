@@ -39,6 +39,7 @@ class AppStrings {
     'errPasswordUpper': 'a capital letter',
     'errPasswordDigit': 'a number',
     'errPasswordSpecial': 'a special character (like ! or @)',
+    'errPasswordRules': 'Your password doesn\'t follow all the rules below yet',
     'showPassword': 'Show password',
     'hidePassword': 'Hide password',
     'back': 'Back',
@@ -211,12 +212,15 @@ class AppStrings {
         'Great job! Keep caring for your plants to maintain your streak.',
     'streakLostTitle': 'Streak lost',
     'streakLostHint': 'Take care of your plants and start your streak again.',
+    // Shown when the streak was lost because earlier tasks weren't done.
+    'streakMissedShort': 'Missed tasks',
+    'streakMissedMessage':
+        "Your streak was reset because some tasks from previous days weren't done. Finish all of today's tasks to start a new streak.",
     'homeAddPlant': 'Add Plant',
     'homeNearMe': 'Near me',
     'navHome': 'Home',
     'navDailyTasks': 'Daily Tasks',
     // Daily Tasks screen
-    'dailyTasksSubtitle': 'Care for your plants today',
     'dailyProgress': 'Your Progress',
     'dailyProgressOf': '{done} of {total} tasks completed',
     'todaysTasks': "Today's Tasks",
@@ -231,6 +235,7 @@ class AppStrings {
     'missedTasksHint':
         "You can still do them, but they won't count toward your streak.",
     'missedYesterday': 'Yesterday',
+    'missedTwoDaysAgo': '2 days ago',
     'missedDaysAgo': '{n} days ago',
     'streakLostDialogTitle': 'Your streak ended',
     'streakLostDialogBody':
@@ -270,7 +275,8 @@ class AppStrings {
     'navAskThamoor': 'Ask Thamoor',
     // Home's Explore section (new layout).
     'homeExplore': 'Explore',
-    'homeDiagnosisHint': 'Snap a leaf and find out what your plant needs',
+    'homeDiagnosisHint':
+        'Discover plant diseases by taking photos of its leaves.',
     'homeDiagnosisAction': 'Scan a leaf',
     'profile': 'Profile',
     'editProfile': 'Edit Profile',
@@ -390,8 +396,6 @@ class AppStrings {
     'mapRecenter': 'Show my location',
     'mapYouAreHere': 'You are here',
     'farmTitle': 'My virtual farm',
-    'farmAccent': 'your land is ready for its first seed',
-    'farmAccentPlanted': 'your plants are growing',
     'farmLand': 'Your farm land',
     'farmEmptyTitle': 'Your farm is empty',
     'farmEmptyBody': 'Add your first plant and watch it appear here.',
@@ -441,8 +445,12 @@ class AppStrings {
     'repeatEveryDay': 'Every day',
     'repeatEvery2Days': 'Every 2 days',
     'repeatEvery3Days': 'Every 3 days',
+    'repeatEvery4Days': 'Every 4 days',
+    'repeatEvery5Days': 'Every 5 days',
+    'repeatEvery6Days': 'Every 6 days',
     'repeatEveryWeek': 'Every week',
     'repeatEvery2Weeks': 'Every 2 weeks',
+    'repeatEvery3Weeks': 'Every 3 weeks',
     'repeatEveryMonth': 'Every month',
     'summaryTitle': 'Ready to plant?',
     'summaryIrrigation': 'Irrigation',
@@ -453,15 +461,35 @@ class AppStrings {
     'plantAdded': '{name} was added to your farm',
     'farmLandFull':
         'Your land is full. Add a new land in your virtual farm to keep planting.',
+    'addPlantCategoryLabel': 'What kind of plant is it?',
+    'addPlantCategoryHint':
+        'Pick a category so it shows up in the right place when you filter your plants.',
+    'errPlantCategoryRequired': 'Choose a category for your plant',
     'myPlants': 'My plants',
-    'myPlantsAccent': 'everything growing on your farm',
     'myPlantsEmpty': 'No plants yet',
     'myPlantsEmptyBody': 'Add your first plant and it will show up here.',
+    'filter': 'Filter',
+    'filterByCategory': 'Filter by category',
+    'clearFilter': 'Clear filter',
+    'filterNoMatch': 'No matching plants',
+    'filterNoMatchBody':
+        'None of your plants are in {category}. Try another category or clear the filter.',
+    'select': 'Select',
+    'selectPlants': 'Select plants',
+    'selectedCount': '{n} selected',
+    'selectAll': 'Select all',
+    'deselectAll': 'Deselect all',
+    'deleteSelected': 'Delete ({n})',
+    'deletePlantsTitle': 'Delete {n} plants?',
+    'deletePlantsMessage':
+        "These plants and their growth records will be deleted. This can't be undone.",
+    'plantsDeleteFailed':
+        "Couldn't delete some plants. Check your connection and try again.",
     'plantedToday': 'Planted today',
     'plantDays': '{n} days',
     'plantDayOne': '1 day',
     'daysSincePlanting': 'Days since planting',
-    'stagesTitle': 'Stages of growth',
+    'stagesTitle': 'My Plant’s Journey',
     'stagesEmpty':
         'No pictures yet. Upload one now and then to see how your plant grows.',
     'uploadPicture': 'Upload a picture',
@@ -537,6 +565,7 @@ class AppStrings {
     'errPasswordUpper': 'حرف كبير',
     'errPasswordDigit': 'رقم',
     'errPasswordSpecial': 'رمز خاص (مثل ! أو @)',
+    'errPasswordRules': 'كلمة المرور لا تحقق كل الشروط أدناه بعد',
     'showPassword': 'إظهار كلمة المرور',
     'hidePassword': 'إخفاء كلمة المرور',
     'back': 'عودة',
@@ -697,12 +726,14 @@ class AppStrings {
     'streakActiveHint': 'أحسنت! واصل العناية بنباتاتك للحفاظ على السلسلة.',
     'streakLostTitle': 'انقطعت السلسلة',
     'streakLostHint': 'حافظ على نباتاتك وابدأ السلسلة من جديد.',
+    'streakMissedShort': 'مهام فائتة',
+    'streakMissedMessage':
+        'انقطعت سلسلتك لأن بعض مهام الأيام السابقة لم تُنجز. أكمل جميع مهام اليوم لتبدأ سلسلة جديدة.',
     'homeAddPlant': 'أضف نبتة',
     'homeNearMe': 'قريب مني',
     'navHome': 'الرئيسية',
     'navDailyTasks': 'المهام اليومية',
     // Daily Tasks screen
-    'dailyTasksSubtitle': 'اعتنِ بنباتاتك اليوم',
     'dailyProgress': 'إنجازك',
     'dailyProgressOf': 'أُنجزت {done} من {total} مهام',
     'todaysTasks': 'مهام اليوم',
@@ -754,7 +785,7 @@ class AppStrings {
     'homeCardDiagnosis': "افحص نبتتك",
     'navAskThamoor': 'اسأل ثمور',
     'homeExplore': 'استكشف',
-    'homeDiagnosisHint': 'صوّر ورقة واعرف وش تحتاج نبتتك',
+    'homeDiagnosisHint': 'اكتشف أمراض نبتتك من خلال تصوير أوراقها',
     'homeDiagnosisAction': 'افحص ورقة',
     'profile': 'الملف الشخصي',
     'editProfile': 'تعديل الملف الشخصي',
@@ -872,8 +903,6 @@ class AppStrings {
     'mapRecenter': 'اعرض موقعي',
     'mapYouAreHere': 'أنت هنا',
     'farmTitle': 'مزرعتي الافتراضية',
-    'farmAccent': 'أرضك جاهزة لأول بذرة',
-    'farmAccentPlanted': 'نباتاتك تكبر',
     'farmLand': 'أرض مزرعتك',
     'farmEmptyTitle': 'مزرعتك فاضية',
     'farmEmptyBody': 'أضف أول نبتة وبتظهر لك هنا.',
@@ -922,8 +951,12 @@ class AppStrings {
     'repeatEveryDay': 'كل يوم',
     'repeatEvery2Days': 'كل يومين',
     'repeatEvery3Days': 'كل ٣ أيام',
+    'repeatEvery4Days': 'كل ٤ أيام',
+    'repeatEvery5Days': 'كل ٥ أيام',
+    'repeatEvery6Days': 'كل ٦ أيام',
     'repeatEveryWeek': 'كل أسبوع',
     'repeatEvery2Weeks': 'كل أسبوعين',
+    'repeatEvery3Weeks': 'كل ٣ أسابيع',
     'repeatEveryMonth': 'كل شهر',
     'summaryTitle': 'جاهز تزرعها؟',
     'summaryIrrigation': 'الري',
@@ -934,15 +967,35 @@ class AppStrings {
     'plantAdded': 'تمت إضافة {name} لمزرعتك',
     'farmLandFull':
         'أرضك امتلأت! أضف أرض جديدة في مزرعتك الافتراضية عشان تكمل الزراعة.',
+    'addPlantCategoryLabel': 'وش نوع النبتة؟',
+    'addPlantCategoryHint':
+        'اختر فئة عشان تطلع في مكانها الصحيح لما تصفّي نباتاتك.',
+    'errPlantCategoryRequired': 'اختر فئة لنبتتك',
     'myPlants': 'نباتاتي',
-    'myPlantsAccent': 'كل اللي يكبر في مزرعتك',
     'myPlantsEmpty': 'ما عندك نباتات للحين',
     'myPlantsEmptyBody': 'أضف أول نبتة وبتطلع لك هنا.',
+    'filter': 'تصفية',
+    'filterByCategory': 'تصفية حسب الفئة',
+    'clearFilter': 'إزالة التصفية',
+    'filterNoMatch': 'ما فيه نباتات مطابقة',
+    'filterNoMatchBody':
+        'ما عندك نباتات من فئة {category}. جرّب فئة ثانية أو أزل التصفية.',
+    'select': 'تحديد',
+    'selectPlants': 'تحديد النباتات',
+    'selectedCount': 'المحدد: {n}',
+    'selectAll': 'تحديد الكل',
+    'deselectAll': 'إلغاء تحديد الكل',
+    'deleteSelected': 'حذف ({n})',
+    'deletePlantsTitle': 'حذف النباتات المحددة ({n})؟',
+    'deletePlantsMessage':
+        'راح تنحذف هذه النباتات وسجلات نموها، وما تقدر تتراجع بعدين.',
+    'plantsDeleteFailed':
+        'ما قدرنا نحذف بعض النباتات. تأكد من اتصالك وحاول مرة ثانية.',
     'plantedToday': 'انزرعت اليوم',
     'plantDays': '{n} يوم',
     'plantDayOne': 'يوم واحد',
     'daysSincePlanting': 'أيام منذ الزراعة',
-    'stagesTitle': 'مراحل النمو',
+    'stagesTitle': ' رحلة نبتتي',
     'stagesEmpty': 'ما فيه صور للحين. ارفع صورة كل فترة عشان تشوف نبتتك وهي تكبر.',
     'uploadPicture': 'ارفع صورة',
     'notesTitle': 'تضيف ملاحظة؟',
@@ -1020,6 +1073,10 @@ class S {
   String get errPasswordUpper => t('errPasswordUpper');
   String get errPasswordDigit => t('errPasswordDigit');
   String get errPasswordSpecial => t('errPasswordSpecial');
+  String get errPasswordRules => t('errPasswordRules');
+
+  /// "Your password needs:", above the sign-up checklist.
+  String get passwordRulesTitle => '${t('errPasswordNeeds')}:';
 
   /// Every password rule (used when the server says the password is weak).
   String get errPasswordWeak => passwordNeeds([
@@ -1186,6 +1243,8 @@ class S {
   String get streakActiveHint => t('streakActiveHint');
   String get streakLostTitle => t('streakLostTitle');
   String get streakLostHint => t('streakLostHint');
+  String get streakMissedShort => t('streakMissedShort');
+  String get streakMissedMessage => t('streakMissedMessage');
 
   /// "{n} day streak", with the correct Arabic number form:
   /// 1 → يوم واحد, 2 → يومان, 3–10 → أيام, 11+ → يومًا.
@@ -1199,7 +1258,6 @@ class S {
   String get homeNearMe => t('homeNearMe');
   String get navHome => t('navHome');
   String get navDailyTasks => t('navDailyTasks');
-  String get dailyTasksSubtitle => t('dailyTasksSubtitle');
   String get dailyProgress => t('dailyProgress');
   String dailyProgressOf(int done, int total) => t('dailyProgressOf')
       .replaceAll('{done}', '$done')
@@ -1218,8 +1276,7 @@ class S {
   /// When a missed task was due: "Yesterday", "2 days ago"...
   String missedDaysAgo(int n) => switch (n) {
         1 => t('missedYesterday'),
-        2 when _map.containsKey('missedTwoDaysAgo') =>
-          t('missedTwoDaysAgo'),
+        2 => t('missedTwoDaysAgo'),
         _ => t('missedDaysAgo').replaceAll('{n}', '$n'),
       };
 
@@ -1353,8 +1410,6 @@ class S {
   String get mapRecenter => t('mapRecenter');
   String get mapYouAreHere => t('mapYouAreHere');
   String get farmTitle => t('farmTitle');
-  String get farmAccent => t('farmAccent');
-  String get farmAccentPlanted => t('farmAccentPlanted');
   String get farmLand => t('farmLand');
   String get farmEmptyTitle => t('farmEmptyTitle');
   String get farmEmptyBody => t('farmEmptyBody');
@@ -1410,8 +1465,12 @@ class S {
   String get repeatEveryDay => t('repeatEveryDay');
   String get repeatEvery2Days => t('repeatEvery2Days');
   String get repeatEvery3Days => t('repeatEvery3Days');
+  String get repeatEvery4Days => t('repeatEvery4Days');
+  String get repeatEvery5Days => t('repeatEvery5Days');
+  String get repeatEvery6Days => t('repeatEvery6Days');
   String get repeatEveryWeek => t('repeatEveryWeek');
   String get repeatEvery2Weeks => t('repeatEvery2Weeks');
+  String get repeatEvery3Weeks => t('repeatEvery3Weeks');
   String get repeatEveryMonth => t('repeatEveryMonth');
   String get summaryTitle => t('summaryTitle');
   String get summaryIrrigation => t('summaryIrrigation');
@@ -1422,10 +1481,28 @@ class S {
   String get confirm => t('confirm');
   String plantAdded(String name) => t('plantAdded').replaceAll('{name}', name);
   String get farmLandFull => t('farmLandFull');
+  String get addPlantCategoryLabel => t('addPlantCategoryLabel');
+  String get addPlantCategoryHint => t('addPlantCategoryHint');
+  String get errPlantCategoryRequired => t('errPlantCategoryRequired');
   String get myPlants => t('myPlants');
-  String get myPlantsAccent => t('myPlantsAccent');
   String get myPlantsEmpty => t('myPlantsEmpty');
   String get myPlantsEmptyBody => t('myPlantsEmptyBody');
+  String get filter => t('filter');
+  String get filterByCategory => t('filterByCategory');
+  String get clearFilter => t('clearFilter');
+  String get filterNoMatch => t('filterNoMatch');
+  String filterNoMatchBody(String category) =>
+      t('filterNoMatchBody').replaceAll('{category}', category);
+  String get select => t('select');
+  String get selectPlants => t('selectPlants');
+  String selectedCount(int n) => t('selectedCount').replaceAll('{n}', '$n');
+  String get selectAll => t('selectAll');
+  String get deselectAll => t('deselectAll');
+  String deleteSelected(int n) => t('deleteSelected').replaceAll('{n}', '$n');
+  String deletePlantsTitle(int n) =>
+      t('deletePlantsTitle').replaceAll('{n}', '$n');
+  String get deletePlantsMessage => t('deletePlantsMessage');
+  String get plantsDeleteFailed => t('plantsDeleteFailed');
 
   /// "Planted today", "1 day", "24 days".
   String plantAge(int days) => switch (days) {

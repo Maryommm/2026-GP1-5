@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_layout.dart';
 import '../l10n/app_strings.dart';
 import '../models/farm_stats.dart';
+import '../models/streak.dart' show streakBrokenByMissedTasks;
 import '../services/daily_slogan_service.dart';
 import '../services/farm_store.dart';
 import '../services/user_service.dart' show currentUsername;
@@ -517,8 +518,14 @@ enum _StreakState { notStarted, active, lost }
 
 /// The streak's state, title and hint: active while it is above 0; lost
 /// when it went back to 0 after a completed day; otherwise not started.
-(_StreakState, String, String) _streakTexts(S s, FarmStats stats) {
-  final state = stats.currentStreak > 0
+/// [missed] is true when it was lost because earlier tasks weren't done
+/// (see [streakBrokenByMissedTasks]); the hint then says so.
+(_StreakState, String, String) _streakTexts(
+  S s,
+  FarmStats stats, {
+  bool missed = false,
+}) {
+  final state = stats.currentStreak > 0 && !missed
       ? _StreakState.active
       : stats.lastCompletedDate != null
       ? _StreakState.lost
@@ -527,7 +534,8 @@ enum _StreakState { notStarted, active, lost }
     _StreakState.notStarted => (s.streakNotStartedTitle, s.streakNotStartedHint),
     _StreakState.active =>
       (s.streakActiveTitle(stats.currentStreak), s.streakActiveHint),
-    _StreakState.lost => (s.streakLostTitle, s.streakLostHint),
+    _StreakState.lost =>
+      (s.streakLostTitle, missed ? s.streakMissedMessage : s.streakLostHint),
   };
   return (state, title, hint);
 }
@@ -635,6 +643,10 @@ class _StreakLostDialog extends StatelessWidget {
   }
 }
 
+/// Whether the streak was lost to missed tasks, for the streak cards.
+bool _missedTasks(FarmStats stats) =>
+    streakBrokenByMissedTasks(stats, FarmStore.plants.value, DateTime.now());
+
 /// Current layout: the Today's Tasks card (a button) and the streak card
 /// side by side, as short rectangles (half as tall as they are wide). They
 /// grow together if large text needs more room.
@@ -643,27 +655,55 @@ class _TasksAndStreak extends StatelessWidget {
 
   static const _gap = 12.0;
 
+  /// The largest size, up to 16, at which "Streak lost" fits on one line
+  /// in a streak card [cardWidth] wide. Both cards' titles use it, so
+  /// "Today's Tasks" matches it.
+  static double _titleSize(BuildContext context, double cardWidth) {
+    const largest = 16.0;
+    final room = cardWidth - _StreakSquare.textInset;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: S.of(context).streakLostTitle,
+        style: _StreakSquare.titleStyle(context, largest),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final natural = painter.width;
+    painter.dispose();
+    if (room <= 0 || natural <= room) return largest;
+    // A hair smaller, so rounding never pushes it onto a second line.
+    return (largest * room / natural * 10).floorToDouble() / 10;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final height = (constraints.maxWidth - _gap) / 4;
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: height),
-                  child: const TodayTasksCard(),
+    // Measured again once the title font has loaded.
+    return ListenableBuilder(
+      listenable: PaintingBinding.instance.systemFonts,
+      builder: (context, _) => LayoutBuilder(
+        builder: (context, constraints) {
+          final height = (constraints.maxWidth - _gap) / 4;
+          final titleSize =
+              _titleSize(context, (constraints.maxWidth - _gap) / 2);
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: height),
+                    child: TodayTasksCard(titleSize: titleSize),
+                  ),
                 ),
-              ),
-              const SizedBox(width: _gap),
-              const Expanded(child: _StreakSquare()),
-            ],
-          ),
-        );
-      },
+                const SizedBox(width: _gap),
+                Expanded(child: _StreakSquare(lostTitleSize: titleSize)),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -672,14 +712,29 @@ class _TasksAndStreak extends StatelessWidget {
 /// hint is read out by screen readers). It isn't tappable, so it has no
 /// border or arrow.
 class _StreakSquare extends StatelessWidget {
-  const _StreakSquare();
+  const _StreakSquare({required this.lostTitleSize});
+
+  /// The size of "Streak lost", small enough to fit on one line (see
+  /// [_TasksAndStreak._titleSize]).
+  final double lostTitleSize;
+
+  /// The card's width that isn't left for the title: the padding (10 and
+  /// 12), the fire (44) and the gap after it (8).
+  static const textInset = 10 + 12 + 44 + 8.0;
+
+  static TextStyle titleStyle(BuildContext context, double size) =>
+      AppText.title(context).copyWith(fontSize: size, height: 1.15);
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<FarmStats>(
-      valueListenable: FarmStore.stats,
-      builder: (context, stats, _) {
-        final (state, title, hint) = _streakTexts(S.of(context), stats);
+    // The plants too: they decide whether tasks were missed.
+    return ListenableBuilder(
+      listenable: Listenable.merge([FarmStore.stats, FarmStore.plants]),
+      builder: (context, _) {
+        final stats = FarmStore.stats.value;
+        final s = S.of(context);
+        final missed = _missedTasks(stats);
+        final (state, title, hint) = _streakTexts(s, stats, missed: missed);
         return Semantics(
           label: '$title. $hint',
           excludeSemantics: true,
@@ -694,14 +749,45 @@ class _StreakSquare extends StatelessWidget {
                 _StreakFire(animate: state == _StreakState.active, size: 44),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.title(context).copyWith(
-                      fontSize: 16,
-                      height: 1.15,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (state == _StreakState.lost)
+                        // "انقطعت السلسلة" stays on one line: the same style,
+                        // made only as much smaller as the card needs.
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: titleStyle(context, lostTitleSize),
+                          ),
+                        )
+                      else
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.title(context).copyWith(
+                            fontSize: 16,
+                            height: 1.15,
+                          ),
+                        ),
+                      // The short version of the Daily Tasks message.
+                      if (missed)
+                        Text(
+                          s.streakMissedShort,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.small(
+                            context,
+                            color: AppColors.sunDark,
+                          ).copyWith(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -720,14 +806,15 @@ class _StreakCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<FarmStats>(
-      valueListenable: FarmStore.stats,
-      builder: (context, stats, _) => _buildCard(context, stats),
+    return ListenableBuilder(
+      listenable: Listenable.merge([FarmStore.stats, FarmStore.plants]),
+      builder: (context, _) => _buildCard(context, FarmStore.stats.value),
     );
   }
 
   Widget _buildCard(BuildContext context, FarmStats stats) {
-    final (state, title, hint) = _streakTexts(S.of(context), stats);
+    final (state, title, hint) =
+        _streakTexts(S.of(context), stats, missed: _missedTasks(stats));
     return Container(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
       decoration: BoxDecoration(
@@ -900,8 +987,52 @@ class _ExploreSection extends StatelessWidget {
   }
 }
 
+/// The Check Your Plant line on one line: the usual small text (13), made
+/// only as much smaller as the card needs. Below [_minSize] it would be
+/// hard to read, so then it keeps 13 and wraps instead.
+class _OneLineHint extends StatelessWidget {
+  const _OneLineHint(this.text);
+  final String text;
+
+  static const _size = 13.0;
+  static const _minSize = 11.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = AppText.small(context).copyWith(fontSize: _size);
+    // Measured again once the font has loaded.
+    return ListenableBuilder(
+      listenable: PaintingBinding.instance.systemFonts,
+      builder: (context, _) => LayoutBuilder(
+        builder: (context, constraints) {
+          final painter = TextPainter(
+            text: TextSpan(text: text, style: base),
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
+            maxLines: 1,
+          )..layout();
+          final natural = painter.width;
+          painter.dispose();
+          final room = constraints.maxWidth;
+          // A hair smaller, so rounding never pushes it onto a second line.
+          final size = natural <= room
+              ? _size
+              : (_size * room / natural * 10).floorToDouble() / 10;
+          if (size < _minSize) return Text(text, style: base);
+          return Text(
+            text,
+            maxLines: 1,
+            softWrap: false,
+            style: base.copyWith(fontSize: size),
+          );
+        },
+      ),
+    );
+  }
+}
+
 /// The big light-green Check Your Plant card: name, a short line and a
-/// "Scan a leaf" pill, with the diagnosis picture large on the end side.
+/// camera button, with the diagnosis picture large on the end side.
 class _DiagnosisCard extends StatelessWidget {
   const _DiagnosisCard();
 
@@ -910,7 +1041,10 @@ class _DiagnosisCard extends StatelessWidget {
     final s = S.of(context);
     return Semantics(
       button: true,
-      label: '${s.homeCardDiagnosis}. ${s.homeDiagnosisHint}',
+      // The camera button has no visible words; screen readers say them.
+      label:
+          '${s.homeCardDiagnosis}. ${s.homeDiagnosisHint}. '
+          '${s.homeDiagnosisAction}',
       excludeSemantics: true,
       child: Material(
         color: AppColors.featureCard,
@@ -934,40 +1068,21 @@ class _DiagnosisCard extends StatelessWidget {
                         style: AppText.title(context).copyWith(fontSize: 20),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        s.homeDiagnosisHint,
-                        style: AppText.small(context).copyWith(fontSize: 13),
-                      ),
+                      _OneLineHint(s.homeDiagnosisHint),
                       const SizedBox(height: 14),
+                      // Camera only, centred in a compact pill.
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 9,
-                        ),
+                        width: 52,
+                        height: 36,
+                        alignment: Alignment.center,
                         decoration: const ShapeDecoration(
                           color: AppColors.forest,
                           shape: StadiumBorder(),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.photo_camera_rounded,
-                              size: 16,
-                              color: AppColors.onForest,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              s.homeDiagnosisAction,
-                              style: AppText.label(
-                                context,
-                                color: AppColors.onForest,
-                              ).copyWith(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                        child: const Icon(
+                          Icons.photo_camera_rounded,
+                          size: 18,
+                          color: AppColors.onForest,
                         ),
                       ),
                     ],

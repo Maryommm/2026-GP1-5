@@ -86,6 +86,8 @@ class FarmStore {
 
   /// Deletes a plant, its growth entries and their photos.
   static Future<void> deletePlant(String plantId) async {
+    final fake = deleteForTests;
+    if (fake != null) return fake(plantId);
     await _service.deletePlant(plantId);
     // The plant is gone either way; a photo left behind only takes space.
     unawaited(
@@ -94,6 +96,10 @@ class FarmStore {
           .catchError((Object e) => debugPrint('Growth photos kept: $e')),
     );
   }
+
+  /// Replaces [deletePlant] in widget tests, which have no Firebase.
+  @visibleForTesting
+  static Future<void> Function(String plantId)? deleteForTests;
 
   /// Live growth timeline of [plantId], newest first.
   static Stream<List<GrowthEntry>> watchGrowth(String plantId) =>

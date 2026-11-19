@@ -5,7 +5,7 @@ import '../models/crop_recommendation.dart' show CropCategory;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// A category's display name. Grain and "Other crops" keep their own label.
+/// A category's display name. Grain and "Other plants" keep their own label.
 String categoryLabel(CropCategory cat, BuildContext context) {
   final s = S.of(context);
   return switch (cat) {

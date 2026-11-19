@@ -4,7 +4,9 @@
 ///   - cropId         String     a [cropCatalog] id, e.g. "tomato" (also
 ///                               picks the picture)
 ///   - name           String     the user's name for it (at most 30 chars)
-///   - category       String     [CropCategory.name], e.g. "vegetable"
+///   - category       String     [CropCategory.name], e.g. "vegetable":
+///                               the crop's own, or for an unknown plant
+///                               the one the user picked
 ///   - land           int        which land it's on (0 = the first land)
 ///   - square         int        its square on that land, 0-24
 ///   - irrigation     map|null   {everyDays: int, time: "HH:mm"};
@@ -35,8 +37,12 @@ enum Repeat {
   everyDay(1),
   every2Days(2),
   every3Days(3),
+  every4Days(4),
+  every5Days(5),
+  every6Days(6),
   everyWeek(7),
   every2Weeks(14),
+  every3Weeks(21),
   everyMonth(30);
 
   const Repeat(this.days);
@@ -44,7 +50,8 @@ enum Repeat {
   /// Days between reminders (a month counts as 30). Saved as `everyDays`.
   final int days;
 
-  /// The choice for a saved `everyDays`. Only 1, 2, 3, 7, 14 and 30 exist.
+  /// The choice for a saved `everyDays`. Only 1-7, 14, 21 and 30 exist
+  /// (the same list as in firestore.rules).
   static Repeat fromDays(int days) => Repeat.values.firstWhere(
     (r) => r.days == days,
     orElse: () => throw FormatException('No repeat every $days days.'),
@@ -54,8 +61,12 @@ enum Repeat {
     Repeat.everyDay => s.repeatEveryDay,
     Repeat.every2Days => s.repeatEvery2Days,
     Repeat.every3Days => s.repeatEvery3Days,
+    Repeat.every4Days => s.repeatEvery4Days,
+    Repeat.every5Days => s.repeatEvery5Days,
+    Repeat.every6Days => s.repeatEvery6Days,
     Repeat.everyWeek => s.repeatEveryWeek,
     Repeat.every2Weeks => s.repeatEvery2Weeks,
+    Repeat.every3Weeks => s.repeatEvery3Weeks,
     Repeat.everyMonth => s.repeatEveryMonth,
   };
 }
@@ -250,16 +261,25 @@ class FarmPlant {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.growth = const [],
-  }) : plantedAt = plantedAt ?? DateTime.now(),
+    CropCategory? category,
+  }) : category = crop.id == unknownCropId
+           ? category ?? crop.category
+           : crop.category,
+       plantedAt = plantedAt ?? DateTime.now(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
   /// The Firestore document id. Null until the plant is saved.
   final String? id;
 
-  /// Saved as its `cropId`; the category comes from it too.
+  /// Saved as its `cropId`, which also picks the picture.
   final CatalogCrop crop;
   final String name;
+
+  /// What kind of plant it is, for the filters and labels. A catalog crop
+  /// always has its own category; an unknown plant has the one the user
+  /// chose when adding it.
+  final CropCategory category;
 
   /// Where it sits on the farm: land 0 is the first land, and square is
   /// 0-24 on that land. Use `firstFreeSpot` (farm_spot.dart) to pick them
@@ -295,6 +315,7 @@ class FarmPlant {
   }) => FarmPlant(
     id: id,
     crop: crop,
+    category: category,
     name: name,
     land: land,
     square: square,
@@ -314,6 +335,7 @@ class FarmPlant {
   }) => FarmPlant(
     id: id,
     crop: crop,
+    category: category,
     name: name,
     land: land,
     square: square,
@@ -331,6 +353,7 @@ class FarmPlant {
   FarmPlant withGrowth(GrowthEntry entry) => FarmPlant(
     id: id,
     crop: crop,
+    category: category,
     name: name,
     land: land,
     square: square,
@@ -347,7 +370,7 @@ class FarmPlant {
   Map<String, Object?> toMap() => {
     'cropId': crop.id,
     'name': name,
-    'category': crop.category.name,
+    'category': category.name,
     'land': land,
     'square': square,
     'irrigation': irrigation?.toMap(),
@@ -381,9 +404,13 @@ class FarmPlant {
     if (crop == null) {
       throw FormatException('Plant $id has unknown cropId "$cropId".');
     }
+    // Only an unknown plant's saved category is used (see [category]); an
+    // old or unreadable one counts as "other".
+    final saved = data['category'];
     return FarmPlant(
       id: id,
       crop: crop,
+      category: CropCategory.values.where((c) => c.name == saved).firstOrNull,
       name: name,
       land: land,
       square: square,

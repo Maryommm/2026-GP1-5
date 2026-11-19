@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:ethmar/data/sample_plants.dart';
 import 'package:ethmar/models/crop_catalog.dart';
+import 'package:ethmar/models/crop_recommendation.dart' show CropCategory;
 import 'package:ethmar/models/farm_plant.dart';
 import 'package:ethmar/models/farm_spot.dart';
 import 'package:ethmar/models/farm_stats.dart';
@@ -51,9 +52,25 @@ void main() {
       expect(CareSchedule.fromMap(null), isNull);
     });
 
+    test('offers every day up to a week, every week up to 3, then a month', () {
+      expect(
+        [for (final r in Repeat.values) r.days],
+        [1, 2, 3, 4, 5, 6, 7, 14, 21, 30],
+      );
+      for (final r in Repeat.values) {
+        expect(Repeat.fromDays(r.days), r);
+      }
+    });
+
+    test('the same choices are allowed by the Firestore rules', () {
+      final rules = File('firestore.rules').readAsStringSync();
+      final days = [for (final r in Repeat.values) r.days].join(', ');
+      expect(rules, contains('schedule.everyDays in [$days]'));
+    });
+
     test('rejects a repeat or time the app does not offer', () {
       expect(
-        () => CareSchedule.fromMap({'everyDays': 5, 'time': '07:00'}),
+        () => CareSchedule.fromMap({'everyDays': 8, 'time': '07:00'}),
         throwsFormatException,
       );
       expect(
@@ -93,6 +110,55 @@ void main() {
   });
 
   group('FarmPlant', () {
+    final unknown = cropCatalog.firstWhere((c) => c.id == unknownCropId);
+
+    test("an unknown plant keeps the category the user chose", () {
+      final plant = FarmPlant(
+        id: 'u1',
+        crop: unknown,
+        category: CropCategory.herb,
+        name: 'Moringa',
+      );
+      expect(plant.category, CropCategory.herb);
+      final map = plant.toMap();
+      expect(map['category'], 'herb');
+      final back = FarmPlant.fromMap('u1', map);
+      expect(back.category, CropCategory.herb);
+      // Edits and moves keep it.
+      expect(
+        back.edited(name: 'M', irrigation: null, fertilization: null).category,
+        CropCategory.herb,
+      );
+      expect(back.placed(id: 'u1', land: 1, square: 3).category,
+          CropCategory.herb);
+    });
+
+    test('an unknown plant without a valid saved category is "other"', () {
+      final map = FarmPlant(id: 'u2', crop: unknown, name: 'X').toMap()
+        ..['category'] = 'not-a-category';
+      expect(FarmPlant.fromMap('u2', map).category, CropCategory.other);
+    });
+
+    test('a catalog crop always has its own category', () {
+      final tomato = cropCatalog.firstWhere((c) => c.id == 'tomato');
+      final plant = FarmPlant(
+        crop: tomato,
+        category: CropCategory.herb,
+        name: 'Tomato',
+      );
+      expect(plant.category, CropCategory.vegetable);
+      final map = plant.toMap()..['category'] = 'herb';
+      expect(FarmPlant.fromMap('t1', map).category, CropCategory.vegetable);
+    });
+
+    test('every catalog crop has a unique id and a picture file', () {
+      final ids = [for (final c in cropCatalog) c.id];
+      expect(ids.toSet(), hasLength(ids.length));
+      for (final c in cropCatalog) {
+        expect(File(c.image).existsSync(), isTrue, reason: c.image);
+      }
+    });
+
     test('every sample plant round-trips (growth is saved separately)', () {
       for (final plant in samplePlants) {
         final map = plant.toMap();
