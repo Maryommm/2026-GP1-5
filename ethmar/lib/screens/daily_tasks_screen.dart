@@ -267,6 +267,22 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       _entry(shown[i], i, tasks),
                     ],
                   ],
+                  // The streak was reset by earlier days that weren't
+                  // finished. Shown above the missed tasks that caused it.
+                  ValueListenableBuilder<FarmStats>(
+                    valueListenable: FarmStore.stats,
+                    builder: (context, stats, _) => streakBrokenByMissedTasks(
+                            stats, FarmStore.plants.value, _today)
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 18),
+                            child: Entrance(
+                              delay: Duration(
+                                  milliseconds: 150 + 50 * shown.length),
+                              child: const _StreakMissedNote(),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                   // Below today's tasks: the last days' missed ones, until
                   // they are too old.
                   if (shownMissed.isNotEmpty) ...[
@@ -283,22 +299,6 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       _entry(shownMissed[i], shown.length + i, tasks),
                     ],
                   ],
-                  // Only today's tasks are listed; earlier days that weren't
-                  // finished are summed up here instead.
-                  ValueListenableBuilder<FarmStats>(
-                    valueListenable: FarmStore.stats,
-                    builder: (context, stats, _) => streakBrokenByMissedTasks(
-                            stats, FarmStore.plants.value, _today)
-                        ? Padding(
-                            padding: const EdgeInsets.only(top: 18),
-                            child: Entrance(
-                              delay: Duration(
-                                  milliseconds: 150 + 50 * shown.length),
-                              child: const _StreakMissedNote(),
-                            ),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
                 ],
               ),
             ),
@@ -592,7 +592,7 @@ class _FertilizerSackPainter extends CustomPainter {
   bool shouldRepaint(_FertilizerSackPainter old) => old.color != color;
 }
 
-/// Under the tasks: the streak was reset because tasks of earlier days
+/// Above the missed tasks: the streak was reset because tasks of earlier days
 /// weren't done.
 class _StreakMissedNote extends StatelessWidget {
   const _StreakMissedNote();

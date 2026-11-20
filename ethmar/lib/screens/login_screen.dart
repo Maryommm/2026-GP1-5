@@ -54,6 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
     // Fill the email field if an email was provided.
     _email = TextEditingController(text: widget.email);
 
+    // Redraw so the Login button lights up once both fields are correct.
+    _email.addListener(_refresh);
+    _password.addListener(_refresh);
+
     // Handle startup errors or restore an existing login session.
     if (widget.startupFailure != null || widget.resumePersistedSession) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -72,6 +76,15 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
   }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  // True once the email is valid and a password has been typed.
+  bool _allFieldsValid(S s) =>
+      Validators.email(_email.text, s) == null &&
+      Validators.passwordRequired(_password.text, s) == null;
 
   // Clear the text controllers when the screen closes.
   @override
@@ -376,7 +389,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             textInputAction: TextInputAction.done,
                             autofillHints: const [AutofillHints.password],
                             validator: (v) => Validators.passwordRequired(v, s),
-                            onSubmitted: _loading ? null : (_) => _submit(),
+                            onSubmitted: _loading || !_allFieldsValid(s)
+                                ? null
+                                : (_) => _submit(),
                           ),
 
                           const SizedBox(height: 4),
@@ -402,12 +417,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           const SizedBox(height: 24),
 
-                          // Login button.
+                          // Login button. Dimmed until both fields are
+                          // correct, like the Create account button.
                           EthmarButton(
                             label: s.loginButton,
                             showArrow: true,
                             loading: _loading,
-                            onPressed: _loading ? null : _submit,
+                            onPressed: _loading || !_allFieldsValid(s)
+                                ? null
+                                : _submit,
                           ),
 
                           const SizedBox(height: 12),
