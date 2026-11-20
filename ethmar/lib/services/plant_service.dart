@@ -204,7 +204,10 @@ class PlantService {
   /// [todayTaskIds] are the ids of every task due today and [plants] the
   /// user's plants; they decide whether the day is complete and whether an
   /// earlier day was missed (see streak.dart).
-  Future<void> setTaskDone({
+  ///
+  /// Returns the streak that was lost because a day was missed (0 if none),
+  /// for Home to tell the user.
+  Future<int> setTaskDone({
     required DateTime today,
     required String taskId,
     required bool done,
@@ -214,47 +217,83 @@ class PlantService {
     final uid = _uid;
     final log = _taskLog(uid, TaskLog.dateKey(today));
     final stats = _stats(uid);
-    await _firestore.runTransaction<void>((transaction) async {
+    return _firestore.runTransaction<int>((transaction) async {
       final logSnapshot = await transaction.get(log);
       final statsSnapshot = await transaction.get(stats);
 
-      final completed = <String>{};
-      final logData = logSnapshot.data();
-      if (logData != null) {
-        try {
-          completed.addAll(TaskLog.fromMap(log.id, logData).completed);
-        } on FormatException catch (e) {
-          debugPrint('Starting today\'s task log again: $e');
-        }
-      }
+      final saved = _readLog(log.id, logSnapshot.data());
+      final completed = {...saved.completed};
       done ? completed.add(taskId) : completed.remove(taskId);
 
       final before = _readStats(statsSnapshot);
+      final checked = streakAfterMissedDays(before, plants, today);
       final after = streakAfterToggle(
-        streakAfterMissedDays(before, plants, today),
+        checked,
         today: today,
         allDone: todayTaskIds.isNotEmpty && completed.containsAll(todayTaskIds),
         previousTaskDay: previousTaskDay(plants, today),
       );
 
-      transaction.set(log, TaskLog(date: log.id, completed: [...completed]).toMap());
+      transaction.set(
+        log,
+        TaskLog(date: log.id, completed: [...completed], late: saved.late)
+            .toMap(),
+      );
       transaction.set(stats, after.toMap());
+      return streakBroken(before, checked, plants) ? before.currentStreak : 0;
+    });
+  }
+
+  /// Marks task [taskId] of the past day [day] as done late (or not). Only
+  /// that day's log changes: a task done after its day never adds to the
+  /// streak.
+  Future<void> setLateTaskDone({
+    required DateTime day,
+    required String taskId,
+    required bool done,
+  }) async {
+    final log = _taskLog(_uid, TaskLog.dateKey(day));
+    await _firestore.runTransaction<void>((transaction) async {
+      final saved = _readLog(log.id, (await transaction.get(log)).data());
+      // Done on time after all (e.g. on another phone): nothing to change.
+      if (saved.isCompleted(taskId)) return;
+      final late = {...saved.late};
+      done ? late.add(taskId) : late.remove(taskId);
+      transaction.set(
+        log,
+        TaskLog(date: log.id, completed: saved.completed, late: [...late])
+            .toMap(),
+      );
     });
   }
 
   /// Resets the streak to 0 if a day with tasks was missed, or if the user
   /// has no plants. Call when the app opens or comes back on a new day.
-  Future<void> checkStreak(DateTime today) async {
+  ///
+  /// Returns the streak that was lost because a day was missed (0 if none).
+  /// The reset happens once, so this reports a lost streak only once.
+  Future<int> checkStreak(DateTime today) async {
     final uid = _uid;
     final plants = _readPlants((await _plants(uid).get()).docs);
     final stats = _stats(uid);
-    await _firestore.runTransaction<void>((transaction) async {
+    return _firestore.runTransaction<int>((transaction) async {
       final before = _readStats(await transaction.get(stats));
       final after = streakAfterMissedDays(before, plants, today);
-      if (after.currentStreak != before.currentStreak) {
-        transaction.set(stats, after.toMap());
-      }
+      if (after.currentStreak == before.currentStreak) return 0;
+      transaction.set(stats, after.toMap());
+      return streakBroken(before, after, plants) ? before.currentStreak : 0;
     });
+  }
+
+  /// The saved log of day [date], or an empty one (also when it's bad).
+  TaskLog _readLog(String date, Map<String, dynamic>? data) {
+    if (data == null) return TaskLog(date: date);
+    try {
+      return TaskLog.fromMap(date, data);
+    } on FormatException catch (e) {
+      debugPrint('Starting the task log of $date again: $e');
+      return TaskLog(date: date);
+    }
   }
 
   /// The saved stats, or the defaults when there are none (or they're bad).

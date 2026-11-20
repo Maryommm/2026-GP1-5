@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
 import '../models/care_task.dart';
 import '../models/daily_task.dart';
-import '../models/farm_plant.dart';
 import '../models/farm_stats.dart';
 import '../models/streak.dart' show streakBrokenByMissedTasks;
 import '../models/task_log.dart';
@@ -19,11 +18,14 @@ import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_logo.dart' show parseSvgPath;
 
-/// Today's care tasks: the date, a progress card, and one card per task.
+/// Today's care tasks: the date, a progress card, and one card per task,
+/// then the missed tasks of the last [missedTaskDays] days.
 ///
 /// The tasks come from the user's plants and their care schedules
 /// ([dueTasks]); ticking one saves it in today's task log and updates the
-/// streak (see [FarmStore.setTaskDone]).
+/// streak (see [FarmStore.setTaskDone]). A task is only missed once its day
+/// is over; ticking a missed task saves it as done late, in its own day's
+/// log, without touching the streak (see [FarmStore.setLateTaskDone]).
 ///
 /// In the current layout it opens from Home's "Today's Tasks" card, with a
 /// back button; in the classic layout it is a tab ([asTab]), without one.
@@ -37,12 +39,15 @@ class DailyTasksScreen extends StatefulWidget {
 
 class _DailyTasksScreenState extends State<DailyTasksScreen> {
   DateTime _today = _dateOnly(DateTime.now());
-  TaskLog _log = TaskLog(date: TaskLog.dateKey(DateTime.now()));
-  StreamSubscription<TaskLog>? _logChanges;
+
+  /// The task logs of today and the [missedTaskDays] days before, by date.
+  final _logs = <String, TaskLog>{};
+  final _logChanges = <StreamSubscription<TaskLog>>[];
   late final AppLifecycleListener _lifecycle;
   Timer? _midnight;
 
-  // Ticks shown right away, before Firestore confirms them: task id -> done.
+  // Ticks shown right away, before Firestore confirms them:
+  // DailyTask.key -> done.
   final _pending = <String, bool>{};
 
   static DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
@@ -60,7 +65,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
 
   @override
   void dispose() {
-    _logChanges?.cancel();
+    for (final sub in _logChanges) {
+      sub.cancel();
+    }
     _lifecycle.dispose();
     _midnight?.cancel();
     FarmStore.plants.removeListener(_refresh);
@@ -89,41 +96,76 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
     setState(() {});
   }
 
+  /// Follows the logs of today and of the days whose missed tasks show.
   void _followLog() {
-    _logChanges?.cancel();
-    final date = TaskLog.dateKey(_today);
-    _log = TaskLog(date: date);
-    _logChanges = FarmStore.watchTaskLog(date).listen((log) {
-      setState(() {
-        _log = log;
-        // Drop the ticks Firestore now shows as saved.
-        _pending.removeWhere((id, done) => log.isCompleted(id) == done);
-      });
-    }, onError: (Object e) => debugPrint('Could not load the task log: $e'));
-  }
-
-  /// Today's tasks in time order, with any tick that is still being saved.
-  List<DailyTask> _tasks(List<FarmPlant> plants) {
-    final completed = {..._log.completed};
-    _pending.forEach((id, done) => done ? completed.add(id) : completed.remove(id));
-    final log = TaskLog(date: _log.date, completed: [...completed]);
-    return tasksForDay(plants, _today, log, DateTime.now());
-  }
-
-  Future<void> _toggle(DailyTask task, List<DailyTask> all) async {
-    final done = task.status != TaskStatus.completed;
-    setState(() => _pending[task.id] = done);
-    try {
-      await FarmStore.setTaskDone(
-        today: _today,
-        taskId: task.id,
-        done: done,
-        todayTaskIds: [for (final t in all) t.id],
+    for (final sub in _logChanges) {
+      sub.cancel();
+    }
+    _logChanges.clear();
+    _logs.clear();
+    final today = TaskLog.dateKey(_today);
+    for (var back = 0; back <= missedTaskDays; back++) {
+      final date = TaskLog.dateKey(
+        DateTime(_today.year, _today.month, _today.day - back),
       );
+      _logs[date] = TaskLog(date: date);
+      _logChanges.add(FarmStore.watchTaskLog(date).listen((log) {
+        setState(() {
+          _logs[date] = log;
+          // Drop the ticks Firestore now shows as saved.
+          _pending.removeWhere((key, done) {
+            if (!key.startsWith('$date/')) return false;
+            final id = key.substring(date.length + 1);
+            final saved =
+                date == today ? log.isCompleted(id) : log.isDoneLate(id);
+            return saved == done;
+          });
+        });
+      }, onError: (Object e) => debugPrint('Could not load a task log: $e')));
+    }
+  }
+
+  /// The logs with any tick that is still being saved: on time for today,
+  /// late for the days before.
+  Map<String, TaskLog> _logsWithPending() {
+    final today = TaskLog.dateKey(_today);
+    final logs = <String, TaskLog>{};
+    _logs.forEach((date, log) {
+      final completed = {...log.completed};
+      final late = {...log.late};
+      final ticks = date == today ? completed : late;
+      _pending.forEach((key, done) {
+        if (!key.startsWith('$date/')) return;
+        final id = key.substring(date.length + 1);
+        done ? ticks.add(id) : ticks.remove(id);
+      });
+      logs[date] = TaskLog(date: date, completed: [...completed], late: [...late]);
+    });
+    return logs;
+  }
+
+  Future<void> _toggle(DailyTask task, List<DailyTask> today) async {
+    final done = !task.done;
+    setState(() => _pending[task.key] = done);
+    try {
+      if (task.isPast) {
+        await FarmStore.setLateTaskDone(
+          day: task.day,
+          taskId: task.id,
+          done: done,
+        );
+      } else {
+        await FarmStore.setTaskDone(
+          today: _today,
+          taskId: task.id,
+          done: done,
+          todayTaskIds: [for (final t in today) t.id],
+        );
+      }
     } catch (e) {
       debugPrint('Could not save the task: $e');
       if (!mounted) return;
-      setState(() => _pending.remove(task.id));
+      setState(() => _pending.remove(task.key));
       showEthmarToast(
         context,
         S.of(context).taskSaveFailed,
@@ -135,15 +177,24 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final tasks = _tasks(FarmStore.plants.value);
-    final doneCount =
-        tasks.where((t) => t.status == TaskStatus.completed).length;
-    // Shown order only: tasks still to do first, completed ones last, each
-    // group keeping its time order.
-    final shown = [
-      ...tasks.where((t) => t.status != TaskStatus.completed),
-      ...tasks.where((t) => t.status == TaskStatus.completed),
+    final plants = FarmStore.plants.value;
+    final logs = _logsWithPending();
+    final tasks = tasksForDay(
+      plants,
+      _today,
+      logs[TaskLog.dateKey(_today)]!,
+      DateTime.now(),
+    );
+    final missed = missedTasks(plants, _today, logs);
+    final doneCount = tasks.where((t) => t.done).length;
+    // Shown order only: tasks still to do first, done ones last, each group
+    // keeping its order.
+    List<DailyTask> doneLast(List<DailyTask> list) => [
+      ...list.where((t) => !t.done),
+      ...list.where((t) => t.done),
     ];
+    final shown = doneLast(tasks);
+    final shownMissed = doneLast(missed);
     return Scaffold(
       body: LeafPrintBackground(
         child: Column(
@@ -166,12 +217,6 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                   Entrance(
                     child: Column(
                       children: [
-                        Text(
-                          s.dailyTasksSubtitle,
-                          textAlign: TextAlign.center,
-                          style: AppText.accent(context, size: 17),
-                        ),
-                        const SizedBox(height: 4),
                         // Thamoor planting a seedling, kept small and still
                         // so the tasks show sooner. With no tasks, the empty
                         // state shows Thamoor instead.
@@ -219,20 +264,23 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     const SizedBox(height: 10),
                     for (var i = 0; i < shown.length; i++) ...[
                       if (i > 0) const SizedBox(height: 10),
-                      Entrance(
-                        // Keyed by task, so a card that moves to the bottom
-                        // when ticked keeps its state and doesn't animate in
-                        // again.
-                        key: ValueKey(shown[i].id),
-                        delay: Duration(milliseconds: 150 + 50 * i),
-                        offset: 16,
-                        child: _TaskCard(
-                          task: shown[i],
-                          status: shown[i].status,
-                          done: shown[i].status == TaskStatus.completed,
-                          onToggle: () => _toggle(shown[i], tasks),
-                        ),
-                      ),
+                      _entry(shown[i], i, tasks),
+                    ],
+                  ],
+                  // Below today's tasks: the last days' missed ones, until
+                  // they are too old.
+                  if (shownMissed.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      s.missedTasks,
+                      style: AppText.title(context).copyWith(fontSize: 20),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(s.missedTasksHint, style: AppText.small(context)),
+                    const SizedBox(height: 10),
+                    for (var i = 0; i < shownMissed.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 10),
+                      _entry(shownMissed[i], shown.length + i, tasks),
                     ],
                   ],
                   // Only today's tasks are listed; earlier days that weren't
@@ -259,6 +307,16 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
       ),
     );
   }
+
+  /// One task card, sliding in after the ones above it.
+  Widget _entry(DailyTask task, int index, List<DailyTask> today) => Entrance(
+    // Keyed by task, so a card that moves to the bottom when ticked keeps
+    // its state and doesn't animate in again.
+    key: ValueKey(task.key),
+    delay: Duration(milliseconds: 150 + 50 * index),
+    offset: 16,
+    child: _TaskCard(task: task, onToggle: () => _toggle(task, today)),
+  );
 }
 
 /// Soft green card: "Daily Progress", "1 / 3", a bar and a short line.
@@ -339,19 +397,16 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
-/// One task: type icon, "Mint · Watering" with its time below, the status
-/// pill across from the name, and a small tick control at the end.
+/// One task: type icon, "Mint · Watering" with its time below (and the day,
+/// for a missed one), the status pill across from the name, and a small
+/// tick control at the end.
 class _TaskCard extends StatelessWidget {
-  const _TaskCard({
-    required this.task,
-    required this.status,
-    required this.done,
-    required this.onToggle,
-  });
+  const _TaskCard({required this.task, required this.onToggle});
   final DailyTask task;
-  final TaskStatus status;
-  final bool done;
   final VoidCallback onToggle;
+
+  TaskStatus get status => task.status;
+  bool get done => task.done;
 
   @override
   Widget build(BuildContext context) {
@@ -372,11 +427,13 @@ class _TaskCard extends StatelessWidget {
           AppColors.sunTint,
         ),
     };
-    // A thin outline in the status colour: green when done, soft red when
-    // overdue, none while upcoming.
+    // A thin outline in the status colour: green when done, warm yellow
+    // once its time has come, soft red when missed, none while upcoming.
     final outline = switch (status) {
-      TaskStatus.completed => AppColors.success.withValues(alpha: 0.45),
-      TaskStatus.overdue => AppColors.error.withValues(alpha: 0.3),
+      TaskStatus.completed ||
+      TaskStatus.doneLate => AppColors.success.withValues(alpha: 0.45),
+      TaskStatus.due => AppColors.sunDark.withValues(alpha: 0.35),
+      TaskStatus.missed => AppColors.error.withValues(alpha: 0.3),
       TaskStatus.upcoming => null,
     };
     // Done tasks: a very light green card and slightly softer text and icon,
@@ -389,7 +446,16 @@ class _TaskCard extends StatelessWidget {
         done ? Color.lerp(iconColor, AppColors.surface, 0.3)! : iconColor;
     final iconFill =
         done ? Color.lerp(iconBackground, AppColors.surface, 0.4)! : iconBackground;
-    final time = MaterialLocalizations.of(context).formatTimeOfDay(task.time);
+    var time = MaterialLocalizations.of(context).formatTimeOfDay(task.time);
+    if (task.isPast) {
+      final now = DateTime.now();
+      final daysAgo = DateTime.utc(now.year, now.month, now.day)
+          .difference(
+            DateTime.utc(task.day.year, task.day.month, task.day.day),
+          )
+          .inDays;
+      time = '${s.missedDaysAgo(daysAgo)} · $time';
+    }
     return Container(
       padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 6, 12),
       decoration: BoxDecoration(
@@ -544,10 +610,12 @@ class _StreakMissedNote extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.local_fire_department_rounded,
-            color: AppColors.sunDark,
-            size: 26,
+          // The same fire as Home's streak card.
+          Image.asset(
+            'assets/images/ethmar_streak_icon.png',
+            width: 28,
+            height: 28,
+            fit: BoxFit.contain,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -593,7 +661,8 @@ class _EmptyTasks extends StatelessWidget {
   }
 }
 
-/// Coloured pill: Completed (green), Overdue (red), Upcoming (beige).
+/// Coloured pill: Completed or Done late (green), Due now (yellow), Missed
+/// (red), Upcoming (beige).
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.status});
   final TaskStatus status;
@@ -604,8 +673,11 @@ class _StatusPill extends StatelessWidget {
     final (label, fg, bg) = switch (status) {
       TaskStatus.completed =>
         (s.statusCompleted, AppColors.success, AppColors.successTint),
-      TaskStatus.overdue =>
-        (s.statusOverdue, AppColors.error, AppColors.errorTint),
+      TaskStatus.doneLate =>
+        (s.statusDoneLate, AppColors.success, AppColors.successTint),
+      TaskStatus.due => (s.statusDue, AppColors.sunDark, AppColors.sunTint),
+      TaskStatus.missed =>
+        (s.statusMissed, AppColors.error, AppColors.errorTint),
       TaskStatus.upcoming =>
         (s.statusUpcoming, AppColors.earthBrown, AppColors.backgroundAlt),
     };

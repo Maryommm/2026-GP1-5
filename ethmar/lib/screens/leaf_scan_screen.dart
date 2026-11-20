@@ -8,6 +8,7 @@ import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/backgrounds.dart';
+import '../widgets/centered_header.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 
@@ -148,7 +149,10 @@ class _LeafScanScreenState extends State<LeafScanScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(title: s.scanTitle, accent: s.scanAccent),
+              EthmarCenteredHeader(
+                title: s.scanTitle,
+                subtitle: s.scanAccent,
+              ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
@@ -195,45 +199,6 @@ class _LeafScanScreenState extends State<LeafScanScreen>
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Back + title on one row, the hand-written line under it.
-class _Header extends StatelessWidget {
-  const _Header({required this.title, required this.accent});
-  final String title;
-  final String accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(12, 4, 24, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              EthmarBackButton(tooltip: S.of(context).back),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.title(context).copyWith(fontSize: 26),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(start: 16),
-            child: Entrance(
-              child: Text(accent, style: AppText.accent(context, size: 18)),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -14,7 +14,7 @@ import '../widgets/camera_access.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
-import '../widgets/page_header.dart';
+import '../widgets/centered_header.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/plant_picture.dart';
 import 'edit_plant_screen.dart';
@@ -231,9 +231,9 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                EthmarPageHeader(
+                EthmarCenteredHeader(
                   title: plant.name,
-                  accent: crop.name.of(context),
+                  subtitle: crop.name.of(context),
                   trailing: _DeleteButton(
                     deleting: _deleting,
                     onPressed: () => _requestDelete(plant),

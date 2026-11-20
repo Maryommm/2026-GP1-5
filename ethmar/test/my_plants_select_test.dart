@@ -102,15 +102,18 @@ void main() {
     expect(find.text('1 selected'), findsOneWidget);
   });
 
-  testWidgets('select all ticks every plant; nothing ticked disables delete', (
+  testWidgets('select all ticks every plant; nothing ticked hides delete', (
     tester,
   ) async {
     await openScreen(tester);
     await tap(tester, find.byKey(const Key('selectPlants')));
 
-    // Nothing ticked: Delete does nothing.
-    await tap(tester, find.byKey(const Key('deleteSelected')));
-    expect(find.byKey(const Key('confirmDeletePlants')), findsNothing);
+    // Nothing ticked: no Delete button.
+    expect(find.byKey(const Key('deleteSelected')), findsNothing);
+    await tap(tester, box(first.id!));
+    expect(find.byKey(const Key('deleteSelected')), findsOneWidget);
+    await tap(tester, box(first.id!));
+    expect(find.byKey(const Key('deleteSelected')), findsNothing);
 
     await tap(tester, find.text('Select all'));
     expect(find.text('${samplePlants.length} selected'), findsOneWidget);

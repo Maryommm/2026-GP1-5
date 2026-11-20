@@ -14,6 +14,8 @@ FarmPlant plant(String id, Repeat repeat, {DateTime? planted}) => FarmPlant(
       name: 'Mint',
       irrigation: CareSchedule(repeat, const TimeOfDay(hour: 8, minute: 0)),
       plantedAt: planted ?? DateTime(2026, 11, 1),
+      // Added to the app on its planting day.
+      createdAt: planted ?? DateTime(2026, 11, 1),
     );
 
 FarmStats stats(int streak, String? last) =>
@@ -158,15 +160,116 @@ void main() {
       expect(task.type, TaskType.watering);
     });
 
-    test('is completed, overdue or upcoming', () {
+    test('is completed, upcoming, or due once its time has passed', () {
       final empty = TaskLog(date: '2026-11-05');
       final done = TaskLog(date: '2026-11-05', completed: ['a_irrigation']);
       expect(DailyTask.from(task, done, DateTime(2026, 11, 5, 7)).status,
           TaskStatus.completed);
-      expect(DailyTask.from(task, empty, DateTime(2026, 11, 5, 9)).status,
-          TaskStatus.overdue);
       expect(DailyTask.from(task, empty, DateTime(2026, 11, 5, 7)).status,
           TaskStatus.upcoming);
+      // Its time has passed but the day isn't over: not missed yet.
+      expect(DailyTask.from(task, empty, DateTime(2026, 11, 5, 23, 59)).status,
+          TaskStatus.due);
+    });
+  });
+
+  group('missed tasks', () {
+    final today = DateTime(2026, 11, 10, 9);
+    Map<String, TaskLog> logs(Map<String, List<String>> completed,
+            [Map<String, List<String>> late = const {}]) =>
+        {
+          for (final d in {...completed.keys, ...late.keys})
+            d: TaskLog(
+                date: d,
+                completed: completed[d] ?? const [],
+                late: late[d] ?? const []),
+        };
+
+    test('only the last 3 days, most recent first', () {
+      final missed = missedTasks(daily, today, const {});
+      expect([for (final t in missed) TaskLog.dateKey(t.day)],
+          ['2026-11-09', '2026-11-08', '2026-11-07']);
+      expect(missed.every((t) => t.status == TaskStatus.missed), isTrue);
+    });
+
+    test('a task done on its day is not missed', () {
+      final missed = missedTasks(
+          daily, today, logs({'2026-11-09': ['a_irrigation']}));
+      expect([for (final t in missed) TaskLog.dateKey(t.day)],
+          ['2026-11-08', '2026-11-07']);
+    });
+
+    test('a task done late stays in the list as done late', () {
+      final missed = missedTasks(
+          daily, today, logs(const {}, {'2026-11-08': ['a_irrigation']}));
+      final late = missed.singleWhere((t) => t.status == TaskStatus.doneLate);
+      expect(TaskLog.dateKey(late.day), '2026-11-08');
+      expect(late.done, isTrue);
+      expect(late.isPast, isTrue);
+    });
+
+    test('days before the plant was added to the app are skipped', () {
+      final added = [
+        FarmPlant(
+          id: 'a',
+          crop: cropCatalog.first,
+          name: 'Mint',
+          irrigation:
+              const CareSchedule(Repeat.everyDay, TimeOfDay(hour: 8, minute: 0)),
+          plantedAt: DateTime(2026, 11, 1),
+          createdAt: DateTime(2026, 11, 9, 15),
+        ),
+      ];
+      expect([for (final t in missedTasks(added, today, const {})) t.day],
+          [DateTime(2026, 11, 9)]);
+    });
+
+    test('each card has its own key, also for the same plant and type', () {
+      final missed = missedTasks(daily, today, const {});
+      expect({for (final t in missed) t.key}, hasLength(missed.length));
+    });
+  });
+
+  group('streak lost', () {
+    test('a missed day breaks the streak and is reported', () {
+      final before = stats(4, '2026-11-03');
+      final after = streakAfterMissedDays(before, daily, DateTime(2026, 11, 5));
+      expect(streakBroken(before, after, daily), isTrue);
+    });
+
+    test('deleting every plant is not reported as a missed day', () {
+      final before = stats(4, '2026-11-04');
+      final after =
+          streakAfterMissedDays(before, const [], DateTime(2026, 11, 5));
+      expect(after.currentStreak, 0);
+      expect(streakBroken(before, after, const []), isFalse);
+    });
+
+    test('a streak that carries on is not reported', () {
+      final before = stats(4, '2026-11-04');
+      final after = streakAfterMissedDays(before, daily, DateTime(2026, 11, 5));
+      expect(streakBroken(before, after, daily), isFalse);
+    });
+  });
+
+  group('task log', () {
+    test('keeps on-time and late tasks apart', () {
+      final log = TaskLog.fromMap('2026-11-05', {
+        'completed': ['a_irrigation'],
+        'late': ['b_irrigation'],
+      });
+      expect(log.isCompleted('a_irrigation'), isTrue);
+      expect(log.isCompleted('b_irrigation'), isFalse);
+      expect(log.isDoneLate('b_irrigation'), isTrue);
+      expect(log.toMap(), {
+        'completed': ['a_irrigation'],
+        'late': ['b_irrigation'],
+      });
+    });
+
+    test('logs saved before late tasks existed still load', () {
+      final log = TaskLog.fromMap('2026-11-05', {'completed': <String>[]});
+      expect(log.late, isEmpty);
     });
   });
 }

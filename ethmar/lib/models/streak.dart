@@ -7,6 +7,8 @@
 ///   tasks don't break it.
 /// - With no plants, or no plant with a watering or fertilizing schedule,
 ///   there are no tasks, so the streak stays at 0.
+/// - A day only counts when its tasks are done that same day. A missed task
+///   done later (see missedTasks in daily_task.dart) adds nothing.
 library;
 
 import 'care_task.dart';
@@ -25,9 +27,7 @@ FarmStats streakAfterMissedDays(
 ) {
   if (stats.currentStreak == 0) return stats;
   final last = _parseDate(stats.lastCompletedDate);
-  final hasSchedules =
-      plants.any((p) => p.irrigation != null || p.fertilization != null);
-  if (!hasSchedules || last == null) return _withStreak(stats, 0);
+  if (!_hasSchedules(plants) || last == null) return _withStreak(stats, 0);
 
   final day = _dateOnly(today);
   // More than a year away: certainly missed, and not worth scanning.
@@ -37,6 +37,17 @@ FarmStats streakAfterMissedDays(
   }
   return stats;
 }
+
+/// True when going from [before] to [after] broke a running streak because
+/// a day with tasks was missed, so Home tells the user. Not when it went to
+/// 0 only because no plant has a schedule any more (e.g. all deleted).
+bool streakBroken(FarmStats before, FarmStats after, List<FarmPlant> plants) =>
+    before.currentStreak > 0 &&
+    after.currentStreak == 0 &&
+    _hasSchedules(plants);
+
+bool _hasSchedules(List<FarmPlant> plants) =>
+    plants.any((p) => p.irrigation != null || p.fertilization != null);
 
 /// True when the streak was lost because a day with tasks, after the last
 /// completed day and before [today], wasn't completed. Daily Tasks and Home

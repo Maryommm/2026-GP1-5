@@ -223,15 +223,26 @@ class AppStrings {
     'navHome': 'Home',
     'navDailyTasks': 'Daily Tasks',
     // Daily Tasks screen
-    'dailyTasksSubtitle': 'Care for your plants today',
     'dailyProgress': 'Your Progress',
     'dailyProgressOf': '{done} of {total} tasks completed',
     'todaysTasks': "Today's Tasks",
     'taskWatering': 'Watering',
     'taskFertilizing': 'Fertilizing',
     'statusCompleted': 'Completed',
-    'statusOverdue': 'Overdue',
+    'statusDue': 'Due now',
     'statusUpcoming': 'Upcoming',
+    'statusMissed': 'Missed',
+    'statusDoneLate': 'Done late',
+    'missedTasks': 'Missed Tasks',
+    'missedTasksHint':
+        "You can still do them, but they won't count toward your streak.",
+    'missedYesterday': 'Yesterday',
+    'missedTwoDaysAgo': '2 days ago',
+    'missedDaysAgo': '{n} days ago',
+    'streakLostDialogTitle': 'Your streak ended',
+    'streakLostDialogBody':
+        'You missed a day of care, so your {n}-day streak ended. Your plants are waiting for you, start a new streak today! 🌱',
+    'streakLostDialogButton': "Let's start again",
     'taskMarkDone': 'Mark as done',
     'noTasksToday': 'No tasks today. Enjoy your day!',
     'taskSaveFailed': "Couldn't save the task. Check your connection and try again",
@@ -266,7 +277,8 @@ class AppStrings {
     'navAskThamoor': 'Ask Thamoor',
     // Home's Explore section (new layout).
     'homeExplore': 'Explore',
-    'homeDiagnosisHint': 'Snap a leaf and find out what your plant needs',
+    'homeDiagnosisHint':
+        'Discover plant diseases by taking photos of its leaves.',
     'homeDiagnosisAction': 'Scan a leaf',
     'profile': 'Profile',
     'editProfile': 'Edit Profile',
@@ -386,8 +398,6 @@ class AppStrings {
     'mapRecenter': 'Show my location',
     'mapYouAreHere': 'You are here',
     'farmTitle': 'My virtual farm',
-    'farmAccent': 'your land is ready for its first seed',
-    'farmAccentPlanted': 'your plants are growing',
     'farmLand': 'Your farm land',
     'farmEmptyTitle': 'Your farm is empty',
     'farmEmptyBody': 'Add your first plant and watch it appear here.',
@@ -458,7 +468,6 @@ class AppStrings {
         'Pick a category so it shows up in the right place when you filter your plants.',
     'errPlantCategoryRequired': 'Choose a category for your plant',
     'myPlants': 'My plants',
-    'myPlantsAccent': 'everything growing on your farm',
     'myPlantsEmpty': 'No plants yet',
     'myPlantsEmptyBody': 'Add your first plant and it will show up here.',
     'filter': 'Filter',
@@ -467,6 +476,7 @@ class AppStrings {
     'filterNoMatch': 'No matching plants',
     'filterNoMatchBody':
         'None of your plants are in {category}. Try another category or clear the filter.',
+    'select': 'Select',
     'selectPlants': 'Select plants',
     'selectedCount': '{n} selected',
     'selectAll': 'Select all',
@@ -728,15 +738,25 @@ class AppStrings {
     'navHome': 'الرئيسية',
     'navDailyTasks': 'المهام اليومية',
     // Daily Tasks screen
-    'dailyTasksSubtitle': 'اعتنِ بنباتاتك اليوم',
     'dailyProgress': 'إنجازك',
     'dailyProgressOf': 'أُنجزت {done} من {total} مهام',
     'todaysTasks': 'مهام اليوم',
     'taskWatering': 'الري',
     'taskFertilizing': 'التسميد',
     'statusCompleted': 'مكتملة',
-    'statusOverdue': 'متأخرة',
+    'statusDue': 'حان وقتها',
     'statusUpcoming': 'قادمة',
+    'statusMissed': 'فائتة',
+    'statusDoneLate': 'أُنجزت متأخرة',
+    'missedTasks': 'المهام الفائتة',
+    'missedTasksHint': 'تقدر تنجزها الآن، لكنها ما تُحتسب في السلسلة.',
+    'missedYesterday': 'أمس',
+    'missedTwoDaysAgo': 'قبل يومين',
+    'missedDaysAgo': 'قبل {n} أيام',
+    'streakLostDialogTitle': 'انقطعت سلسلتك',
+    'streakLostDialogBody':
+        'فاتك يوم من العناية بنباتاتك، فانقطعت سلسلة {streak}. نباتاتك بانتظارك، ابدأ سلسلة جديدة اليوم! 🌱',
+    'streakLostDialogButton': 'لنبدأ من جديد',
     'taskMarkDone': 'تحديد كمكتملة',
     'noTasksToday': 'ما عندك مهام اليوم، استمتع بيومك!',
     'taskSaveFailed': 'تعذّر حفظ المهمة. تحقق من اتصالك وحاول مرة أخرى',
@@ -769,7 +789,7 @@ class AppStrings {
     'homeCardDiagnosis': "افحص نبتتك",
     'navAskThamoor': 'اسأل ثمور',
     'homeExplore': 'استكشف',
-    'homeDiagnosisHint': 'صوّر ورقة واعرف وش تحتاج نبتتك',
+    'homeDiagnosisHint': 'اكتشف أمراض نبتتك من خلال تصوير أوراقها',
     'homeDiagnosisAction': 'افحص ورقة',
     'profile': 'الملف الشخصي',
     'editProfile': 'تعديل الملف الشخصي',
@@ -887,8 +907,6 @@ class AppStrings {
     'mapRecenter': 'اعرض موقعي',
     'mapYouAreHere': 'أنت هنا',
     'farmTitle': 'مزرعتي الافتراضية',
-    'farmAccent': 'أرضك جاهزة لأول بذرة',
-    'farmAccentPlanted': 'نباتاتك تكبر',
     'farmLand': 'أرض مزرعتك',
     'farmEmptyTitle': 'مزرعتك فاضية',
     'farmEmptyBody': 'أضف أول نبتة وبتظهر لك هنا.',
@@ -958,7 +976,6 @@ class AppStrings {
         'اختر فئة عشان تطلع في مكانها الصحيح لما تصفّي نباتاتك.',
     'errPlantCategoryRequired': 'اختر فئة لنبتتك',
     'myPlants': 'نباتاتي',
-    'myPlantsAccent': 'كل اللي يكبر في مزرعتك',
     'myPlantsEmpty': 'ما عندك نباتات للحين',
     'myPlantsEmptyBody': 'أضف أول نبتة وبتطلع لك هنا.',
     'filter': 'تصفية',
@@ -967,6 +984,7 @@ class AppStrings {
     'filterNoMatch': 'ما فيه نباتات مطابقة',
     'filterNoMatchBody':
         'ما عندك نباتات من فئة {category}. جرّب فئة ثانية أو أزل التصفية.',
+    'select': 'تحديد',
     'selectPlants': 'تحديد النباتات',
     'selectedCount': 'المحدد: {n}',
     'selectAll': 'تحديد الكل',
@@ -1245,7 +1263,6 @@ class S {
   String get homeNearMe => t('homeNearMe');
   String get navHome => t('navHome');
   String get navDailyTasks => t('navDailyTasks');
-  String get dailyTasksSubtitle => t('dailyTasksSubtitle');
   String get dailyProgress => t('dailyProgress');
   String dailyProgressOf(int done, int total) => t('dailyProgressOf')
       .replaceAll('{done}', '$done')
@@ -1254,8 +1271,27 @@ class S {
   String get taskWatering => t('taskWatering');
   String get taskFertilizing => t('taskFertilizing');
   String get statusCompleted => t('statusCompleted');
-  String get statusOverdue => t('statusOverdue');
+  String get statusDue => t('statusDue');
   String get statusUpcoming => t('statusUpcoming');
+  String get statusMissed => t('statusMissed');
+  String get statusDoneLate => t('statusDoneLate');
+  String get missedTasks => t('missedTasks');
+  String get missedTasksHint => t('missedTasksHint');
+
+  /// When a missed task was due: "Yesterday", "2 days ago"...
+  String missedDaysAgo(int n) => switch (n) {
+        1 => t('missedYesterday'),
+        2 => t('missedTwoDaysAgo'),
+        _ => t('missedDaysAgo').replaceAll('{n}', '$n'),
+      };
+
+  String get streakLostDialogTitle => t('streakLostDialogTitle');
+
+  /// "Your 5-day streak ended..." with the Arabic number form for {streak}.
+  String streakLostDialogBody(int n) => t('streakLostDialogBody')
+      .replaceAll('{n}', '$n')
+      .replaceAll('{streak}', streakActiveTitle(n));
+  String get streakLostDialogButton => t('streakLostDialogButton');
   String get taskMarkDone => t('taskMarkDone');
   String get noTasksToday => t('noTasksToday');
   String get taskSaveFailed => t('taskSaveFailed');
@@ -1379,8 +1415,6 @@ class S {
   String get mapRecenter => t('mapRecenter');
   String get mapYouAreHere => t('mapYouAreHere');
   String get farmTitle => t('farmTitle');
-  String get farmAccent => t('farmAccent');
-  String get farmAccentPlanted => t('farmAccentPlanted');
   String get farmLand => t('farmLand');
   String get farmEmptyTitle => t('farmEmptyTitle');
   String get farmEmptyBody => t('farmEmptyBody');
@@ -1456,7 +1490,6 @@ class S {
   String get addPlantCategoryHint => t('addPlantCategoryHint');
   String get errPlantCategoryRequired => t('errPlantCategoryRequired');
   String get myPlants => t('myPlants');
-  String get myPlantsAccent => t('myPlantsAccent');
   String get myPlantsEmpty => t('myPlantsEmpty');
   String get myPlantsEmptyBody => t('myPlantsEmptyBody');
   String get filter => t('filter');
@@ -1465,6 +1498,7 @@ class S {
   String get filterNoMatch => t('filterNoMatch');
   String filterNoMatchBody(String category) =>
       t('filterNoMatchBody').replaceAll('{category}', category);
+  String get select => t('select');
   String get selectPlants => t('selectPlants');
   String selectedCount(int n) => t('selectedCount').replaceAll('{n}', '$n');
   String get selectAll => t('selectAll');

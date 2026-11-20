@@ -78,13 +78,16 @@ service cloud.firestore {
           validGrowthPhoto(data.photo, uid, plantId, entryId);
     }
 
-    // One day's finished tasks (see TaskLog.toMap). Two tasks per plant and
+    // One day's finished tasks (see TaskLog.toMap): on time, and late (done
+    // on a later day, not counted for the streak). Two tasks per plant and
     // 225 plants at most.
     function validTaskLog(data) {
       return data.keys().hasAll(['completed']) &&
-          data.keys().hasOnly(['completed']) &&
+          data.keys().hasOnly(['completed', 'late']) &&
           data.completed is list &&
-          data.completed.size() <= 450;
+          data.completed.size() <= 450 &&
+          (!('late' in data) ||
+              (data.late is list && data.late.size() <= 450));
     }
 
     // The streak and lands (see FarmStats.toMap).
