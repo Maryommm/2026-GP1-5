@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -44,12 +45,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // Store the current uploaded photo.
   UploadedProfileImage? _uploadedProfileImage;
 
-  // Track username saving and photo operations.
+  // Photo changes wait here until Save, so Cancel leaves the saved photo
+  // as it was: a newly picked photo (and its bytes, for the preview), or
+  // a request to delete the saved one.
+  XFile? _pendingPhoto;
+  Uint8List? _pendingPhotoBytes;
+  bool _pendingDelete = false;
+
+  // The username as saved. Starts as the one passed in, and moves on if Save
+  // stores the username but then fails on the photo, so a retry doesn't
+  // save the username twice.
+  late String _savedUsername = widget.username;
+
+  // Track saving and picking a photo.
   bool _saving = false;
   bool _photoBusy = false;
 
-  // Check if the username has changed.
-  bool get _hasChanges => _username.text.trim() != widget.username;
+  bool get _usernameChanged => _username.text.trim() != _savedUsername;
+  bool get _photoChanged => _pendingPhoto != null || _pendingDelete;
+
+  // Check if anything has changed since the screen opened.
+  bool get _hasChanges => _usernameChanged || _photoChanged;
+
+  // Whether a photo shows right now, saved or pending.
+  bool get _hasPhoto =>
+      _pendingPhoto != null || (_uploadedProfileImage != null && !_pendingDelete);
 
   @override
   void initState() {
@@ -79,7 +99,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  // Save the updated username to Firestore.
+  // Save the username and any photo change. Nothing reaches the server
+  // before this, so leaving without saving keeps the profile as it was.
   Future<void> _save() async {
     // Prevent saving during another operation.
     if (_saving || _photoBusy) return;
@@ -92,8 +113,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final s = S.of(context);
     final newUsername = _username.text.trim();
 
-    // Return without saving if the username has not changed.
-    if (newUsername == widget.username) {
+    // Return without saving if nothing has changed.
+    if (!_hasChanges) {
       Navigator.of(context).pop();
       return;
     }
@@ -103,7 +124,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       // Update the username and its reservation in Firestore.
-      await _userService.updateCurrentUsername(newUsername);
+      if (_usernameChanged) {
+        await _userService.updateCurrentUsername(newUsername);
+        _savedUsername = newUsername;
+      }
+
+      // Upload the new photo, or delete the saved one.
+      final photo = _pendingPhoto;
+      if (photo != null) {
+        final uploaded = await _profileImageService.upload(photo);
+        if (mounted) setState(() => _uploadedProfileImage = uploaded);
+      } else if (_pendingDelete) {
+        await _profileImageService.delete();
+        if (mounted) setState(() => _uploadedProfileImage = null);
+      }
+      _clearPendingPhoto();
 
       if (!mounted) return;
 
@@ -112,6 +147,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // Return to the Profile screen.
       Navigator.of(context).pop();
+
+    } on ProfileImageException catch (error) {
+      // The username (if changed) is saved; the photo change is kept so
+      // Save can try it again.
+      if (!mounted) return;
+      _showError(_profilePhotoError(s, error));
 
     } on UsernameAlreadyTakenException {
       // Show an error if the username is already taken.
@@ -142,8 +183,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     showEthmarToast(context, message, type: EthmarToastType.error);
   }
 
-  // Choose a photo and upload it.
-  Future<void> _chooseAndUploadPhoto(ImageSource source) async {
+  void _clearPendingPhoto() {
+    _pendingPhoto = null;
+    _pendingPhotoBytes = null;
+    _pendingDelete = false;
+  }
+
+  // Choose a photo and show it. It is uploaded on Save.
+  Future<void> _choosePhoto(ImageSource source) async {
     // Prevent multiple operations at the same time.
     if (_saving || _photoBusy) return;
 
@@ -168,16 +215,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // The user cancelled: no message.
       if (image == null) return;
 
-      // Upload the selected photo.
-      final uploaded = await _profileImageService.upload(image);
+      // Check the size and type now, so a bad file is refused right away
+      // rather than on Save.
+      final bytes = await _profileImageService.readValidImage(image);
 
       if (!mounted) return;
 
-      // Update the displayed profile photo.
-      setState(() => _uploadedProfileImage = uploaded);
-
-      // Show a success message.
-      showEthmarToast(context, S.of(context).profilePhotoUploaded);
+      // Show the new photo; it replaces any pending delete.
+      setState(() {
+        _pendingPhoto = image;
+        _pendingPhotoBytes = bytes;
+        _pendingDelete = false;
+      });
 
     } on ProfileImageException catch (error) {
       // Show the correct profile photo error.
@@ -190,9 +239,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         // Failed while opening the camera or gallery.
         await _handlePickerError(source, error);
       } else {
-        // Failed after a photo was chosen, for a reason the upload
-        // service could not identify.
-        _showError(S.of(context).errPhotoUpload);
+        // Failed after a photo was chosen, for a reason the check could not
+        // identify.
+        _showError(S.of(context).errImageRead);
       }
 
     } finally {
@@ -291,41 +340,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (openSettings == true) await openAppSettings();
   }
 
-  // Delete the current profile photo.
-  Future<void> _deletePhoto() async {
-    // Stop if there is no photo or another operation is running.
-    if (_uploadedProfileImage == null || _saving || _photoBusy) {
-      return;
-    }
+  // Remove the photo from the preview. The saved photo is deleted on Save.
+  void _deletePhoto() {
+    if (!_hasPhoto || _saving || _photoBusy) return;
 
-    setState(() => _photoBusy = true);
-
-    try {
-      // Delete the uploaded photo.
-      await _profileImageService.delete();
-
-      if (!mounted) return;
-
-      // Return to the default avatar.
-      setState(() => _uploadedProfileImage = null);
-
-      // Show a success message.
-      showEthmarToast(context, S.of(context).profilePhotoDeleted);
-
-    } on ProfileImageException catch (error) {
-      // Show the correct deletion error.
-      if (!mounted) return;
-      _showError(_profilePhotoError(S.of(context), error));
-
-    } catch (_) {
-      // Handle unexpected deletion errors.
-      if (!mounted) return;
-      _showError(S.of(context).errPhotoDelete);
-
-    } finally {
-      // Stop loading after deletion finishes.
-      if (mounted) setState(() => _photoBusy = false);
-    }
+    setState(() {
+      _pendingPhoto = null;
+      _pendingPhotoBytes = null;
+      // Only a saved photo needs deleting; a photo picked just now was never
+      // uploaded.
+      _pendingDelete = _uploadedProfileImage != null;
+    });
   }
 
   // Convert photo errors into user-friendly messages.
@@ -443,14 +468,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           // Display the profile photo and photo options.
                           _PhotoArea(
                             imageUrl: _uploadedProfileImage?.secureUrl,
-                            loading: _photoBusy,
+                            localImage: _pendingPhotoBytes,
+                            showDefault: _pendingDelete,
+                            loading: _photoBusy || (_saving && _photoChanged),
                             onTakePhoto: () =>
-                                _chooseAndUploadPhoto(ImageSource.camera),
+                                _choosePhoto(ImageSource.camera),
                             onChooseFromGallery: () =>
-                                _chooseAndUploadPhoto(ImageSource.gallery),
-                            onDelete: _uploadedProfileImage != null
-                                ? _deletePhoto
-                                : null,
+                                _choosePhoto(ImageSource.gallery),
+                            onDelete: _hasPhoto ? _deletePhoto : null,
                           ),
 
                           const SizedBox(height: 28),
@@ -507,6 +532,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 class _PhotoArea extends StatelessWidget {
   const _PhotoArea({
     required this.imageUrl,
+    required this.localImage,
+    required this.showDefault,
     required this.loading,
     required this.onTakePhoto,
     required this.onChooseFromGallery,
@@ -514,6 +541,8 @@ class _PhotoArea extends StatelessWidget {
   });
 
   final String? imageUrl;
+  final Uint8List? localImage;
+  final bool showDefault;
   final bool loading;
   final VoidCallback onTakePhoto;
   final VoidCallback? onChooseFromGallery;
@@ -536,7 +565,12 @@ class _PhotoArea extends StatelessWidget {
                 color: AppColors.forest,
                 shape: BoxShape.circle,
               ),
-              child: UserAvatar(size: 96, imageUrl: imageUrl),
+              child: UserAvatar(
+                size: 96,
+                imageUrl: imageUrl,
+                localImage: localImage,
+                showDefault: showDefault,
+              ),
             ),
 
             // Show loading over the avatar during photo operations.

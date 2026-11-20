@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -6,15 +8,42 @@ import '../theme/app_colors.dart';
 
 /// Shows the profile photo, or the Ethmar default avatar when there is none.
 class UserAvatar extends StatelessWidget {
-  const UserAvatar({super.key, this.size = 44, this.imageUrl});
+  const UserAvatar({
+    super.key,
+    this.size = 44,
+    this.imageUrl,
+    this.localImage,
+    this.showDefault = false,
+  });
 
   static const defaultAvatar = 'assets/images/ethmar_default_avatar.png';
 
   final double size;
   final String? imageUrl;
 
+  /// A photo picked on this device but not saved yet (Edit Profile preview).
+  final Uint8List? localImage;
+
+  /// Show the default avatar even if a photo is saved (Edit Profile, after
+  /// "Delete photo" and before Save).
+  final bool showDefault;
+
   @override
   Widget build(BuildContext context) {
+    final local = localImage;
+    if (local != null) {
+      return ClipOval(
+        child: Image.memory(
+          local,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _fallback(context),
+        ),
+      );
+    }
+    if (showDefault) return _fallback(context);
+
     // Use the provided image URL when available.
     final explicitUrl = imageUrl;
     if (explicitUrl != null) {

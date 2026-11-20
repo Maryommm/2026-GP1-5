@@ -57,7 +57,9 @@ class Validators {
   // Check for a capital letter, number, and special character.
   static final _upperRe = RegExp(r'[A-Z]');
   static final _digitRe = RegExp(r'[0-9]');
-  static final _specialRe = RegExp(r'[^A-Za-z0-9\s]');
+  // Only English keyboard symbols count, so Arabic letters or other non-English
+  // characters can't stand in for a special character.
+  static final _specialRe = RegExp(r'''[!"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~]''');
 
   // Whether [password] follows [rule]. The sign-up checklist and the checks
   // below both use this, so they always agree.
@@ -69,12 +71,20 @@ class Validators {
         PasswordRule.special => _specialRe.hasMatch(password),
       };
 
+  // Passwords may only use English letters, numbers, symbols and spaces
+  // (the characters on an English keyboard).
+  static final _englishOnlyRe = RegExp(r'^[\x20-\x7E]*$');
+
+  static bool isEnglishOnly(String password) =>
+      _englishOnlyRe.hasMatch(password);
+
   // Require 8 characters, a capital letter, a number, and a special character.
   // The error lists only the rules that are still missing.
   static String? password(String? v, S s) {
     final t = v ?? '';
 
     if (t.isEmpty) return s.errPasswordRequired;
+    if (!isEnglishOnly(t)) return s.errPasswordEnglishOnly;
 
     final missing = [
       for (final rule in PasswordRule.values)
@@ -89,6 +99,7 @@ class Validators {
   static String? newPassword(String? v, S s) {
     final t = v ?? '';
     if (t.isEmpty) return s.errPasswordRequired;
+    if (!isEnglishOnly(t)) return s.errPasswordEnglishOnly;
     final allMet = PasswordRule.values.every((r) => passwordRuleMet(r, t));
     return allMet ? null : s.errPasswordRules;
   }

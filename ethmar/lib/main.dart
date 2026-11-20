@@ -15,16 +15,8 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase before building the app.
-  final firebaseReady = await initFirebase();
-
-  // Follow the signed-in user's plants and lands, and keep their care
-  // reminders scheduled. Awaited so a tap that opened the app is known
-  // before the first screen.
-  if (firebaseReady) {
-    FarmStore.start();
-    await CareNotifications.init();
-  }
+  // Initialize Firebase and the services that depend on it.
+  final firebaseReady = await startFirebaseServices();
 
   // Open the app in the language the user chose last time.
   await loadSavedLocale();
@@ -41,6 +33,18 @@ Future<void> main() async {
   );
 
   runApp(EthmarApp(firebaseReady: firebaseReady));
+}
+
+/// Starts Firebase, then follows the signed-in user's plants and lands and
+/// keeps their care reminders scheduled. Used at launch and by the startup
+/// error screen's retry, so a successful retry starts the same services.
+/// Notifications are awaited so a tap that opened the app is known before
+/// the first screen.
+Future<bool> startFirebaseServices() async {
+  if (!await initFirebase()) return false;
+  FarmStore.start();
+  await CareNotifications.init();
+  return true;
 }
 
 /// Starts Firebase and reports whether it worked. The error itself is
@@ -84,7 +88,7 @@ class EthmarApp extends StatelessWidget {
         // generic error screen if Firebase could not start.
         home: firebaseReady
             ? const SplashScreen()
-            : const StartupErrorScreen(retry: initFirebase),
+            : const StartupErrorScreen(retry: startFirebaseServices),
       ),
     );
   }

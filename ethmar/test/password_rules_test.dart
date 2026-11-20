@@ -33,6 +33,13 @@ void main() {
       expect(met(PasswordRule.digit, 'ab'), isFalse);
       expect(met(PasswordRule.special, 'a!'), isTrue);
       expect(met(PasswordRule.special, 'a b'), isFalse);
+      // Only English symbols count: Arabic letters and other non-English
+      // characters are not special characters.
+      expect(met(PasswordRule.special, 'Abcdefg1ب'), isFalse);
+      expect(met(PasswordRule.special, 'aé'), isFalse);
+      for (final c in r'''!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~'''.split('')) {
+        expect(met(PasswordRule.special, 'a$c'), isTrue, reason: c);
+      }
     });
   });
 

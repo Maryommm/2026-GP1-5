@@ -95,5 +95,14 @@ void main() {
     test('accepts a password that meets every rule', () {
       expect(Validators.password('Seed@123', s), isNull);
     });
+
+    test('rejects non-English characters, even when every rule is met', () {
+      expect(Validators.password('Seed@123ب', s), s.errPasswordEnglishOnly);
+      expect(Validators.password('Séed@123', s), s.errPasswordEnglishOnly);
+      expect(Validators.password('Seed@123😀', s), s.errPasswordEnglishOnly);
+      expect(Validators.newPassword('Seed@123ب', s), s.errPasswordEnglishOnly);
+      expect(Validators.newPassword('كلمة', s), s.errPasswordEnglishOnly);
+      expect(Validators.newPassword('Seed@123', s), isNull);
+    });
   });
 }

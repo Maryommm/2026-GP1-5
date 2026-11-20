@@ -234,8 +234,16 @@ class ProfileImageService {
     return _metadataStore.watch(user.uid);
   }
 
-  // Validate and upload a selected profile image.
-  Future<UploadedProfileImage> upload(XFile image) async {
+  // Read a selected image and check its size and type, without uploading it.
+  // Edit Profile uses this to reject a bad file as soon as it is picked and
+  // to preview it before Save.
+  Future<Uint8List> readValidImage(XFile image) async =>
+      (await _readValidImage(image)).bytes;
+
+  // Read the image and check it is a PNG, JPEG or WebP of at most 5 MB.
+  Future<({Uint8List bytes, MediaType mediaType})> _readValidImage(
+    XFile image,
+  ) async {
     // Check the file size before reading it.
     final int length;
     try {
@@ -266,6 +274,14 @@ class ProfileImageService {
     if (mediaType == null) {
       throw const ProfileImageException(ProfileImageErrorCode.unsupportedImage);
     }
+    return (bytes: imageBytes, mediaType: mediaType);
+  }
+
+  // Validate and upload a selected profile image.
+  Future<UploadedProfileImage> upload(XFile image) async {
+    final checked = await _readValidImage(image);
+    final imageBytes = checked.bytes;
+    final mediaType = checked.mediaType;
 
     // Get a verified Firebase session before uploading.
     final session = await _getVerifiedSession();

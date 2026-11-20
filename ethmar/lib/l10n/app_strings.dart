@@ -40,6 +40,8 @@ class AppStrings {
     'errPasswordDigit': 'a number',
     'errPasswordSpecial': 'a special character (like ! or @)',
     'errPasswordRules': 'Your password doesn\'t follow all the rules below yet',
+    'errPasswordEnglishOnly':
+        'Use only English letters, numbers and symbols in your password',
     'showPassword': 'Show password',
     'hidePassword': 'Hide password',
     'back': 'Back',
@@ -556,6 +558,8 @@ class AppStrings {
     'errPasswordDigit': 'رقم',
     'errPasswordSpecial': 'رمز خاص (مثل ! أو @)',
     'errPasswordRules': 'كلمة المرور لا تحقق كل الشروط أدناه بعد',
+    'errPasswordEnglishOnly':
+        'استخدم الأحرف الإنجليزية والأرقام والرموز فقط في كلمة المرور',
     'showPassword': 'إظهار كلمة المرور',
     'hidePassword': 'إخفاء كلمة المرور',
     'back': 'عودة',
@@ -1056,6 +1060,7 @@ class S {
   String get errPasswordDigit => t('errPasswordDigit');
   String get errPasswordSpecial => t('errPasswordSpecial');
   String get errPasswordRules => t('errPasswordRules');
+  String get errPasswordEnglishOnly => t('errPasswordEnglishOnly');
 
   /// "Your password needs:", above the sign-up checklist.
   String get passwordRulesTitle => '${t('errPasswordNeeds')}:';
