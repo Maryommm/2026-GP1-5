@@ -987,52 +987,9 @@ class _ExploreSection extends StatelessWidget {
   }
 }
 
-/// The Check Your Plant line on one line: the usual small text (13), made
-/// only as much smaller as the card needs. Below [_minSize] it would be
-/// hard to read, so then it keeps 13 and wraps instead.
-class _OneLineHint extends StatelessWidget {
-  const _OneLineHint(this.text);
-  final String text;
-
-  static const _size = 13.0;
-  static const _minSize = 11.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final base = AppText.small(context).copyWith(fontSize: _size);
-    // Measured again once the font has loaded.
-    return ListenableBuilder(
-      listenable: PaintingBinding.instance.systemFonts,
-      builder: (context, _) => LayoutBuilder(
-        builder: (context, constraints) {
-          final painter = TextPainter(
-            text: TextSpan(text: text, style: base),
-            textDirection: Directionality.of(context),
-            textScaler: MediaQuery.textScalerOf(context),
-            maxLines: 1,
-          )..layout();
-          final natural = painter.width;
-          painter.dispose();
-          final room = constraints.maxWidth;
-          // A hair smaller, so rounding never pushes it onto a second line.
-          final size = natural <= room
-              ? _size
-              : (_size * room / natural * 10).floorToDouble() / 10;
-          if (size < _minSize) return Text(text, style: base);
-          return Text(
-            text,
-            maxLines: 1,
-            softWrap: false,
-            style: base.copyWith(fontSize: size),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// The big light-green Check Your Plant card: name, a short line and a
-/// camera button, with the diagnosis picture large on the end side.
+/// The big light-green Check Your Plant card: name with a camera beside it
+/// and a short line, with the diagnosis picture large on the end side. The
+/// whole card opens the scan.
 class _DiagnosisCard extends StatelessWidget {
   const _DiagnosisCard();
 
@@ -1041,7 +998,7 @@ class _DiagnosisCard extends StatelessWidget {
     final s = S.of(context);
     return Semantics(
       button: true,
-      // The camera button has no visible words; screen readers say them.
+      // The camera has no visible words; screen readers say them.
       label:
           '${s.homeCardDiagnosis}. ${s.homeDiagnosisHint}. '
           '${s.homeDiagnosisAction}',
@@ -1063,27 +1020,30 @@ class _DiagnosisCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        s.homeCardDiagnosis,
-                        style: AppText.title(context).copyWith(fontSize: 20),
+                      // The name with a plain camera after it.
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              s.homeCardDiagnosis,
+                              style: AppText.title(
+                                context,
+                              ).copyWith(fontSize: 20),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.photo_camera_rounded,
+                            size: 24,
+                            color: AppColors.forest,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      _OneLineHint(s.homeDiagnosisHint),
-                      const SizedBox(height: 14),
-                      // Camera only, centred in a compact pill.
-                      Container(
-                        width: 52,
-                        height: 36,
-                        alignment: Alignment.center,
-                        decoration: const ShapeDecoration(
-                          color: AppColors.forest,
-                          shape: StadiumBorder(),
-                        ),
-                        child: const Icon(
-                          Icons.photo_camera_rounded,
-                          size: 18,
-                          color: AppColors.onForest,
-                        ),
+                      const SizedBox(height: 8),
+                      Text(
+                        s.homeDiagnosisHint,
+                        style: AppText.body(context).copyWith(height: 1.4),
                       ),
                     ],
                   ),
