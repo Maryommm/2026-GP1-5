@@ -28,6 +28,7 @@ import json
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import asdict, dataclass, fields
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -51,6 +52,14 @@ SOILGRIDS_URL = "https://rest.isric.org/soilgrids/v2.0/properties/query"
 
 TIMEOUT = 45          # seconds, for the small requests
 NASA_TIMEOUT = 150    # seconds, NASA returns 20 years of data in one response
+
+# How long one lookup may wait for the services, in seconds. Vercel stops
+# the server after 60 s and the app gives up after 60 s, so the lookup
+# stops waiting well before that. NASA POWER is required; if it hasn't
+# answered by then the lookup fails. Elevation and soil pH are not: a late
+# one is replaced by a placeholder, the NASA data is still saved in the
+# cache, and the next request for the area fetches the missing part.
+LOOKUP_BUDGET_S = 40
 USER_AGENT = "Ethmar-GraduationProject/0.1"
 
 # SoilGrids has no data inside cities.
@@ -396,8 +405,19 @@ def fetch_soil_ph(latitude: float, longitude: float):
 # Main function
 # --------------------------------------------------------------------------- #
 
+def _result_by(job, deadline: float, fallback):
+    """The job's result if it finishes before [deadline] (time.monotonic),
+    otherwise [fallback]. A job that fails also gives [fallback]."""
+    try:
+        return job.result(timeout=max(0.0, deadline - time.monotonic()))
+    except Exception as exc:  # timeout, or the service raised
+        print(f"climate service skipped: {type(exc).__name__}")
+        return fallback
+
+
 def lookup(latitude: float, longitude: float, cache=None,
-           with_soil: bool = True) -> ClimateProfile:
+           with_soil: bool = True,
+           budget_s: float = LOOKUP_BUDGET_S) -> ClimateProfile:
     """
     Return the climate profile of a location.
 
@@ -412,48 +432,71 @@ def lookup(latitude: float, longitude: float, cache=None,
                    is not used, so the slow SoilGrids service is skipped and
                    soil_ph_source is "not_fetched". A later request with
                    with_soil=True for the same area fetches it then.
+        budget_s   how long to wait for the services (see LOOKUP_BUDGET_S).
+                   Elevation or soil pH that come later are left out for
+                   now and fetched by the next request.
 
     Raises:
         ValueError if the latitude or longitude is out of range.
-        RuntimeError if NASA POWER returns no usable data.
+        RuntimeError if NASA POWER returns no usable data, or doesn't
+            answer within the time budget.
         requests.HTTPError if NASA POWER cannot be reached.
     """
     if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
         raise ValueError(f"invalid location: {latitude}, {longitude}")
     latitude, longitude = area_centre(latitude, longitude)
     cache = cache if cache is not None else FileCache()
+    deadline = time.monotonic() + budget_s
+    # Not a `with` block: leaving one waits for every job, and a slow
+    # service must not hold the answer past the deadline. A job still
+    # running then finishes on its own; its result is simply not used.
+    pool = ThreadPoolExecutor(max_workers=3)
+    try:
+        cached = _read_cache(cache, latitude, longitude)
+        if cached is not None:
+            # A default pH or a missing elevation means that a service
+            # failed or was late last time. We try again instead of keeping
+            # the placeholder for the whole 30 days.
+            soil_job = (pool.submit(fetch_soil_ph, latitude, longitude)
+                        if with_soil and cached.soil_ph_source in ("default", "not_fetched")
+                        else None)
+            elevation_job = (pool.submit(fetch_elevation, latitude, longitude)
+                             if cached.elevation_m is None else None)
+            changed = False
+            if soil_job:
+                soil_ph, ph_source = _result_by(soil_job, deadline, (7.0, "default"))
+                if ph_source != "default":
+                    cached.soil_ph, cached.soil_ph_source = soil_ph, ph_source
+                    changed = True
+            if elevation_job:
+                elevation = _result_by(elevation_job, deadline, None)
+                if elevation is not None:
+                    cached.elevation_m = elevation
+                    cached.temp_adjust_c = apply_elevation_correction(
+                        cached.monthly, cached.grid_elevation_m, elevation)
+                    changed = True
+            if changed:
+                _write_cache(cache, cached)
+            return cached
 
-    cached = _read_cache(cache, latitude, longitude)
-    if cached is not None:
-        # A default pH or a missing elevation means that a service failed
-        # last time. We try again instead of keeping the placeholder for
-        # the whole 30 days.
-        changed = False
-        if with_soil and cached.soil_ph_source in ("default", "not_fetched"):
-            soil_ph, ph_source = fetch_soil_ph(latitude, longitude)
-            if ph_source != "default":
-                cached.soil_ph, cached.soil_ph_source = soil_ph, ph_source
-                changed = True
-        if cached.elevation_m is None:
-            elevation = fetch_elevation(latitude, longitude)
-            if elevation is not None:
-                cached.elevation_m = elevation
-                cached.temp_adjust_c = apply_elevation_correction(
-                    cached.monthly, cached.grid_elevation_m, elevation)
-                changed = True
-        if changed:
-            _write_cache(cache, cached)
-        return cached
-
-    # The services do not depend on each other, so they are called at the
-    # same time. The total wait is the time of the slowest one.
-    with ThreadPoolExecutor(max_workers=3) as pool:
+        # The services do not depend on each other, so they are called at
+        # the same time. The total wait is the time of the slowest one, up
+        # to the deadline.
         nasa_job = pool.submit(fetch_nasa_power, latitude, longitude)
         elevation_job = pool.submit(fetch_elevation, latitude, longitude)
         soil_job = pool.submit(fetch_soil_ph, latitude, longitude) if with_soil else None
-        monthly, grid_elevation = nasa_job.result()
-        elevation = elevation_job.result()
-        soil_ph, ph_source = soil_job.result() if soil_job else (7.0, "not_fetched")
+        try:
+            monthly, grid_elevation = nasa_job.result(
+                timeout=max(0.0, deadline - time.monotonic()))
+        except FutureTimeout:
+            raise RuntimeError(
+                f"NASA POWER did not answer within {budget_s:.0f} s "
+                f"for {latitude}, {longitude}") from None
+        elevation = _result_by(elevation_job, deadline, None)
+        soil_ph, ph_source = (_result_by(soil_job, deadline, (7.0, "default"))
+                              if soil_job else (7.0, "not_fetched"))
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
 
     if monthly is None:
         raise RuntimeError(
