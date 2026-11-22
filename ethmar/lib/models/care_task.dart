@@ -16,8 +16,11 @@ class CareTask {
 ///
 /// A schedule starts on the day the plant was planted and repeats every
 /// `repeat.days` days at its time, the same way as [CareSchedule.nextAfter].
-/// Schedules that are switched off (null) give no tasks, and nothing is due
-/// before the planting day.
+/// Schedules that are switched off (null) give no tasks. Nothing is due
+/// before the planting day, nor before the day the schedule was set
+/// ([CareSchedule.since]; for older schedules without it, the day the plant
+/// was last saved, which is when such a schedule was last set). So a schedule added today never makes yesterday a
+/// missed day, for Daily Tasks or for the streak.
 ///
 /// Shared by the Daily Tasks page and the care reminders, so both always
 /// agree on what is due.
@@ -25,7 +28,7 @@ List<CareTask> dueTasks(List<FarmPlant> plants, DateTime day) {
   final tasks = <CareTask>[
     for (final plant in plants)
       for (final type in TaskType.values)
-        if (_isDue(_scheduleOf(plant, type), plant.plantedAt, day))
+        if (_isDue(_scheduleOf(plant, type), plant, day))
           CareTask(
             plant: plant,
             type: type,
@@ -41,9 +44,10 @@ CareSchedule? _scheduleOf(FarmPlant plant, TaskType type) => switch (type) {
   TaskType.fertilizing => plant.fertilization,
 };
 
-bool _isDue(CareSchedule? schedule, DateTime plantedAt, DateTime day) {
+bool _isDue(CareSchedule? schedule, FarmPlant plant, DateTime day) {
   if (schedule == null) return false;
-  final days = _daysBetween(plantedAt, day);
+  if (_daysBetween(schedule.since ?? plant.updatedAt, day) < 0) return false;
+  final days = _daysBetween(plant.plantedAt, day);
   return days >= 0 && days % schedule.repeat.days == 0;
 }
 

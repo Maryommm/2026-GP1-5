@@ -25,6 +25,9 @@ FarmPlant plant(
       irrigation: water,
       fertilization: fertilize,
       plantedAt: planted ?? DateTime(2026, 11, 1),
+      // Added to the app on its planting day.
+      createdAt: planted ?? DateTime(2026, 11, 1),
+      updatedAt: planted ?? DateTime(2026, 11, 1),
     );
 
 const at8 = TimeOfDay(hour: 8, minute: 0);

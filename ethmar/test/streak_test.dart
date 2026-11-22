@@ -14,8 +14,9 @@ FarmPlant plant(String id, Repeat repeat, {DateTime? planted}) => FarmPlant(
       name: 'Mint',
       irrigation: CareSchedule(repeat, const TimeOfDay(hour: 8, minute: 0)),
       plantedAt: planted ?? DateTime(2026, 11, 1),
-      // Added to the app on its planting day.
+      // Added to the app on its planting day, not changed since.
       createdAt: planted ?? DateTime(2026, 11, 1),
+      updatedAt: planted ?? DateTime(2026, 11, 1),
     );
 
 FarmStats stats(int streak, String? last) =>
@@ -218,6 +219,7 @@ void main() {
               const CareSchedule(Repeat.everyDay, TimeOfDay(hour: 8, minute: 0)),
           plantedAt: DateTime(2026, 11, 1),
           createdAt: DateTime(2026, 11, 9, 15),
+          updatedAt: DateTime(2026, 11, 9, 15),
         ),
       ];
       expect([for (final t in missedTasks(added, today, const {})) t.day],
@@ -227,6 +229,121 @@ void main() {
     test('each card has its own key, also for the same plant and type', () {
       final missed = missedTasks(daily, today, const {});
       expect({for (final t in missed) t.key}, hasLength(missed.length));
+    });
+  });
+
+  group('a schedule only counts from the day it was set', () {
+    const at8 = TimeOfDay(hour: 8, minute: 0);
+    // Planted and added on Nov 1 with no schedule; daily watering set on
+    // Nov 10.
+    final noSchedule = FarmPlant(
+      id: 'a',
+      crop: cropCatalog.first,
+      name: 'Mint',
+      plantedAt: DateTime(2026, 11, 1),
+      createdAt: DateTime(2026, 11, 1),
+      updatedAt: DateTime(2026, 11, 1),
+    );
+    final today = DateTime(2026, 11, 10, 9);
+    final watered = noSchedule.edited(
+      name: 'Mint',
+      irrigation: const CareSchedule(Repeat.everyDay, at8),
+      fertilization: null,
+      today: today,
+    );
+
+    test('a new schedule starts today', () {
+      expect(watered.irrigation!.since, DateTime(2026, 11, 10));
+      expect(dueTasks([watered], DateTime(2026, 11, 9)), isEmpty);
+      expect(dueTasks([watered], DateTime(2026, 11, 10)), hasLength(1));
+    });
+
+    test('the days before it are not missed tasks', () {
+      expect(missedTasks([watered], today, const {}), isEmpty);
+    });
+
+    test('the days before it do not break the streak', () {
+      final before = stats(3, '2026-11-08');
+      expect(streakAfterMissedDays(before, [watered], today).currentStreak, 3);
+    });
+
+    test('an unchanged schedule keeps its start day when saved again', () {
+      final again = watered.edited(
+        name: 'Mint 2',
+        irrigation: const CareSchedule(Repeat.everyDay, at8),
+        fertilization: null,
+        today: DateTime(2026, 11, 15),
+      );
+      expect(again.irrigation!.since, DateTime(2026, 11, 10));
+    });
+
+    test('a changed schedule starts again on the day it changed', () {
+      final changed = watered.edited(
+        name: 'Mint',
+        irrigation: const CareSchedule(Repeat.every2Days, at8),
+        fertilization: null,
+        today: DateTime(2026, 11, 15),
+      );
+      expect(changed.irrigation!.since, DateTime(2026, 11, 15));
+    });
+
+    test('the start day is saved and read back', () {
+      final map = watered.irrigation!.toMap();
+      expect(map['since'], '2026-11-10');
+      expect(CareSchedule.fromMap(map)!.since, DateTime(2026, 11, 10));
+      // Saved before start days were kept.
+      expect(CareSchedule.fromMap({'everyDays': 1, 'time': '08:00'})!.since,
+          isNull);
+    });
+
+    test('an older schedule without a start day counts from when the plant '
+        'was last saved', () {
+      // Added on Nov 1 without a schedule; daily watering set on Nov 9,
+      // before start days were kept.
+      final added = FarmPlant(
+        id: 'b',
+        crop: cropCatalog.first,
+        name: 'Basil',
+        irrigation: const CareSchedule(Repeat.everyDay, at8),
+        plantedAt: DateTime(2026, 11, 1),
+        createdAt: DateTime(2026, 11, 1),
+        updatedAt: DateTime(2026, 11, 9, 15),
+      );
+      expect(dueTasks([added], DateTime(2026, 11, 8)), isEmpty);
+      expect(dueTasks([added], DateTime(2026, 11, 9)), hasLength(1));
+    });
+
+    test('renaming a plant with an older schedule keeps its missed tasks', () {
+      final old = FarmPlant(
+        id: 'b',
+        crop: cropCatalog.first,
+        name: 'Basil',
+        irrigation: const CareSchedule(Repeat.everyDay, at8),
+        plantedAt: DateTime(2026, 11, 1),
+        createdAt: DateTime(2026, 11, 1),
+        updatedAt: DateTime(2026, 11, 5),
+      );
+      // Nov 7, 8 and 9 were missed. Renamed on Nov 10: same schedule.
+      final renamed = old.edited(
+        name: 'My basil',
+        irrigation: const CareSchedule(Repeat.everyDay, at8),
+        fertilization: null,
+        today: today,
+      );
+      expect(renamed.irrigation!.since, DateTime(2026, 11, 5));
+      expect([for (final t in missedTasks([renamed], today, const {})) t.day], [
+        DateTime(2026, 11, 9),
+        DateTime(2026, 11, 8),
+        DateTime(2026, 11, 7),
+      ]);
+      // And renaming again later still doesn't move it.
+      final again = renamed.edited(
+        name: 'Basil',
+        irrigation: const CareSchedule(Repeat.everyDay, at8),
+        fertilization: null,
+        today: DateTime(2026, 11, 12),
+      );
+      expect(again.irrigation!.since, DateTime(2026, 11, 5));
     });
   });
 

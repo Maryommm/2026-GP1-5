@@ -9,8 +9,11 @@
 ///                               the one the user picked
 ///   - land           int        which land it's on (0 = the first land)
 ///   - square         int        its square on that land, 0-24
-///   - irrigation     map|null   {everyDays: int, time: "HH:mm"};
-///                               null when switched off
+///   - irrigation     map|null   {everyDays: int, time: "HH:mm",
+///                               since: "yyyy-mm-dd"}; null when switched
+///                               off. since (optional) is the day the
+///                               schedule was set or last changed: no task
+///                               of it is due before that day
 ///   - fertilization  map|null   same as irrigation
 ///   - plantedAt      Timestamp
 ///   - createdAt      Timestamp
@@ -75,9 +78,38 @@ enum Repeat {
 ///
 /// Saved as `{everyDays: 7, time: "08:00"}` (24-hour time).
 class CareSchedule {
-  const CareSchedule(this.repeat, this.time);
+  const CareSchedule(this.repeat, this.time, {this.since});
   final Repeat repeat;
   final TimeOfDay time;
+
+  /// The day the user set this schedule, or last changed it (no time).
+  /// Nothing is due before it, so a schedule added today has no missed
+  /// tasks from yesterday. Null for schedules saved before this was kept;
+  /// those count from the day the plant was last saved (see dueTasks).
+  final DateTime? since;
+
+  /// Same repeat and time; [since] isn't compared.
+  bool sameAs(CareSchedule? other) =>
+      other != null && other.repeat == repeat && other.time == time;
+
+  /// This schedule as the user saves it in place of [previous]: new or
+  /// changed ones start on [today]; unchanged ones keep their start day.
+  ///
+  /// An unchanged schedule saved before start days were kept has none, and
+  /// counts from [lastSaved], the plant's last save before this one. That
+  /// day is written down now, so this save (e.g. only a new name) doesn't
+  /// move it, and missed tasks stay missed.
+  CareSchedule savedOver(
+    CareSchedule? previous,
+    DateTime today, {
+    required DateTime lastSaved,
+  }) {
+    if (!sameAs(previous)) return CareSchedule(repeat, time, since: _day(today));
+    if (previous!.since != null) return previous;
+    return CareSchedule(repeat, time, since: _day(lastSaved));
+  }
+
+  static DateTime _day(DateTime t) => DateTime(t.year, t.month, t.day);
 
   /// The next reminder after [now], counting from [start] (the day the
   /// plant was planted).
@@ -98,6 +130,9 @@ class CareSchedule {
   Map<String, Object> toMap() => {
     'everyDays': repeat.days,
     'time': '${_twoDigits(time.hour)}:${_twoDigits(time.minute)}',
+    if (since case final day?)
+      'since':
+          '${day.year}-${_twoDigits(day.month)}-${_twoDigits(day.day)}',
   };
 
   /// Null when the schedule is switched off (saved as null).
@@ -107,10 +142,28 @@ class CareSchedule {
     if (data is! Map) throw FormatException('Invalid care schedule: $data');
     final everyDays = data['everyDays'];
     final time = data['time'];
-    if (everyDays is! int || time is! String) {
+    final since = data['since'];
+    if (everyDays is! int || time is! String || (since != null && since is! String)) {
       throw FormatException('Invalid care schedule: $data');
     }
-    return CareSchedule(Repeat.fromDays(everyDays), _parseTime(time));
+    return CareSchedule(
+      Repeat.fromDays(everyDays),
+      _parseTime(time),
+      since: since == null ? null : _parseDate(since as String),
+    );
+  }
+
+  /// "yyyy-mm-dd" to a local date.
+  static DateTime _parseDate(String text) {
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(text);
+    if (match == null) {
+      throw FormatException('Invalid date "$text", expected "yyyy-mm-dd".');
+    }
+    return DateTime(
+      int.parse(match.group(1)!),
+      int.parse(match.group(2)!),
+      int.parse(match.group(3)!),
+    );
   }
 
   static String _twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -308,10 +361,13 @@ class FarmPlant {
   }
 
   /// The same plant with a new name and schedules (from the edit form).
+  /// A schedule that is new or changed starts on [today] (see
+  /// [CareSchedule.since]); an unchanged one keeps its start day.
   FarmPlant edited({
     required String name,
     required CareSchedule? irrigation,
     required CareSchedule? fertilization,
+    DateTime? today,
   }) => FarmPlant(
     id: id,
     crop: crop,
@@ -319,8 +375,16 @@ class FarmPlant {
     name: name,
     land: land,
     square: square,
-    irrigation: irrigation,
-    fertilization: fertilization,
+    irrigation: irrigation?.savedOver(
+      this.irrigation,
+      today ?? DateTime.now(),
+      lastSaved: updatedAt,
+    ),
+    fertilization: fertilization?.savedOver(
+      this.fertilization,
+      today ?? DateTime.now(),
+      lastSaved: updatedAt,
+    ),
     plantedAt: plantedAt,
     createdAt: createdAt,
     updatedAt: DateTime.now(),
