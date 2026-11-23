@@ -1,39 +1,46 @@
 # Ethmar – إثمار
 
-Friendly Arabic / English gardening app (IT496).
-Screens so far: animated splash → welcome → sign up / log in → home.
+Arabic / English gardening app for home farmers. The setup of the whole
+project (API, data pipeline, photo Worker) is in the
+[main README](../README.md).
 
-## Run it in VS Code
+## Run it
 
-1. Install Flutter and the **Flutter** extension for VS Code (if you haven't).
-2. Unzip this folder and open it in VS Code (**File → Open Folder… → ethmar**).
-3. Open the terminal in VS Code (**Terminal → New Terminal**) and run:
+Requirements: Flutter 3.47 (Dart 3.13) and an Android emulator or phone.
 
-   ```bash
-   flutter create .
-   flutter pub get
-   ```
+```bash
+flutter pub get
+flutter run
+```
 
-   `flutter create .` only adds the missing platform folders (android, ios, web…);
-   it does **not** overwrite the code in `lib/`.
-4. Start an emulator or plug in your phone, pick it from the bottom-right
-   device list, then press **F5** (or run `flutter run`).
+In VS Code: open this `ethmar` folder, pick a device in the status bar, then
+press **F5**.
 
-> The fonts are downloaded by the `google_fonts` package the first time the app
-> runs, so the phone / emulator needs internet.
+- The Firebase configuration is included (`android/app/google-services.json`,
+  `lib/firebase_options.dart`), so no Firebase setup is needed.
+- The device needs internet (sign-in, recommendations, fonts).
+- On the emulator, set a location (Extended controls → Location) before
+  asking for recommendations.
+- The app calls the deployed API by default. To use another server:
+  `flutter run --dart-define=API_BASE_URL=https://your-server`.
+
+Checks: `flutter analyze` and `flutter test`.
 
 ## Project map
 
 ```
 lib/
-  main.dart                  app entry, language + theme
-  theme/app_colors.dart      Red Sea palette
-  theme/app_theme.dart       fonts & text styles
-  l10n/app_strings.dart      ALL text, Arabic + English
-  l10n/locale_controller.dart  current language (Arabic by default)
-  screens/                   splash, welcome, sign up, log in, home, profile, crop recommendation
-  widgets/                   logo, buttons, text field, doodles, character…
-assets/images/               put the character PNGs here
+  main.dart            app entry, Firebase, language and theme
+  models/              plants, care schedules, daily tasks, streak, crops
+  services/            Firebase, recommendation API, photos, notifications, location
+  screens/             splash, welcome, sign up / log in, home, my plants, daily tasks,
+                       virtual farm, crop recommendation, leaderboard, profile…
+  widgets/             shared UI parts
+  theme/               colors, fonts and text styles
+  l10n/app_strings.dart  every sentence in Arabic and English
+assets/                icons, images and crop pictures
+firestore.rules        Firestore security rules
+test/                  unit and widget tests
 ```
 
 ## Arabic & English
