@@ -12,14 +12,6 @@ This repository contains the complete source code of the project:
 | [workers/profile-images/](workers/profile-images/) | Upload service for profile pictures and plant growth photos | TypeScript, Cloudflare Workers, Cloudinary |
 | [.github/workflows/](.github/workflows/) | A check that validates the crop table on every push | GitHub Actions |
 
-```
-Flutter app ──► Firebase Auth / Firestore          (accounts, plants, tasks)
-     │
-     ├────────► Vercel: /api/recommend ──► NASA POWER, Open-Meteo, SoilGrids
-     │                                      (climate, elevation, soil pH)
-     └────────► Cloudflare Worker ──► Cloudinary   (photos)
-```
-
 The API, the Worker and the Firebase project are already deployed. To run
 the app you only need the steps in section 1. Sections 2 to 4 are for working
 on the other parts.
