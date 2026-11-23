@@ -140,9 +140,6 @@ tunnel.
    [vercel.json](vercel.json) sets up the function and its files.
 2. In Settings → Environment Variables, add `FIREBASE_SERVICE_ACCOUNT` with the
    full JSON of the service account key.
-3. Optional: in Settings → Build and Deployment, set the Build Command to
-   `pip install -r recommender/requirements.txt && python recommender/scripts/load_check.py`
-   so that a crop table with a blocking problem is never deployed.
 
 ---
 
