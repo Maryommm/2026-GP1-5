@@ -1,6 +1,5 @@
 # Ethmar – إثمار
-
-
+ETHMAR is a personal agricultural assistant application designed to help, organize, and motivate beginner home farmers globally.
 
 This repository contains the complete source code of the project:
 
