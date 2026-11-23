@@ -1,9 +1,6 @@
 # Ethmar – إثمار
 
-Ethmar is an Arabic/English gardening app for home farmers. It recommends crops
-that suit the user's location, season and growing conditions. It also keeps a
-farm of the user's plants with daily care tasks, reminders and a streak, and
-shows the plants as a virtual farm.
+
 
 This repository contains the complete source code of the project:
 
