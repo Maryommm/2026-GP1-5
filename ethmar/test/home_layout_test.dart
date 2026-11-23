@@ -51,14 +51,25 @@ void main() {
       await showCard(tester);
 
       expect(find.text("Today's Tasks"), findsOneWidget);
-      expect(find.text('0/2'), findsOneWidget);
+      // The numbers are wrapped in direction marks (see homeTasksDoneOf).
+      expect(find.textContaining(RegExp(r'0/2\W* completed')), findsOneWidget);
       expect(find.textContaining('Mint'), findsNothing);
       expect(find.textContaining('Basil'), findsNothing);
     });
 
     testWidgets('counts the ticked tasks', (tester) async {
       await showCard(tester, done: [TaskLog.irrigationTaskId('a')]);
-      expect(find.text('1/2'), findsOneWidget);
+      expect(find.textContaining(RegExp(r'1/2\W* completed')), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+    });
+
+    testWidgets('a green tick once every task is done', (tester) async {
+      await showCard(
+        tester,
+        done: [TaskLog.irrigationTaskId('a'), TaskLog.irrigationTaskId('b')],
+      );
+      expect(find.textContaining(RegExp(r'2/2\W* completed')), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
     });
 
     testWidgets('the whole card opens Daily Tasks', (tester) async {
@@ -77,6 +88,7 @@ void main() {
 
     expect(find.text("Today's Tasks"), findsOneWidget);
     expect(find.textContaining('/'), findsNothing);
+    expect(find.text('No tasks today'), findsOneWidget);
   });
 
   testWidgets('the labeled bar names every tab, and reports taps', (
@@ -111,6 +123,54 @@ void main() {
     await tester.tap(find.text('Ask Thamoor'));
     await tester.tap(find.text('Your Farm'));
     expect(taps, [2, 1]);
+  });
+
+  testWidgets('the labeled bar mirrors its tab order in Arabic', (
+    tester,
+  ) async {
+    Future<Map<String, double>> tabXs(TextDirection direction) async {
+      final taps = <int>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Directionality(
+            textDirection: direction,
+            child: Scaffold(
+              bottomNavigationBar: LabeledNavBar(
+                items: const [
+                  NavBarItem(image: 'ethmar_homepage_icon', label: 'Home'),
+                  NavBarItem(
+                    image: 'ethmar_add_plant_icon',
+                    label: 'Your Farm',
+                    tinted: false,
+                  ),
+                  NavBarItem(
+                    image: 'ethmar_chatbot_icon',
+                    label: 'Ask Thamoor',
+                  ),
+                ],
+                currentIndex: 0,
+                onSelect: taps.add,
+              ),
+            ),
+          ),
+        ),
+      );
+      // Each tab still reports its own index, whichever side it is on.
+      await tester.tap(find.text('Ask Thamoor'));
+      expect(taps, [2]);
+      return {
+        for (final label in ['Home', 'Your Farm', 'Ask Thamoor'])
+          label: tester.getCenter(find.text(label)).dx,
+      };
+    }
+
+    final ltr = await tabXs(TextDirection.ltr);
+    expect(ltr['Home']!, lessThan(ltr['Your Farm']!));
+    expect(ltr['Your Farm']!, lessThan(ltr['Ask Thamoor']!));
+
+    final rtl = await tabXs(TextDirection.rtl);
+    expect(rtl['Home']!, greaterThan(rtl['Your Farm']!));
+    expect(rtl['Your Farm']!, greaterThan(rtl['Ask Thamoor']!));
   });
 
   testWidgets('the pill bar names only the open tab, and reports taps', (

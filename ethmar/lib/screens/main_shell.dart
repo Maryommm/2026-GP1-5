@@ -144,8 +144,9 @@ class _MainShellState extends State<MainShell> {
             image: 'ethmar_add_plant_icon',
             label: s.navVirtualFarm,
             tinted: false,
-            // The picture has empty space around it.
-            iconSize: pills ? 46 : 40,
+            // The drawing fills about 68% of its picture (Home's fills 91%),
+            // so a bigger box makes it look the same size as the others.
+            iconSize: pills ? 40 : 37,
           ),
           _Tab.chat => NavBarItem(
             image: 'ethmar_chatbot_icon',

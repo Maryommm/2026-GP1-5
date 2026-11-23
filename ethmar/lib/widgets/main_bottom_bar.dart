@@ -35,8 +35,9 @@ class NavBarItem {
 // ---------------------------------------------------------------------------
 
 /// A white bar with each tab's icon above its name. The open tab sits on a
-/// pale-green rounded square, in dark green; the others are grey. Same tab
-/// order in both languages.
+/// pale-yellow rounded square, in dark green; the others are grey. The tabs
+/// follow the reading direction (Home on the left in English, on the right
+/// in Arabic).
 class LabeledNavBar extends StatelessWidget {
   const LabeledNavBar({
     super.key,
@@ -67,8 +68,9 @@ class LabeledNavBar extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          // Follows the reading direction: the first tab (Home) is on the
+          // left in English and on the right in Arabic.
           child: Row(
-            textDirection: TextDirection.ltr,
             children: [
               for (var i = 0; i < items.length; i++)
                 Expanded(
@@ -120,7 +122,8 @@ class _LabeledTab extends StatelessWidget {
               constraints: const BoxConstraints(minWidth: 96),
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
               decoration: BoxDecoration(
-                color: selected ? AppColors.forestTint : null,
+                // The open tab sits on a soft light yellow.
+                color: selected ? AppColors.sunTint : null,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(

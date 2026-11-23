@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show OverflowBoxFit, RenderProxyBox;
 
 import '../app_layout.dart';
 import '../l10n/app_strings.dart';
@@ -24,13 +25,14 @@ import 'leaderboard_screen.dart';
 import 'leaf_scan_screen.dart';
 import 'profile_screen.dart';
 
-/// Home: logo and avatar on top, a time-of-day greeting and the weather
-/// card, then:
-/// - now: the "Today's Tasks" card (opens Daily Tasks), the streak card and
-///   Explore: a big Check Your Plant card and three tiles (Ethmar Map,
-///   Recommended, Leaderboard). Plants are added from Your Farm.
-/// - with [useClassicLayout]: the streak card and the five feature cards
-///   (Add Plant, Disease Diagnosis, Near Me, Recommended, Leaderboard).
+/// Home: logo and avatar on top, then the time-of-day greeting, then:
+/// - now: the weather card, one card with Today's Tasks (opens Daily Tasks)
+///   and the streak, and Ethmar Services: a compact Crop Recommendations
+///   card and three tiles (Agricultural Places, Check Your Plant,
+///   Leaderboard). Plants are added from Your Farm.
+/// - with [useClassicLayout]: the streak card, the weather card and the five
+///   feature cards (Add Plant, Disease Diagnosis, Near Me, Recommended,
+///   Leaderboard).
 ///
 /// It is the first tab of MainShell, which draws the shared bottom bar.
 class HomeScreen extends StatelessWidget {
@@ -59,62 +61,97 @@ class HomeScreen extends StatelessWidget {
               // edges.
               behavior:
                   ScrollConfiguration.of(context).copyWith(overscroll: false),
-              child: SingleChildScrollView(
-                // One shared side margin, so every section lines up.
-                // The bottom keeps clear of the farm button over the bar.
-                padding: EdgeInsetsDirectional.fromSTEB(
-                  24,
-                  8,
-                  24,
-                  24 + MediaQuery.paddingOf(context).bottom,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Both follow the shared username, so they update as soon
-                    // as it changes (e.g. after Edit Profile).
-                    ValueListenableBuilder<String>(
-                      valueListenable: currentUsername,
-                      builder: (context, savedName, _) => _TopBar(
-                          username: savedName.isEmpty ? username : savedName),
-                    ),
-                    const SizedBox(height: 20),
-                    Entrance(
-                      child: ValueListenableBuilder<String>(
-                        valueListenable: currentUsername,
-                        builder: (context, savedName, _) => _Greeting(
-                            username:
-                                savedName.isEmpty ? username : savedName),
+              child: LayoutBuilder(
+                builder: (context, viewport) {
+                  // One shared side margin, so every section lines up.
+                  // The bottom keeps clear of the farm button over the bar.
+                  final padding = EdgeInsetsDirectional.fromSTEB(
+                    24,
+                    8,
+                    24,
+                    24 + MediaQuery.paddingOf(context).bottom,
+                  );
+                  return SingleChildScrollView(
+                    padding: padding,
+                    // At least as tall as the screen. When the content is
+                    // shorter, the room left over is shared out: half above
+                    // the greeting (so everything below the logo moves down
+                    // together, keeping its own spacing) and half at the
+                    // bottom. When it is taller (small screen, large text),
+                    // there is nothing to share and the page just scrolls.
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: (viewport.maxHeight - padding.vertical)
+                            .clamp(0.0, double.infinity),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Both follow the shared username, so they update
+                          // as soon as it changes (e.g. after Edit Profile).
+                          ValueListenableBuilder<String>(
+                            valueListenable: currentUsername,
+                            builder: (context, savedName, _) => _TopBar(
+                                username:
+                                    savedName.isEmpty ? username : savedName),
+                          ),
+                          _content(),
+                          // The bottom half of the room left over.
+                          const SizedBox.shrink(),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    const Entrance(
-                      delay: Duration(milliseconds: 100),
-                      child: _WeatherCard(),
-                    ),
-                    const SizedBox(height: 16),
-                    // Tells the user once when a missed day ends the streak.
-                    const _StreakLostAlert(),
-                    const Entrance(
-                      delay: Duration(milliseconds: 150),
-                      child: useClassicLayout
-                          ? _StreakCard()
-                          : _TasksAndStreak(),
-                    ),
-                    const SizedBox(height: 20),
-                    const Entrance(
-                      delay: Duration(milliseconds: 200),
-                      child: useClassicLayout
-                          ? _FeatureGrid()
-                          : _ExploreSection(),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Everything below the top bar, with its own fixed spacing.
+  Widget _content() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        Entrance(
+          child: ValueListenableBuilder<String>(
+            valueListenable: currentUsername,
+            builder: (context, savedName, _) => _Greeting(
+                username:
+                    savedName.isEmpty ? username : savedName),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Entrance(
+          delay: Duration(milliseconds: 100),
+          child: _WeatherCard(),
+        ),
+        const SizedBox(height: 12),
+        // Tells the user once when a missed day ends the streak.
+        const _StreakLostAlert(),
+        Entrance(
+          delay: const Duration(milliseconds: 150),
+          child: useClassicLayout
+              ? const _StreakCard()
+              // Its height is shared with the Crop Recommendations card.
+              : _ReportHeight(
+                  onHeight: (height) => _tasksCardHeight.value = height,
+                  child: const _TasksAndStreak(),
+                ),
+        ),
+        const SizedBox(height: 20),
+        const Entrance(
+          delay: Duration(milliseconds: 200),
+          child: useClassicLayout
+              ? _FeatureGrid()
+              : _ExploreSection(),
+        ),
+      ],
     );
   }
 }
@@ -186,23 +223,28 @@ class _Greeting extends StatelessWidget {
         : hour < 17
             ? s.homeGoodAfternoon
             : s.homeGoodEvening;
+    // The three lines sit close together, as one block. The name has the
+    // same line height in both languages (and room for Arabic marks), so
+    // the rest of the page doesn't move when switching.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(greeting, style: AppText.label(context)),
-        // Reserve the same height in both languages (the taller Arabic
-        // line) so the rest of the page doesn't move when switching.
-        Container(
-          constraints: const BoxConstraints(minHeight: 41),
-          alignment: AlignmentDirectional.centerStart,
-          child: Text(
-            username.isEmpty ? s.homeFriend : username,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppText.title(context),
+        Text(
+          greeting,
+          style: AppText.label(context).copyWith(height: 1.2),
+        ),
+        Text(
+          username.isEmpty ? s.homeFriend : username,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppText.title(context).copyWith(height: 1.3),
+          strutStyle: const StrutStyle(
+            fontSize: 30,
+            height: 1.3,
+            forceStrutHeight: true,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         const _DailySlogan(),
       ],
     );
@@ -210,7 +252,7 @@ class _Greeting extends StatelessWidget {
 }
 
 /// Today's slogan (one of three, picked once per day by
-/// [dailySloganService]) in earthy brown.
+/// [dailySloganService]) in near-black.
 ///
 /// The slot is as tall as the longest of the three slogans in the current
 /// language, at this width and text size, so the page below doesn't move
@@ -301,15 +343,17 @@ class _DailySloganState extends State<_DailySlogan>
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final style =
-        AppText.accent(context, size: 18, color: AppColors.earthBrown);
+    // Near-black, not brown, so it reads clearly on the background.
+    final style = AppText.accent(context, size: 18, color: AppColors.textPrimary)
+        .copyWith(height: 1.25);
     return LayoutBuilder(
       builder: (context, constraints) => Container(
         constraints: BoxConstraints(
           minHeight:
               _tallestSloganHeight(s, style, constraints.maxWidth, context),
         ),
-        alignment: AlignmentDirectional.centerStart,
+        // Top, so a shorter slogan stays right under the name.
+        alignment: AlignmentDirectional.topStart,
         child: ValueListenableBuilder<int?>(
           valueListenable: dailySloganIndex,
           // Empty (but already sized) for the moment before the first
@@ -372,13 +416,15 @@ class _WeatherCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final look = _weatherLooks[_prototypeWeather]!;
-    // The illustrations are 2:1, so the card keeps that shape and the
-    // picture is never stretched. Rounded clipping also hides the white
-    // corners baked into some of the images.
+    // The slim illustrations are 3:1 with a thin white band baked in above
+    // and below the scene. The card is a little wider than that (3.6:1), so
+    // "cover" fills it edge to edge and trims only that white band; the
+    // picture keeps its shape and is never stretched. Rounded clipping also
+    // hides the white corners baked into the images.
     return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(22),
       child: AspectRatio(
-        aspectRatio: 2,
+        aspectRatio: 3.6,
         child: LayoutBuilder(
           builder: (context, constraints) => Stack(
             children: [
@@ -388,18 +434,25 @@ class _WeatherCard extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-              // Weather details in the top-left corner (in both languages).
-              // They are as wide as their text, but never reach Thamoor on
-              // the right.
+              // Weather details on the left (in both languages), centred
+              // up and down. They never reach Thamoor on the right, and
+              // shrink to fit if large text would make them too tall.
               Positioned(
-                left: 20,
-                top: 20,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth:
-                        constraints.maxWidth * _weatherInfoSafeWidth - 20,
+                left: 16,
+                top: 10,
+                bottom: 10,
+                width: constraints.maxWidth * _weatherInfoSafeWidth - 16,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  // Still wraps long names within the safe width.
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth:
+                          constraints.maxWidth * _weatherInfoSafeWidth - 16,
+                    ),
+                    child: const _WeatherInfo(),
                   ),
-                  child: const _WeatherInfo(),
                 ),
               ),
             ],
@@ -439,8 +492,8 @@ class _WeatherInfo extends StatelessWidget {
         _WeatherRow(
           icon: Icons.location_on_outlined,
           text: s.weatherCityRiyadh,
-          iconSize: 20,
-          fontSize: 20,
+          iconSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.w700,
         ),
         const SizedBox(height: 8),
@@ -448,8 +501,8 @@ class _WeatherInfo extends StatelessWidget {
         // weather word moves below if there isn't room.
         Wrap(
           textDirection: TextDirection.ltr,
-          spacing: 12,
-          runSpacing: 4,
+          spacing: 18,
+          runSpacing: 6,
           children: [
             // TODO(weather-api): Show the real current temperature from
             //   the API.
@@ -647,83 +700,97 @@ class _StreakLostDialog extends StatelessWidget {
 bool _missedTasks(FarmStats stats) =>
     streakBrokenByMissedTasks(stats, FarmStore.plants.value, DateTime.now());
 
-/// Current layout: the Today's Tasks card (a button) and the streak card
-/// side by side, as short rectangles (half as tall as they are wide). They
-/// grow together if large text needs more room.
+/// The Today's Tasks card's height as last laid out, so the Crop
+/// Recommendations card can match it. Null until it has been measured.
+final _tasksCardHeight = ValueNotifier<double?>(null);
+
+/// Lays out [child] as usual and reports its height after each change (after
+/// the frame, so listeners can rebuild safely).
+class _ReportHeight extends SingleChildRenderObjectWidget {
+  const _ReportHeight({required this.onHeight, required super.child});
+  final ValueChanged<double> onHeight;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderReportHeight(onHeight);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderReportHeight renderObject,
+  ) =>
+      renderObject.onHeight = onHeight;
+}
+
+class _RenderReportHeight extends RenderProxyBox {
+  _RenderReportHeight(this.onHeight);
+  ValueChanged<double> onHeight;
+  double? _reported;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final height = size.height;
+    if (height == _reported) return;
+    _reported = height;
+    WidgetsBinding.instance.addPostFrameCallback((_) => onHeight(height));
+  }
+}
+
+/// Current layout: one short white card with today's tasks (the main part:
+/// title, progress bar and count; it opens Daily Tasks) and the streak (a
+/// small part on the end side: the fire and the number of days). A thin
+/// line separates them. The row follows the reading direction, so the
+/// tasks come first in both languages.
 class _TasksAndStreak extends StatelessWidget {
   const _TasksAndStreak();
 
-  static const _gap = 12.0;
-
-  /// The largest size, up to 16, at which "Streak lost" fits on one line
-  /// in a streak card [cardWidth] wide. Both cards' titles use it, so
-  /// "Today's Tasks" matches it.
-  static double _titleSize(BuildContext context, double cardWidth) {
-    const largest = 16.0;
-    final room = cardWidth - _StreakSquare.textInset;
-    final painter = TextPainter(
-      text: TextSpan(
-        text: S.of(context).streakLostTitle,
-        style: _StreakSquare.titleStyle(context, largest),
-      ),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout();
-    final natural = painter.width;
-    painter.dispose();
-    if (room <= 0 || natural <= room) return largest;
-    // A hair smaller, so rounding never pushes it onto a second line.
-    return (largest * room / natural * 10).floorToDouble() / 10;
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Measured again once the title font has loaded.
-    return ListenableBuilder(
-      listenable: PaintingBinding.instance.systemFonts,
-      builder: (context, _) => LayoutBuilder(
-        builder: (context, constraints) {
-          final height = (constraints.maxWidth - _gap) / 4;
-          final titleSize =
-              _titleSize(context, (constraints.maxWidth - _gap) / 2);
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: height),
-                    child: TodayTasksCard(titleSize: titleSize),
-                  ),
-                ),
-                const SizedBox(width: _gap),
-                Expanded(child: _StreakSquare(lostTitleSize: titleSize)),
-              ],
-            ),
-          );
-        },
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.forest.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: const IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: TodayTasksCard()),
+              VerticalDivider(
+                width: 1,
+                thickness: 1,
+                indent: 14,
+                endIndent: 14,
+                color: AppColors.border,
+              ),
+              _StreakCount(),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-/// The streak as a short pale-yellow card: the fire and the title (the
-/// hint is read out by screen readers). It isn't tappable, so it has no
-/// border or arrow.
-class _StreakSquare extends StatelessWidget {
-  const _StreakSquare({required this.lostTitleSize});
-
-  /// The size of "Streak lost", small enough to fit on one line (see
-  /// [_TasksAndStreak._titleSize]).
-  final double lostTitleSize;
-
-  /// The card's width that isn't left for the title: the padding (10 and
-  /// 12), the fire (44) and the gap after it (8).
-  static const textInset = 10 + 12 + 44 + 8.0;
-
-  static TextStyle titleStyle(BuildContext context, double size) =>
-      AppText.title(context).copyWith(fontSize: size, height: 1.15);
+/// The streak part of [_TasksAndStreak]: the fire and the current streak
+/// (0 once it is lost). It isn't tappable; screen readers hear the full
+/// streak title and hint.
+class _StreakCount extends StatelessWidget {
+  const _StreakCount();
 
   @override
   Widget build(BuildContext context) {
@@ -732,62 +799,28 @@ class _StreakSquare extends StatelessWidget {
       listenable: Listenable.merge([FarmStore.stats, FarmStore.plants]),
       builder: (context, _) {
         final stats = FarmStore.stats.value;
-        final s = S.of(context);
-        final missed = _missedTasks(stats);
-        final (state, title, hint) = _streakTexts(s, stats, missed: missed);
+        final (state, title, hint) =
+            _streakTexts(S.of(context), stats, missed: _missedTasks(stats));
+        final days = state == _StreakState.active ? stats.currentStreak : 0;
         return Semantics(
           label: '$title. $hint',
           excludeSemantics: true,
-          child: Container(
-            padding: const EdgeInsetsDirectional.fromSTEB(10, 10, 12, 10),
-            decoration: BoxDecoration(
-              color: AppColors.sunTint,
-              borderRadius: BorderRadius.circular(22),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _StreakFire(animate: state == _StreakState.active, size: 44),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (state == _StreakState.lost)
-                        // "انقطعت السلسلة" stays on one line: the same style,
-                        // made only as much smaller as the card needs.
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: AlignmentDirectional.centerStart,
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            softWrap: false,
-                            style: titleStyle(context, lostTitleSize),
-                          ),
-                        )
-                      else
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.title(context).copyWith(
-                            fontSize: 16,
-                            height: 1.15,
-                          ),
-                        ),
-                      // The short version of the Daily Tasks message.
-                      if (missed)
-                        Text(
-                          s.streakMissedShort,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.small(
-                            context,
-                            color: AppColors.sunDark,
-                          ).copyWith(fontSize: 12, fontWeight: FontWeight.w600),
-                        ),
-                    ],
+                _StreakFire(animate: state == _StreakState.active, size: 34),
+                // Close to the fire, and nudged down so the number sits on
+                // the fire's body rather than its tip.
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    '$days',
+                    style: AppText.title(context).copyWith(
+                      fontSize: 24,
+                      height: 1.1,
+                    ),
                   ),
                 ),
               ],
@@ -927,13 +960,19 @@ class _StreakFireState extends State<_StreakFire>
 }
 
 // ---------------------------------------------------------------------------
-// Explore (current layout): one big Check Your Plant card, then three tiles
-// side by side (Ethmar Map, Recommended, Leaderboard). The tile order stays
-// the same in both languages (LTR row), like the classic grid.
+// Ethmar Services (current layout): one compact Crop Recommendations card,
+// then three tiles side by side (Agricultural Places, Check Your Plant,
+// Leaderboard). The tile order stays the same in both languages (LTR row),
+// like the classic grid. All four are plain white cards with a soft shadow,
+// like the Today's Tasks card.
 // ---------------------------------------------------------------------------
 
 class _ExploreSection extends StatelessWidget {
   const _ExploreSection();
+
+  /// How far the Crop Recommendations card reaches past the page margin on
+  /// each side, so it reads as the main card above the tiles.
+  static const _mainCardBleed = 4.0;
 
   @override
   Widget build(BuildContext context) {
@@ -945,115 +984,175 @@ class _ExploreSection extends StatelessWidget {
           s.homeExplore,
           style: AppText.title(context).copyWith(fontSize: 20),
         ),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) => OverflowBox(
+            fit: OverflowBoxFit.deferToChild,
+            minWidth: constraints.maxWidth + 2 * _mainCardBleed,
+            maxWidth: constraints.maxWidth + 2 * _mainCardBleed,
+            child: const _RecommendCard(),
+          ),
+        ),
         const SizedBox(height: 12),
-        const _DiagnosisCard(),
-        const SizedBox(height: 12),
-        Row(
-          textDirection: TextDirection.ltr,
-          children: [
-            Expanded(
-              child: _ExploreTile(
-                image: 'ethmar_location_icon',
-                accent: AppColors.sea,
-                label: s.homeCardNearMe,
-                onTap: () => Navigator.of(context)
-                    .push(riseRoute(const AgriMapScreen())),
+        // The three tiles share the tallest one's height.
+        IntrinsicHeight(
+          child: Row(
+            textDirection: TextDirection.ltr,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _ExploreTile(
+                  image: 'ethmar_location_icon',
+                  label: s.homeCardNearMe,
+                  onTap: () => Navigator.of(context)
+                      .push(riseRoute(const AgriMapScreen())),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _ExploreTile(
-                image: 'ethmar_recomender_icon',
-                accent: AppColors.sun,
-                label: s.homeCardRecommended,
-                onTap: () => Navigator.of(context)
-                    .push(riseRoute(const CropRecommendationScreen())),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ExploreTile(
+                  image: 'ethmar_plant_diseases_icon',
+                  label: s.homeCardDiagnosis,
+                  onTap: () => Navigator.of(context)
+                      .push(riseRoute(const LeafScanScreen())),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _ExploreTile(
-                image: 'ethmar_leaderboard_icon',
-                accent: AppColors.coral,
-                label: s.homeCardLeaderboard,
-                onTap: () => Navigator.of(context)
-                    .push(riseRoute(const LeaderboardScreen())),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ExploreTile(
+                  image: 'ethmar_leaderboard_icon',
+                  label: s.homeCardLeaderboard,
+                  onTap: () => Navigator.of(context)
+                      .push(riseRoute(const LeaderboardScreen())),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-/// The big light-green Check Your Plant card: name with a camera beside it
-/// and a short line, with the diagnosis picture large on the end side. The
-/// whole card opens the scan.
-class _DiagnosisCard extends StatelessWidget {
-  const _DiagnosisCard();
+/// The shared look of the Ethmar Services cards: white, rounded, a thin
+/// border and a soft forest shadow. The whole card is the button.
+class _ServiceCard extends StatelessWidget {
+  const _ServiceCard({required this.onTap, required this.child});
+  final VoidCallback onTap;
+  final Widget child;
+
+  static const _radius = 20.0;
+
+  /// The Today's Tasks card's border (1px, the theme's border colour),
+  /// used by all four cards. It is drawn on the card's edge, so it doesn't
+  /// change the card's size.
+  static const _border = BorderSide(color: AppColors.border);
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(_radius),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.forest.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_radius),
+          side: _border,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          splashColor: AppColors.forest.withValues(alpha: 0.08),
+          highlightColor: AppColors.forest.withValues(alpha: 0.04),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// The compact Crop Recommendations card: its name and a short line, with
+/// the recommendation picture on the end side and an arrow. The whole card
+/// opens Crop Recommendation.
+class _RecommendCard extends StatelessWidget {
+  const _RecommendCard();
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
     return Semantics(
       button: true,
-      // The camera has no visible words; screen readers say them.
-      label:
-          '${s.homeCardDiagnosis}. ${s.homeDiagnosisHint}. '
-          '${s.homeDiagnosisAction}',
+      label: '${s.homeCardRecommended}. ${s.homeRecommendHint}',
       excludeSemantics: true,
-      child: Material(
-        color: AppColors.featureCard,
-        borderRadius: BorderRadius.circular(24),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () =>
-              Navigator.of(context).push(riseRoute(const LeafScanScreen())),
-          splashColor: AppColors.forest.withValues(alpha: 0.08),
-          highlightColor: Colors.transparent,
+      // As tall as the Today's Tasks card above (measured, so it matches on
+      // every screen); the content is centred in it. Until that card has
+      // been measured, or if large text needs more room, it is as tall as
+      // its content.
+      child: ValueListenableBuilder<double?>(
+        valueListenable: _tasksCardHeight,
+        builder: (context, tasksHeight, child) => ConstrainedBox(
+          constraints: BoxConstraints(minHeight: tasksHeight ?? 0),
+          child: child,
+        ),
+        child: _ServiceCard(
+          onTap: () => Navigator.of(context)
+              .push(riseRoute(const CropRecommendationScreen())),
           child: Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(18, 18, 10, 18),
+            padding: const EdgeInsetsDirectional.fromSTEB(18, 10, 12, 10),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // The name with a plain camera after it.
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              s.homeCardDiagnosis,
-                              style: AppText.title(
-                                context,
-                              ).copyWith(fontSize: 20),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.photo_camera_rounded,
-                            size: 24,
-                            color: AppColors.forest,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
                       Text(
-                        s.homeDiagnosisHint,
-                        style: AppText.body(context).copyWith(height: 1.4),
+                        s.homeCardRecommended,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.title(context)
+                            .copyWith(fontSize: 19, height: 1.25),
+                      ),
+                      const SizedBox(height: 2),
+                      // One line on every screen (a little smaller on narrow
+                      // ones), so the card stays as short as the tasks card.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          s.homeRecommendHint,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: AppText.body(
+                            context,
+                            color: AppColors.textPrimary,
+                          ).copyWith(fontSize: 13, height: 1.4),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
                 Image.asset(
-                  'assets/images/ethmar_plant_diseases_icon.png',
-                  width: 104,
-                  height: 104,
+                  'assets/images/ethmar_recomender_icon.png',
+                  width: 60,
+                  height: 60,
                   fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 4),
+                // chevron_right flips automatically in Arabic.
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: AppColors.textPrimary,
                 ),
               ],
             ),
@@ -1064,21 +1163,16 @@ class _DiagnosisCard extends StatelessWidget {
   }
 }
 
-/// A white tile with a coloured border: the feature's picture, large, and
-/// its name below.
+/// A white service tile: the feature's picture and its name below.
 class _ExploreTile extends StatelessWidget {
   const _ExploreTile({
     required this.image,
-    required this.accent,
     required this.label,
     required this.onTap,
   });
 
   /// Picture in assets/images/ (without .png).
   final String image;
-
-  /// The border's colour, different for each tile.
-  final Color accent;
   final String label;
   final VoidCallback onTap;
 
@@ -1088,43 +1182,40 @@ class _ExploreTile extends StatelessWidget {
       button: true,
       label: label,
       excludeSemantics: true,
-      child: Material(
-        color: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: accent, width: 2),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          splashColor: AppColors.forest.withValues(alpha: 0.08),
-          highlightColor: Colors.transparent,
-          child: SizedBox(
-            height: 128,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 12, 8, 10),
-              child: Column(
-                children: [
-                  Image.asset(
-                    'assets/images/$image.png',
-                    width: 66,
-                    height: 66,
-                    fit: BoxFit.contain,
-                  ),
-                  const Spacer(),
-                  Text(
-                    label,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.label(
-                      context,
-                      color: AppColors.textPrimary,
-                    ).copyWith(fontSize: 13, fontWeight: FontWeight.w700),
-                  ),
-                  const Spacer(),
-                ],
-              ),
+      child: _ServiceCard(
+        onTap: onTap,
+        // At least 120 tall; taller with large text, so the name is never
+        // cut off (the row makes all three tiles the same height).
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 120),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
+            child: Column(
+              children: [
+                Image.asset(
+                  'assets/images/$image.png',
+                  width: 54,
+                  height: 54,
+                  fit: BoxFit.contain,
+                ),
+                const Spacer(),
+                Text(
+                  label,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  // Grows with the phone's text size, but only up to 1.15x,
+                  // so a long word ("Agricultural") still fits the narrow
+                  // tile instead of breaking in the middle.
+                  textScaler: MediaQuery.textScalerOf(context)
+                      .clamp(maxScaleFactor: 1.15),
+                  style: AppText.label(
+                    context,
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+              ],
             ),
           ),
         ),

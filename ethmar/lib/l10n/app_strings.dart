@@ -269,17 +269,21 @@ class AppStrings {
     'monthLong12': 'December',
     'navVirtualFarm': 'Your Farm',
     // Home feature cards and the Ask Thamoor tab (Thamoor is the mascot).
-    'homeCardRecommended': 'Recommended',
-    'homeCardNearMe': 'Ethmar Map',
+    'homeCardRecommended': 'Crop Recommendations',
+    'homeCardNearMe': 'Agricultural Places',
     'homeCardLeaderboard': 'Leaderboard',
     'homeCardAddPlant': 'Grow a Plant',
     'homeCardDiagnosis': 'Check Your Plant',
     'navAskThamoor': 'Ask Thamoor',
     // Home's Explore section (new layout).
-    'homeExplore': 'Explore',
+    'homeExplore': 'Ethmar Services',
     'homeDiagnosisHint':
         'Discover plant diseases by taking photos of its leaves.',
     'homeDiagnosisAction': 'Scan a leaf',
+    // Home's Today's Tasks + streak card and the main Recommended card.
+    'homeTasksDoneOf': '{done}/{total} completed',
+    'homeNoTasksShort': 'No tasks today',
+    'homeRecommendHint': 'Crops that suit your area this season.',
     'profile': 'Profile',
     'editProfile': 'Edit Profile',
     // Profile screen
@@ -782,15 +786,18 @@ class AppStrings {
     'monthLong11': 'نوفمبر',
     'monthLong12': 'ديسمبر',
     'navVirtualFarm': "مزرعتك",
-    'homeCardRecommended': "توصياتنا لك",
-    'homeCardNearMe': "خريطة إثمار",
+    'homeCardRecommended': 'توصيات المحاصيل',
+    'homeCardNearMe': 'أماكن زراعية',
     'homeCardLeaderboard': 'لوحة الصدارة',
     'homeCardAddPlant': 'ازرع نبتة',
     'homeCardDiagnosis': "افحص نبتتك",
     'navAskThamoor': 'اسأل ثمور',
-    'homeExplore': 'استكشف',
+    'homeExplore': 'خدمات إثمار',
     'homeDiagnosisHint': 'اكتشف أمراض نبتتك من خلال تصوير أوراقها',
     'homeDiagnosisAction': 'افحص ورقة',
+    'homeTasksDoneOf': '{done}/{total} مكتملة',
+    'homeNoTasksShort': 'لا توجد مهام اليوم',
+    'homeRecommendHint': 'محاصيل تناسب منطقتك في هذا الموسم',
     'profile': 'الملف الشخصي',
     'editProfile': 'تعديل الملف الشخصي',
     // Profile screen
@@ -1312,6 +1319,13 @@ class S {
   String get homeExplore => t('homeExplore');
   String get homeDiagnosisHint => t('homeDiagnosisHint');
   String get homeDiagnosisAction => t('homeDiagnosisAction');
+
+  /// "1/3 completed". The numbers are isolated left-to-right, so they keep
+  /// this order inside the Arabic sentence too.
+  String homeTasksDoneOf(int done, int total) => t('homeTasksDoneOf')
+      .replaceAll('{done}/{total}', '${String.fromCharCode(0x2066)}$done/$total${String.fromCharCode(0x2069)}');
+  String get homeNoTasksShort => t('homeNoTasksShort');
+  String get homeRecommendHint => t('homeRecommendHint');
   String get profile => t('profile');
   String get editProfile => t('editProfile');
   String memberSince(String date) => t('memberSince').replaceAll('{date}', date);
