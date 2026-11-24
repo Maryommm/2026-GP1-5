@@ -246,6 +246,7 @@ class AppStrings {
     'taskMarkDone': 'Mark as done',
     'noTasksToday': 'No tasks today. Enjoy your day!',
     'taskSaveFailed': "Couldn't save the task. Check your connection and try again",
+    'taskSaveFailedGeneric': "Couldn't save the task. Please try again",
     // Today's date, e.g. "Wednesday, October 21".
     'todayDate': '{weekday}, {month} {day}',
     'weekday1': 'Monday',
@@ -288,8 +289,8 @@ class AppStrings {
     'editProfile': 'Edit Profile',
     // Profile screen
     'memberSince': 'Member since {date}',
-    'statMyPlants': 'Your Plants',
-    'statMyRank': 'Your Rank',
+    'statMyPlants': 'My Plants',
+    'statMyRank': 'My Rank',
     'settingsTitle': 'Settings',
     'settingsLanguage': 'Language',
     'aboutEthmar': 'About Ethmar',
@@ -491,6 +492,8 @@ class AppStrings {
         "These plants and their growth records will be deleted. This can't be undone.",
     'plantsDeleteFailed':
         "Couldn't delete some plants. Check your connection and try again.",
+    'plantsDeleteFailedGeneric':
+        "Couldn't delete some plants. They're still on your farm. Please try again.",
     'plantedToday': 'Planted today',
     'plantDays': '{n} days',
     'plantDayOne': '1 day',
@@ -510,6 +513,7 @@ class AppStrings {
     'careSchedule': 'Care schedule',
     'edit': 'Edit',
     'scheduleNext': 'Next: {when}',
+    'scheduleMissed': 'Missed: {when}',
     'today': 'Today',
     'tomorrow': 'Tomorrow',
     'editPlantTitle': 'Edit plant',
@@ -521,6 +525,10 @@ class AppStrings {
     'plantDeleteFailed':
         "Couldn't delete the plant. Check your connection and try again.",
     'farmSaveFailed': "Couldn't save. Check your connection and try again.",
+    'plantDeleteFailedGeneric': "Couldn't delete the plant. Please try again.",
+    'editSaveFailed':
+        "Couldn't save changes. Check your internet connection and try again.",
+    'editSaveFailedGeneric': "Couldn't save changes. Please try again.",
     'leaderboardTitle': 'Leaderboard',
     'leaderboardAccent': "who's growing the most?",
     'rankFirst': "You're #1! Your farm is the biggest of all.",
@@ -764,6 +772,7 @@ class AppStrings {
     'taskMarkDone': 'تحديد كمكتملة',
     'noTasksToday': 'ما عندك مهام اليوم، استمتع بيومك!',
     'taskSaveFailed': 'تعذّر حفظ المهمة. تحقق من اتصالك وحاول مرة أخرى',
+    'taskSaveFailedGeneric': 'تعذّر حفظ المهمة. حاول مرة أخرى',
     // تاريخ اليوم، مثل "الأربعاء، 21 أكتوبر".
     'todayDate': '{weekday}، {day} {month}',
     'weekday1': 'الاثنين',
@@ -802,8 +811,8 @@ class AppStrings {
     'editProfile': 'تعديل الملف الشخصي',
     // Profile screen
     'memberSince': 'عضو منذ {date}',
-    'statMyPlants': "نباتاتك",
-    'statMyRank': "ترتيبك",
+    'statMyPlants': 'نباتاتي',
+    'statMyRank': 'ترتيبي',
     'settingsTitle': 'الإعدادات',
     'settingsLanguage': 'اللغة',
     'aboutEthmar': 'عن إثمار',
@@ -1002,6 +1011,8 @@ class AppStrings {
         'راح تنحذف هذه النباتات وسجلات نموها، وما تقدر تتراجع بعدين.',
     'plantsDeleteFailed':
         'ما قدرنا نحذف بعض النباتات. تأكد من اتصالك وحاول مرة ثانية.',
+    'plantsDeleteFailedGeneric':
+        'ما قدرنا نحذف بعض النباتات، وهي باقية في مزرعتك. حاول مرة ثانية.',
     'plantedToday': 'انزرعت اليوم',
     'plantDays': '{n} يوم',
     'plantDayOne': 'يوم واحد',
@@ -1019,6 +1030,7 @@ class AppStrings {
     'careSchedule': 'جدول العناية',
     'edit': 'تعديل',
     'scheduleNext': 'القادم: {when}',
+    'scheduleMissed': 'فائتة: {when}',
     'today': 'اليوم',
     'tomorrow': 'بكرة',
     'editPlantTitle': 'تعديل النبتة',
@@ -1030,6 +1042,10 @@ class AppStrings {
     'plantDeleteFailed':
         'تعذر حذف النبتة. تحقق من اتصالك وحاول مرة أخرى.',
     'farmSaveFailed': 'تعذر الحفظ. تحقق من اتصالك وحاول مرة أخرى.',
+    'plantDeleteFailedGeneric': 'تعذر حذف النبتة. حاول مرة أخرى.',
+    'editSaveFailed':
+        'تعذّر حفظ التغييرات. تحقق من اتصالك بالإنترنت وحاول مرة أخرى.',
+    'editSaveFailedGeneric': 'تعذّر حفظ التغييرات. حاول مرة أخرى.',
     'leaderboardTitle': 'المتصدرون',
     'leaderboardAccent': 'مين يزرع أكثر؟',
     'rankFirst': 'أنت الأول! مزرعتك هي الأكبر.',
@@ -1302,6 +1318,7 @@ class S {
   String get taskMarkDone => t('taskMarkDone');
   String get noTasksToday => t('noTasksToday');
   String get taskSaveFailed => t('taskSaveFailed');
+  String get taskSaveFailedGeneric => t('taskSaveFailedGeneric');
 
   /// Today's date without the year, e.g. "Wednesday, October 21" /
   /// "الأربعاء، 21 أكتوبر".
@@ -1522,6 +1539,7 @@ class S {
       t('deletePlantsTitle').replaceAll('{n}', '$n');
   String get deletePlantsMessage => t('deletePlantsMessage');
   String get plantsDeleteFailed => t('plantsDeleteFailed');
+  String get plantsDeleteFailedGeneric => t('plantsDeleteFailedGeneric');
 
   /// "Planted today", "1 day", "24 days".
   String plantAge(int days) => switch (days) {
@@ -1545,6 +1563,10 @@ class S {
   String get edit => t('edit');
   String scheduleNext(String when) =>
       t('scheduleNext').replaceAll('{when}', when);
+
+  /// A missed task that can still be done: "Missed: Mon, Nov 23, 8:00 AM".
+  String scheduleMissed(String when) =>
+      t('scheduleMissed').replaceAll('{when}', when);
   String get today => t('today');
   String get tomorrow => t('tomorrow');
   String get editPlantTitle => t('editPlantTitle');
@@ -1555,6 +1577,9 @@ class S {
       t('deletePlantMessage').replaceAll('{name}', name);
   String get plantDeleteFailed => t('plantDeleteFailed');
   String get farmSaveFailed => t('farmSaveFailed');
+  String get plantDeleteFailedGeneric => t('plantDeleteFailedGeneric');
+  String get editSaveFailed => t('editSaveFailed');
+  String get editSaveFailedGeneric => t('editSaveFailedGeneric');
   String get leaderboardTitle => t('leaderboardTitle');
   String get leaderboardAccent => t('leaderboardAccent');
 

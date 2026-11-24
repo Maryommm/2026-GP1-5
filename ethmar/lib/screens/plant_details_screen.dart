@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../l10n/app_strings.dart';
+import '../models/care_task.dart';
+import '../models/daily_task.dart' show TaskType;
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
+import '../services/network_errors.dart';
 import '../services/growth_photo_service.dart';
+import '../services/recent_task_logs.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
@@ -62,22 +68,24 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
     try {
       await FarmStore.deletePlant(plantId);
       _closeOnce();
-    } catch (_) {
+    } catch (e) {
+      // Not deleted (or not confirmed): the plant stays, and deleting it
+      // again is safe.
       if (!mounted) return;
       setState(() => _deleting = false);
+      final s = S.of(context);
       showEthmarToast(
         context,
-        S.of(context).plantDeleteFailed,
+        isNetworkError(e) ? s.plantDeleteFailed : s.plantDeleteFailedGeneric,
         type: EthmarToastType.error,
       );
     }
   }
 
-  /// Closes this screen once the plant is gone. Firestore takes a deleted
-  /// plant off the farm straight away, before the server confirms (offline,
-  /// that can take a long time), so the screen doesn't wait for the delete.
-  /// It may not be the top screen, e.g. when the plant was deleted on
-  /// another device while Edit was open.
+  /// Closes this screen once the plant is gone: when its delete is
+  /// confirmed, or when it disappears from the farm (e.g. deleted on
+  /// another device). It may not be the top screen, e.g. when the plant
+  /// was deleted on another device while Edit was open.
   void _closeOnce() {
     if (_closing || !mounted) return;
     _closing = true;
@@ -891,28 +899,70 @@ class _DottedFrame extends CustomPainter {
 }
 
 /// The care schedule rows: task on one side, how often and when it's next
-/// due on the other.
-class _ScheduleRows extends StatelessWidget {
+/// due on the other. "Next" is the same task Daily Tasks shows (see
+/// careState): today's while it isn't done, a missed one while it can
+/// still be done, otherwise the next one.
+class _ScheduleRows extends StatefulWidget {
   const _ScheduleRows({required this.plant});
   final FarmPlant plant;
 
   @override
+  State<_ScheduleRows> createState() => _ScheduleRowsState();
+}
+
+class _ScheduleRowsState extends State<_ScheduleRows> {
+  /// Today's and the missed days' task logs, as Daily Tasks uses them.
+  final _logs = RecentTaskLogs();
+  late final AppLifecycleListener _lifecycle;
+  Timer? _clock;
+
+  @override
+  void initState() {
+    super.initState();
+    _logs.addListener(_refresh);
+    _lifecycle = AppLifecycleListener(onResume: _onClock);
+    // A new day starts at midnight while the page is open.
+    _clock = Timer.periodic(const Duration(minutes: 1), (_) => _onClock());
+  }
+
+  @override
+  void dispose() {
+    _logs.dispose();
+    _lifecycle.dispose();
+    _clock?.cancel();
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  void _onClock() {
+    _logs.checkDay();
+    _refresh();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+    final plant = widget.plant;
+    final now = DateTime.now();
+    CareState? stateOf(TaskType type) =>
+        careState(plant, type, now, logs: _logs.logs);
     return Column(
       children: [
         _ScheduleRow(
           icon: Icons.water_drop_rounded,
           task: s.summaryIrrigation,
           schedule: plant.irrigation,
-          plantedAt: plant.plantedAt,
+          state: stateOf(TaskType.watering),
         ),
         const Divider(height: 24, color: AppColors.border),
         _ScheduleRow(
           icon: Icons.spa_rounded,
           task: s.summaryFertilization,
           schedule: plant.fertilization,
-          plantedAt: plant.plantedAt,
+          state: stateOf(TaskType.fertilizing),
         ),
       ],
     );
@@ -924,12 +974,12 @@ class _ScheduleRow extends StatelessWidget {
     required this.icon,
     required this.task,
     required this.schedule,
-    required this.plantedAt,
+    required this.state,
   });
   final IconData icon;
   final String task;
   final CareSchedule? schedule;
-  final DateTime plantedAt;
+  final CareState? state;
 
   /// "Today, 7:00 AM", "Tomorrow, 7:00 AM" or "Wed, Oct 9, 7:00 AM".
   String _when(BuildContext context, DateTime next) {
@@ -993,11 +1043,13 @@ class _ScheduleRow extends StatelessWidget {
                             : FontWeight.w600,
                       ),
                 ),
-                if (c != null)
+                if (state case final st?)
                   Text(
-                    s.scheduleNext(
-                      _when(context, c.nextAfter(plantedAt, DateTime.now())),
-                    ),
+                    switch (st.missed) {
+                      final missed? =>
+                        s.scheduleMissed(_when(context, st.at(missed))),
+                      null => s.scheduleNext(_when(context, st.at(st.next))),
+                    },
                     textAlign: TextAlign.end,
                     style: AppText.small(context),
                   ),

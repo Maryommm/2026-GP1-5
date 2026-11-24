@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/daily_task.dart';
-import '../models/task_log.dart';
 import '../screens/daily_tasks_screen.dart';
 import '../services/farm_store.dart';
+import '../services/recent_task_logs.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'page_routes.dart';
@@ -24,18 +24,16 @@ class TodayTasksCard extends StatefulWidget {
 }
 
 class _TodayTasksCardState extends State<TodayTasksCard> {
-  DateTime _today = _dateOnly(DateTime.now());
-  TaskLog _log = TaskLog(date: TaskLog.dateKey(DateTime.now()));
-  StreamSubscription<TaskLog>? _logChanges;
+  /// Today's log and those of the missed days, as Daily Tasks uses them,
+  /// so both count the same tasks.
+  final _logs = RecentTaskLogs();
   late final AppLifecycleListener _lifecycle;
   Timer? _clock;
-
-  static DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
 
   @override
   void initState() {
     super.initState();
-    _followLog();
+    _logs.addListener(_refresh);
     _lifecycle = AppLifecycleListener(onResume: _onClock);
     FarmStore.plants.addListener(_refresh);
     // Once a minute: tasks turn overdue, and a new day starts at midnight.
@@ -44,7 +42,7 @@ class _TodayTasksCardState extends State<TodayTasksCard> {
 
   @override
   void dispose() {
-    _logChanges?.cancel();
+    _logs.dispose();
     _lifecycle.dispose();
     _clock?.cancel();
     FarmStore.plants.removeListener(_refresh);
@@ -56,24 +54,8 @@ class _TodayTasksCardState extends State<TodayTasksCard> {
   }
 
   void _onClock() {
-    final today = _dateOnly(DateTime.now());
-    if (today != _today) {
-      _today = today;
-      _followLog();
-    }
+    _logs.checkDay();
     _refresh();
-  }
-
-  void _followLog() {
-    _logChanges?.cancel();
-    final date = TaskLog.dateKey(_today);
-    _log = TaskLog(date: date);
-    _logChanges = FarmStore.watchTaskLog(date).listen(
-      (log) {
-        if (mounted) setState(() => _log = log);
-      },
-      onError: (Object e) => debugPrint('Could not load the task log: $e'),
-    );
   }
 
   @override
@@ -81,8 +63,8 @@ class _TodayTasksCardState extends State<TodayTasksCard> {
     final s = S.of(context);
     final tasks = tasksForDay(
       FarmStore.plants.value,
-      _today,
-      _log,
+      _logs.today,
+      _logs.logs,
       DateTime.now(),
     );
     final total = tasks.length;

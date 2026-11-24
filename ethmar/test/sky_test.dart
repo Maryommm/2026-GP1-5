@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:ethmar/screens/virtual_farm_screen.dart';
 import 'package:ethmar/services/farm_store.dart';
 import 'package:ethmar/services/sky_clock.dart';
@@ -275,4 +277,310 @@ void main() {
       expect(sky, Offset.zero & tester.view.physicalSize / tester.view.devicePixelRatio);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // A phone whose time zone is far from where it is (an emulator set to
+  // Riyadh time but placed in California, or a traveller). Every test fixes
+  // the phone's time zone with utcOffset, so none depends on this computer's.
+  // -------------------------------------------------------------------------
+
+  group('time zone far from the place', () {
+    const riyadhTime = Duration(hours: 3);
+    const SkyPlace mountainView = (latitude: 37.4234, longitude: -122.0840);
+
+    // Mountain View, 24 Nov 2026: sunrise about 06:58 PST (14:58 UTC, 17:58
+    // in Riyadh), sunset about 16:53 PST (00:53 UTC on the 25th, 03:53 in
+    // Riyadh).
+    final sunrise = DateTime.utc(2026, 11, 24, 14, 58);
+    final sunset = DateTime.utc(2026, 11, 25, 0, 53);
+
+    SkyState at(DateTime utc) =>
+        skyAt(utc.toLocal(), place: mountainView, utcOffset: riyadhTime);
+
+    test('before California sunrise (17:00 Riyadh): night until sunrise', () {
+      final s = at(DateTime.utc(2026, 11, 24, 14));
+      expect(s.phase, SkyPhase.night);
+      expectNear(s.nextChange, sunrise, minutes: 5);
+    });
+
+    test('after it (18:30 Riyadh): day until California sunset', () {
+      final s = at(DateTime.utc(2026, 11, 24, 15, 30));
+      expect(s.phase, SkyPhase.day);
+      expectNear(s.nextChange, sunset, minutes: 5);
+    });
+
+    test('daylight carries on past midnight on the phone', () {
+      // 23:59 and 00:01 and 02:30 Riyadh time: the sun is still up there.
+      for (final utc in [
+        DateTime.utc(2026, 11, 24, 20, 59),
+        DateTime.utc(2026, 11, 24, 21, 1),
+        DateTime.utc(2026, 11, 24, 23, 30),
+      ]) {
+        final s = at(utc);
+        expect(s.phase, SkyPhase.day, reason: '$utc');
+        expectNear(s.nextChange, sunset, minutes: 5);
+      }
+    });
+
+    test('night after California sunset (04:30 Riyadh), until sunrise', () {
+      final s = at(DateTime.utc(2026, 11, 25, 1, 30));
+      expect(s.phase, SkyPhase.night);
+      expectNear(s.nextChange, DateTime.utc(2026, 11, 25, 14, 59), minutes: 5);
+    });
+
+    test('Riyadh on Riyadh time is unchanged', () {
+      final noon = skyAt(
+        DateTime.utc(2026, 11, 24, 9).toLocal(),
+        place: riyadh,
+        utcOffset: riyadhTime,
+      );
+      expect(noon.phase, SkyPhase.day);
+      final night = skyAt(
+        DateTime.utc(2026, 11, 24, 20).toLocal(), // 23:00 in Riyadh
+        place: riyadh,
+        utcOffset: riyadhTime,
+      );
+      expect(night.phase, SkyPhase.night);
+    });
+
+    test('polar day and night still hold all day', () {
+      for (final offset in const [Duration.zero, riyadhTime, Duration(hours: -8)]) {
+        expect(
+          skyAt(DateTime.utc(2026, 12, 21, 11).toLocal(),
+                  place: tromso, utcOffset: offset)
+              .phase,
+          SkyPhase.night,
+        );
+        expect(
+          skyAt(DateTime.utc(2026, 6, 21, 23).toLocal(),
+                  place: tromso, utcOffset: offset)
+              .phase,
+          SkyPhase.day,
+        );
+      }
+    });
+  });
+
+  group('matches where the sun really is', () {
+    // Places all round the world, each with phone time zones near and far
+    // from it, over two days every 10 minutes (crossing midnight on the
+    // phone and in UTC). Day must be exactly when the sun's edge is above
+    // the horizon, by a separate formula (NOAA solar position), except
+    // within a few minutes of sunrise and sunset.
+    const places = <String, SkyPlace>{
+      'Mountain View': (latitude: 37.42, longitude: -122.08),
+      'New York': (latitude: 40.71, longitude: -74.01),
+      'London': (latitude: 51.51, longitude: -0.13),
+      'Riyadh': (latitude: 24.71, longitude: 46.68),
+      'Tokyo': (latitude: 35.68, longitude: 139.69),
+      'Sydney': (latitude: -33.87, longitude: 151.21),
+      'Fiji': (latitude: -17.71, longitude: 178.07),
+    };
+    const offsets = [-12, -8, -5, 0, 3, 9, 14];
+
+    for (final MapEntry(key: name, value: place) in places.entries) {
+      test(name, () {
+        for (final hours in offsets) {
+          final offset = Duration(hours: hours);
+          for (final start in [
+            DateTime.utc(2026, 3, 20),
+            DateTime.utc(2026, 6, 21),
+            DateTime.utc(2026, 11, 24),
+            DateTime.utc(2026, 12, 31, 12),
+          ]) {
+            for (var m = 0; m < 48 * 60; m += 10) {
+              final t = start.add(Duration(minutes: m));
+              final elevation = _sunElevation(t, place);
+              // Too close to the horizon to tell the two formulas apart.
+              if ((elevation + 0.833).abs() < 1.2) continue;
+              final s = skyAt(t.toLocal(), place: place, utcOffset: offset);
+              expect(
+                s.phase,
+                elevation > -0.833 ? SkyPhase.day : SkyPhase.night,
+                reason: '$name, UTC$hours, at $t (sun at '
+                    '${elevation.toStringAsFixed(1)}°)',
+              );
+              // The next change is ahead, and within a day.
+              expect(s.nextChange.isAfter(t), isTrue, reason: '$t');
+              expect(
+                s.nextChange.difference(t),
+                lessThanOrEqualTo(const Duration(hours: 25)),
+                reason: '$name, UTC$hours, at $t',
+              );
+            }
+          }
+        }
+      });
+    }
+  });
+
+  group('first look at the farm', () {
+    setUp(() {
+      GoogleFonts.config.allowRuntimeFetching = false;
+      SkyClock.resetForTests();
+    });
+    tearDown(() {
+      SkyClock.clockForTests = null;
+      SkyClock.resetForTests();
+      FarmStore.plantsLoaded.value = false;
+    });
+
+    // 16:30 in Riyadh: day by the 06:00–18:00 guess, but night in
+    // California, which is the saved place.
+    final now = DateTime.utc(2026, 11, 24, 13, 30).toLocal();
+    const SkyPlace mountainView = (latitude: 37.4234, longitude: -122.0840);
+
+    FadeTransition nightLayer(WidgetTester tester) => tester.widget(
+      find.descendant(
+        of: find.byType(FarmSky),
+        matching: find.byType(FadeTransition),
+      ),
+    );
+
+    testWidgets('no day sky first: the saved place decides the first scene', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({
+        'sky_latitude': mountainView.latitude,
+        'sky_longitude': mountainView.longitude,
+      });
+      SkyClock.clockForTests = () => SkyClock(
+        now: () => now,
+        locate: () async => null,
+        followApp: false,
+        utcOffset: const Duration(hours: 3),
+      );
+      expect(skyAt(now, utcOffset: const Duration(hours: 3)).phase,
+          SkyPhase.day); // what the guess alone would show
+      FarmStore.plantsLoaded.value = false;
+
+      await tester.pumpWidget(const MaterialApp(home: VirtualFarmScreen()));
+      // Frame by frame: never a day sky on screen.
+      var shown = false;
+      for (var i = 0; i < 30; i++) {
+        final sky = tester.widget<FarmSky>(find.byType(FarmSky));
+        if (sky.ready) {
+          expect(sky.phase, SkyPhase.night, reason: 'frame $i');
+          if (!shown) {
+            // Already fully night on its first frame: no fade from day.
+            expect(nightLayer(tester).opacity.value, 1, reason: 'frame $i');
+            shown = true;
+          }
+        } else {
+          // Not ready: no scene drawn at all (just the page's cream).
+          expect(
+            find.descendant(
+              of: find.byType(FarmSky),
+              matching: find.byType(FadeTransition),
+            ),
+            findsNothing,
+          );
+        }
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(shown, isTrue);
+    });
+
+    testWidgets('no saved place: the 06:00–18:00 guess, shown at once', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      SkyClock.clockForTests = () => SkyClock(
+        now: () => now,
+        locate: () async => null,
+        followApp: false,
+        utcOffset: const Duration(hours: 3),
+      );
+      FarmStore.plantsLoaded.value = false;
+      await tester.pumpWidget(const MaterialApp(home: VirtualFarmScreen()));
+      await tester.pump(const Duration(milliseconds: 50));
+      final sky = tester.widget<FarmSky>(find.byType(FarmSky));
+      expect(sky.ready, isTrue);
+      expect(sky.phase, SkyPhase.day);
+      expect(nightLayer(tester).opacity.value, 0);
+      await tester.pump(const Duration(seconds: 1)); // let the entrance finish
+    });
+
+    testWidgets('a broken saved place is ignored', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'sky_latitude': 500.0,
+        'sky_longitude': -122.0,
+      });
+      SkyClock.clockForTests = () => SkyClock(
+        now: () => now,
+        locate: () async => null,
+        followApp: false,
+        utcOffset: const Duration(hours: 3),
+      );
+      FarmStore.plantsLoaded.value = false;
+      await tester.pumpWidget(const MaterialApp(home: VirtualFarmScreen()));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(SkyClock.knownPlace.value, isNull);
+      expect(tester.widget<FarmSky>(find.byType(FarmSky)).phase, SkyPhase.day);
+      await tester.pump(const Duration(seconds: 1)); // let the entrance finish
+    });
+
+    testWidgets('a real sunrise later still fades smoothly', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'sky_latitude': mountainView.latitude,
+        'sky_longitude': mountainView.longitude,
+      });
+      // Ten seconds before California sunrise.
+      final sunrise = SunTimes.on(
+        DateTime(2026, 11, 24),
+        mountainView,
+        utcOffset: const Duration(hours: 3),
+      ).sunrise!;
+      var time = sunrise.subtract(const Duration(seconds: 10));
+      SkyClock.clockForTests = () => SkyClock(
+        now: () => time,
+        locate: () async => null,
+        followApp: false,
+        utcOffset: const Duration(hours: 3),
+      );
+      FarmStore.plantsLoaded.value = false;
+      await tester.pumpWidget(const MaterialApp(home: VirtualFarmScreen()));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(nightLayer(tester).opacity.value, 1);
+
+      time = time.add(const Duration(seconds: 12));
+      await tester.pump(const Duration(seconds: 12)); // the sunrise timer
+      expect(tester.widget<FarmSky>(find.byType(FarmSky)).phase, SkyPhase.day);
+      await tester.pump(FarmSky.fade ~/ 2);
+      final halfway = nightLayer(tester).opacity.value;
+      expect(halfway, inExclusiveRange(0.05, 0.95));
+      await tester.pump(FarmSky.fade);
+      expect(nightLayer(tester).opacity.value, 0);
+    });
+  });
+}
+
+/// How high the sun stands at [utc] seen from [place], in degrees (NOAA's
+/// general solar position formulas; separate from the app's sunrise
+/// equation, to check it).
+double _sunElevation(DateTime utc, SkyPlace place) {
+  final start = DateTime.utc(utc.year);
+  final dayOfYear = utc.difference(start).inMinutes / 1440;
+  // NOAA's fractional year: (day of year − 1) + (hour − 12) / 24.
+  final g = 2 * math.pi / 365 * (dayOfYear - 0.5);
+  final eqTime = 229.18 *
+      (0.000075 +
+          0.001868 * math.cos(g) -
+          0.032077 * math.sin(g) -
+          0.014615 * math.cos(2 * g) -
+          0.040849 * math.sin(2 * g));
+  final decl = 0.006918 -
+      0.399912 * math.cos(g) +
+      0.070257 * math.sin(g) -
+      0.006758 * math.cos(2 * g) +
+      0.000907 * math.sin(2 * g) -
+      0.002697 * math.cos(3 * g) +
+      0.00148 * math.sin(3 * g);
+  final minutes = utc.hour * 60 + utc.minute + utc.second / 60;
+  final trueSolar = minutes + eqTime + 4 * place.longitude;
+  final hourAngle = (trueSolar / 4 - 180) * math.pi / 180;
+  final lat = place.latitude * math.pi / 180;
+  final cosZenith = math.sin(lat) * math.sin(decl) +
+      math.cos(lat) * math.cos(decl) * math.cos(hourAngle);
+  return 90 - math.acos(cosZenith.clamp(-1.0, 1.0)) * 180 / math.pi;
 }

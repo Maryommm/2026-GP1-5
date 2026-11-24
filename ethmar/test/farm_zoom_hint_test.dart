@@ -199,6 +199,39 @@ void main() {
       );
     });
 
+    for (final (locale, title, tooltip) in [
+      (const Locale('en'), 'My Farm', 'My plants'),
+      (const Locale('ar'), 'مزرعتي', 'نباتاتي'),
+    ]) {
+      testWidgets('My plants on the reading start side ($locale)', (
+        tester,
+      ) async {
+        await _showFarm(tester, locale: locale);
+        final width = tester.getSize(find.byType(VirtualFarmScreen)).width;
+        final button = tester.getRect(find.byTooltip(tooltip));
+        final titleBox = tester.getRect(find.text(title));
+
+        // Left in English, right in Arabic, at the screen edge.
+        if (locale.languageCode == 'en') {
+          expect(button.left, lessThan(32));
+        } else {
+          expect(button.right, greaterThan(width - 32));
+        }
+        // The title stays centred and clear of the button.
+        expect(titleBox.center.dx, closeTo(width / 2, 1));
+        expect(button.overlaps(titleBox), isFalse);
+        expect(button.size, const Size(48, 48));
+      });
+    }
+
+    test('Profile stats say mine, in both languages', () {
+      final en = S(AppStrings.en), ar = S(AppStrings.ar);
+      expect(ar.statMyPlants, 'نباتاتي');
+      expect(ar.statMyRank, 'ترتيبي');
+      expect(en.statMyPlants, 'My Plants');
+      expect(en.statMyRank, 'My Rank');
+    });
+
     test('the tab and the diagnosis card, in both languages', () {
       final en = S(AppStrings.en), ar = S(AppStrings.ar);
       expect(en.navVirtualFarm, 'My Farm');

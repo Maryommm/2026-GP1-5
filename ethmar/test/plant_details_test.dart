@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseException;
 import 'package:ethmar/data/sample_plants.dart';
 import 'package:ethmar/models/farm_plant.dart';
 import 'package:ethmar/screens/plant_details_screen.dart';
@@ -48,6 +49,47 @@ void main() {
     expect(find.byType(PlantDetailsScreen), findsOneWidget);
     return navigator.currentState!;
   }
+
+  testWidgets('a delete that fails offline keeps the plant; trying again '
+      'deletes it', (tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var calls = 0;
+    FarmStore.deleteForTests = (id) async {
+      if (++calls == 1) {
+        throw FirebaseException(plugin: 'cloud_firestore', code: 'unavailable');
+      }
+      FarmStore.plants.value = [
+        for (final p in FarmStore.plants.value)
+          if (p.id != id) p,
+      ];
+    };
+    addTearDown(() => FarmStore.deleteForTests = null);
+    await openDetails(tester);
+
+    Future<void> delete() async {
+      await tester.ensureVisible(find.byKey(const ValueKey('delete-plant')));
+      await tester.tap(find.byKey(const ValueKey('delete-plant')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-plant')));
+      await settle(tester);
+    }
+
+    await delete();
+    expect(find.byType(PlantDetailsScreen), findsOneWidget);
+    expect(
+      find.text(
+          "Couldn't delete the plant. Check your connection and try again."),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(seconds: 10));
+
+    await delete();
+    expect(calls, 2);
+    expect(find.byType(PlantDetailsScreen), findsNothing);
+    expect(find.text('start'), findsOneWidget);
+  });
 
   group('closing', () {
     testWidgets('the screen closes when its plant is deleted', (tester) async {

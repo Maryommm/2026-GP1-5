@@ -4,6 +4,7 @@ import '../l10n/app_strings.dart';
 import '../models/crop_recommendation.dart' show CropCategory;
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
+import '../services/network_errors.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
@@ -70,9 +71,8 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
 
   /// Asks first, then deletes [plants] and their growth entries.
   ///
-  /// The plants leave the list straight away: Firestore removes them from
-  /// the farm before the server confirms (offline, that can take a long
-  /// time), so the screen doesn't wait. If any delete fails, it says so.
+  /// Each plant leaves the list once its delete is confirmed; one that
+  /// can't be deleted (e.g. offline) stays, and the screen says so.
   Future<void> _deleteTicked(List<FarmPlant> plants) async {
     if (plants.isEmpty) return;
     final confirmed = await showDialog<bool>(
@@ -81,20 +81,19 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
       builder: (_) => _DeletePlantsDialog(plants: plants),
     );
     if (confirmed != true || !mounted) return;
-    final failed = S.of(context).plantsDeleteFailed;
+    final s = S.of(context);
     _stopSelecting();
-    final results = await Future.wait([
-      for (final p in plants)
-        FarmStore.deletePlant(p.id!).then(
-          (_) => true,
-          onError: (Object e) {
-            debugPrint('Could not delete plant ${p.id}: $e');
-            return false;
-          },
-        ),
-    ]);
-    if (mounted && results.contains(false)) {
-      showEthmarToast(context, failed, type: EthmarToastType.error);
+    // One after another, so the streak only counts deletes that worked;
+    // the ones that fail stay in the list.
+    final failed = await FarmStore.deletePlants([for (final p in plants) p.id!]);
+    if (mounted && failed.isNotEmpty) {
+      showEthmarToast(
+        context,
+        failed.values.any(isNetworkError)
+            ? s.plantsDeleteFailed
+            : s.plantsDeleteFailedGeneric,
+        type: EthmarToastType.error,
+      );
     }
   }
 

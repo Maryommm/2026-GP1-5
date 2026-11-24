@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseException;
 import 'package:ethmar/data/sample_plants.dart';
 import 'package:ethmar/screens/my_plants_screen.dart';
 import 'package:ethmar/services/farm_store.dart';
@@ -76,6 +77,8 @@ void main() {
     await tap(tester, find.byKey(const Key('deleteSelected')));
     expect(find.text('Delete 2 plants?'), findsOneWidget);
     await tap(tester, find.byKey(const Key('confirmDeletePlants')));
+    // One after another: the second starts once the first is confirmed.
+    await settle(tester);
 
     expect(deleted, unorderedEquals([first.id, second.id]));
     expect(find.text(first.name), findsNothing);
@@ -137,12 +140,14 @@ void main() {
   });
 
   testWidgets('a failed delete says so', (tester) async {
-    FarmStore.deleteForTests = (_) async => throw Exception('offline');
+    FarmStore.deleteForTests = (_) async => throw FirebaseException(
+        plugin: 'cloud_firestore', code: 'unavailable');
     await openScreen(tester);
     await tap(tester, find.byKey(const Key('selectPlants')));
     await tap(tester, box(first.id!));
     await tap(tester, find.byKey(const Key('deleteSelected')));
     await tap(tester, find.byKey(const Key('confirmDeletePlants')));
+    await settle(tester);
 
     expect(
       find.text(
@@ -150,7 +155,58 @@ void main() {
       ),
       findsOneWidget,
     );
+    // The plant stays.
+    expect(find.text(first.name), findsOneWidget);
     // Let the message go away before the test ends.
+    await tester.pump(const Duration(seconds: 10));
+  });
+
+  testWidgets('another failure doesn\'t blame the connection', (tester) async {
+    FarmStore.deleteForTests = (_) async => throw StateError('refused');
+    await openScreen(tester);
+    await tap(tester, find.byKey(const Key('selectPlants')));
+    await tap(tester, box(first.id!));
+    await tap(tester, find.byKey(const Key('deleteSelected')));
+    await tap(tester, find.byKey(const Key('confirmDeletePlants')));
+    await settle(tester);
+
+    expect(
+      find.text("Couldn't delete some plants. They're still on your farm. "
+          'Please try again.'),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(seconds: 10));
+  });
+
+  testWidgets('one of several fails: the others go, it stays', (tester) async {
+    FarmStore.deleteForTests = (id) async {
+      if (id == second.id) {
+        throw FirebaseException(plugin: 'cloud_firestore', code: 'unavailable');
+      }
+      deleted.add(id);
+      FarmStore.plants.value = [
+        for (final p in FarmStore.plants.value)
+          if (p.id != id) p,
+      ];
+    };
+    await openScreen(tester);
+    await tap(tester, find.byKey(const Key('selectPlants')));
+    await tap(tester, box(first.id!));
+    await tap(tester, box(second.id!));
+    await tap(tester, box(samplePlants[2].id!));
+    await tap(tester, find.byKey(const Key('deleteSelected')));
+    await tap(tester, find.byKey(const Key('confirmDeletePlants')));
+    await settle(tester);
+
+    expect(deleted, unorderedEquals([first.id, samplePlants[2].id]));
+    expect(find.text(first.name), findsNothing);
+    expect(find.text(second.name), findsOneWidget);
+    expect(
+      find.text(
+        "Couldn't delete some plants. Check your connection and try again.",
+      ),
+      findsOneWidget,
+    );
     await tester.pump(const Duration(seconds: 10));
   });
 }

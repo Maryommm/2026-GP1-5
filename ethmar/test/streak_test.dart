@@ -8,11 +8,22 @@ import 'package:ethmar/models/task_log.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-FarmPlant plant(String id, Repeat repeat, {DateTime? planted}) => FarmPlant(
+/// A plant watered [repeat], planted and added on Nov 1 (or [planted]).
+/// [doneOn] is the last day its task was done, on time.
+FarmPlant plant(
+  String id,
+  Repeat repeat, {
+  DateTime? planted,
+  DateTime? doneOn,
+}) => FarmPlant(
       id: id,
       crop: cropCatalog.first,
       name: 'Mint',
-      irrigation: CareSchedule(repeat, const TimeOfDay(hour: 8, minute: 0)),
+      irrigation: CareSchedule(
+        repeat,
+        const TimeOfDay(hour: 8, minute: 0),
+        lastDone: doneOn == null ? null : CareDone(date: doneOn, due: doneOn),
+      ),
       plantedAt: planted ?? DateTime(2026, 11, 1),
       // Added to the app on its planting day, not changed since.
       createdAt: planted ?? DateTime(2026, 11, 1),
@@ -24,29 +35,35 @@ FarmStats stats(int streak, String? last) =>
 
 void main() {
   final daily = [plant('a', Repeat.everyDay)];
-  final every3 = [plant('a', Repeat.every3Days)];
+  // Watered on the given day of November, the last completed day.
+  List<FarmPlant> dailyDone(int day) =>
+      [plant('a', Repeat.everyDay, doneOn: DateTime(2026, 11, day))];
+  // Every 3 days, last done on Nov 4: next due on the 7th.
+  final every3 = [
+    plant('a', Repeat.every3Days, doneOn: DateTime(2026, 11, 4)),
+  ];
 
   group('streak lost to missed tasks', () {
     final today = DateTime(2026, 11, 5, 9);
 
     test('a day with tasks after the last completed day was missed', () {
       expect(
-          streakBrokenByMissedTasks(stats(0, '2026-11-03'), daily, today),
+          streakBrokenByMissedTasks(stats(0, '2026-11-03'), dailyDone(3), today),
           isTrue);
     });
 
     test('nothing missed while every task day was completed', () {
       expect(
-          streakBrokenByMissedTasks(stats(2, '2026-11-04'), daily, today),
+          streakBrokenByMissedTasks(stats(2, '2026-11-04'), dailyDone(4), today),
           isFalse);
       // Today completed: a new streak has started.
       expect(
-          streakBrokenByMissedTasks(stats(1, '2026-11-05'), daily, today),
+          streakBrokenByMissedTasks(stats(1, '2026-11-05'), dailyDone(5), today),
           isFalse);
     });
 
     test('days without tasks are not missed', () {
-      // Every 3 days from 1 November: due on the 4th and the 7th.
+      // Done on the 4th, every 3 days: next due on the 7th.
       expect(
           streakBrokenByMissedTasks(
               stats(1, '2026-11-04'), every3, DateTime(2026, 11, 6)),
@@ -105,7 +122,7 @@ void main() {
   group('checking missed days when the app opens', () {
     test('a day with tasks that was not completed resets the streak', () {
       final after = streakAfterMissedDays(
-          stats(4, '2026-11-03'), daily, DateTime(2026, 11, 5, 9));
+          stats(4, '2026-11-03'), dailyDone(3), DateTime(2026, 11, 5, 9));
       expect(after.currentStreak, 0);
       // Kept, so Home shows "streak lost".
       expect(after.lastCompletedDate, '2026-11-03');
@@ -113,12 +130,13 @@ void main() {
 
     test('yesterday completed keeps the streak', () {
       final after = streakAfterMissedDays(
-          stats(4, '2026-11-04'), daily, DateTime(2026, 11, 5, 9));
+          stats(4, '2026-11-04'), dailyDone(4), DateTime(2026, 11, 5, 9));
       expect(after.currentStreak, 4);
     });
 
     test('days without tasks in between do not break it', () {
-      // Every 3 days from Nov 1: tasks on 1, 4, 7. Nov 5 and 6 have none.
+      // Done on Nov 4, every 3 days: the next task is on the 7th, so Nov 5
+      // and 6 have none.
       final after = streakAfterMissedDays(
           stats(2, '2026-11-04'), every3, DateTime(2026, 11, 7, 9));
       expect(after.currentStreak, 2);
@@ -126,7 +144,7 @@ void main() {
 
     test('today not done yet is not a missed day', () {
       final after = streakAfterMissedDays(
-          stats(1, '2026-11-04'), daily, DateTime(2026, 11, 5, 23));
+          stats(1, '2026-11-04'), dailyDone(4), DateTime(2026, 11, 5, 23));
       expect(after.currentStreak, 1);
     });
 
@@ -186,18 +204,23 @@ void main() {
                 late: late[d] ?? const []),
         };
 
-    test('only the last 3 days, most recent first', () {
-      final missed = missedTasks(daily, today, const {});
-      expect([for (final t in missed) TaskLog.dateKey(t.day)],
-          ['2026-11-09', '2026-11-08', '2026-11-07']);
-      expect(missed.every((t) => t.status == TaskStatus.missed), isTrue);
+    test('one missed task at a time, from the last 3 days', () {
+      // Done on Nov 6: due on the 7th, which was missed. Until it's done or
+      // too old, the 8th, 9th and 10th have no watering of their own.
+      final missed = missedTasks(dailyDone(6), today, const {});
+      expect([for (final t in missed) TaskLog.dateKey(t.day)], ['2026-11-07']);
+      expect(missed.single.status, TaskStatus.missed);
+      expect(tasksForDay(dailyDone(6), today, const {}, today), isEmpty);
     });
 
     test('a task done on its day is not missed', () {
       final missed = missedTasks(
           daily, today, logs({'2026-11-09': ['a_irrigation']}));
-      expect([for (final t in missed) TaskLog.dateKey(t.day)],
-          ['2026-11-08', '2026-11-07']);
+      expect(missed, isEmpty);
+      // Done on the 9th: the next one is due today.
+      expect(tasksForDay(daily, today,
+              logs({'2026-11-09': ['a_irrigation']}), today),
+          hasLength(1));
     });
 
     test('a task done late stays in the list as done late', () {
@@ -331,11 +354,12 @@ void main() {
         today: today,
       );
       expect(renamed.irrigation!.since, DateTime(2026, 11, 5));
-      expect([for (final t in missedTasks([renamed], today, const {})) t.day], [
-        DateTime(2026, 11, 9),
-        DateTime(2026, 11, 8),
-        DateTime(2026, 11, 7),
-      ]);
+      // From Nov 5, nothing done: the 5th expired, the 9th is missed (one
+      // missed task at a time).
+      expect([for (final t in missedTasks([renamed], today, const {})) t.day],
+          [DateTime(2026, 11, 9)]);
+      expect([for (final t in missedTasks([old], today, const {})) t.day],
+          [DateTime(2026, 11, 9)]);
       // And renaming again later still doesn't move it.
       final again = renamed.edited(
         name: 'Basil',
@@ -350,8 +374,9 @@ void main() {
   group('streak lost', () {
     test('a missed day breaks the streak and is reported', () {
       final before = stats(4, '2026-11-03');
-      final after = streakAfterMissedDays(before, daily, DateTime(2026, 11, 5));
-      expect(streakBroken(before, after, daily), isTrue);
+      final after =
+          streakAfterMissedDays(before, dailyDone(3), DateTime(2026, 11, 5));
+      expect(streakBroken(before, after, dailyDone(3)), isTrue);
     });
 
     test('deleting every plant is not reported as a missed day', () {
@@ -364,8 +389,9 @@ void main() {
 
     test('a streak that carries on is not reported', () {
       final before = stats(4, '2026-11-04');
-      final after = streakAfterMissedDays(before, daily, DateTime(2026, 11, 5));
-      expect(streakBroken(before, after, daily), isFalse);
+      final after =
+          streakAfterMissedDays(before, dailyDone(4), DateTime(2026, 11, 5));
+      expect(streakBroken(before, after, dailyDone(4)), isFalse);
     });
   });
 

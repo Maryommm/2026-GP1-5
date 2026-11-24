@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/farm_plant.dart';
+import '../models/plant_edit.dart';
 import '../services/farm_store.dart';
+import '../services/network_errors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
@@ -49,20 +51,25 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
     if (_saving || !_form.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
-      await FarmStore.updatePlant(
-        _plant.edited(
+      await FarmStore.editPlant(
+        PlantEdit(
+          opened: _plant,
           name: _name.text.trim(),
           irrigation: _irrigation.result,
           fertilization: _fertilization.result,
         ),
       );
       if (mounted) Navigator.of(context).pop(true);
-    } catch (_) {
+    } catch (e) {
+      // The form keeps what was typed, so saving again needs nothing
+      // retyped; saving the same changes again is safe.
+      debugPrint('Could not save the plant: $e');
       if (!mounted) return;
       setState(() => _saving = false);
+      final s = S.of(context);
       showEthmarToast(
         context,
-        S.of(context).farmSaveFailed,
+        isNetworkError(e) ? s.editSaveFailed : s.editSaveFailedGeneric,
         type: EthmarToastType.error,
       );
     }

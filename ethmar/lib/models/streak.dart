@@ -12,6 +12,7 @@
 library;
 
 import 'care_task.dart';
+import 'daily_task.dart' show tasksForDay;
 import 'farm_plant.dart';
 import 'farm_stats.dart';
 import 'task_log.dart';
@@ -99,6 +100,80 @@ FarmStats streakAfterToggle(
         ? null
         : TaskLog.dateKey(previousTaskDay),
     lands: stats.lands,
+  );
+}
+
+/// The streak after a plant's care schedule is edited at [now]: [before]
+/// are the plants as they were, [after] as they are now, and [todayLog]
+/// today's task log.
+///
+/// Today counts as completed only while every task of today (see
+/// tasksForDay) is done, the same as when a task is ticked
+/// ([streakAfterToggle]):
+/// - An edit that adds a task to a completed today takes today's +1 back,
+///   so an unfinished day isn't kept as completed (and breaks the streak
+///   tomorrow if it stays unfinished). Ticking the new task gives it back,
+///   once.
+/// - An edit that removes today's last unfinished task, so every task of
+///   today is done, completes the day (once, as ticking it would have).
+/// - Nothing else changes: an edit that doesn't change whether today is
+///   finished (e.g. a new time) leaves the streak as it is, earlier days
+///   keep what they had, and a missed task done late still counts for
+///   nothing. Days missed before today are checked with [before], the
+///   schedules they had.
+FarmStats streakAfterScheduleChange(
+  FarmStats stats, {
+  required List<FarmPlant> before,
+  required List<FarmPlant> after,
+  required DateTime now,
+  required TaskLog todayLog,
+}) {
+  final today = _dateOnly(now);
+  bool allDone(List<FarmPlant> plants) {
+    final tasks = tasksForDay(plants, today, {todayLog.date: todayLog}, now);
+    return tasks.isNotEmpty && tasks.every((t) => t.done);
+  }
+
+  final done = allDone(after);
+  if (done == allDone(before)) return stats;
+  return streakAfterToggle(
+    done ? streakAfterMissedDays(stats, before, today) : stats,
+    today: today,
+    allDone: done,
+    previousTaskDay: previousTaskDay(before, today),
+  );
+}
+
+/// The streak after a plant is deleted at [now]: [before] are the plants
+/// with it, [after] without it, and [todayLog] today's task log.
+///
+/// The same as an edit that removes the plant's tasks from today
+/// ([streakAfterScheduleChange]): when the plant had today's last
+/// unfinished task, every task left is done, so today is completed (once).
+/// Its own tasks never count as done. Deleting can't add a task, so it
+/// never takes today's +1 back.
+///
+/// When no task is left today (e.g. the last plant was deleted), nothing
+/// changes: a day without tasks is never completed, and with no schedules
+/// left the streak goes back to 0 when the app next checks it
+/// ([streakAfterMissedDays]).
+FarmStats streakAfterPlantDeleted(
+  FarmStats stats, {
+  required List<FarmPlant> before,
+  required List<FarmPlant> after,
+  required DateTime now,
+  required TaskLog todayLog,
+}) {
+  final today = _dateOnly(now);
+  if (tasksForDay(after, today, {todayLog.date: todayLog}, now).isEmpty) {
+    return stats;
+  }
+  return streakAfterScheduleChange(
+    stats,
+    before: before,
+    after: after,
+    now: now,
+    todayLog: todayLog,
   );
 }
 

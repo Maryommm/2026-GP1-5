@@ -28,14 +28,41 @@ class SkyClock extends ValueNotifier<SkyPhase> {
     DateTime Function()? now,
     Future<SkyPlace?> Function()? locate,
     this.followApp = true,
+    this.utcOffset,
   }) : _now = now ?? DateTime.now,
        _locate = locate ?? _phoneLocation,
        super(SkyPhase.day) {
     _update();
     knownPlace.addListener(_update);
     if (followApp) _lifecycle = AppLifecycleListener(onResume: refresh);
-    unawaited(_loadSavedPlace().then((_) => _refreshPlace()));
+    if (_savedPlaceRead) {
+      // Another clock already read it: ready straight away.
+      settled = true;
+      unawaited(_refreshPlace());
+    } else {
+      unawaited(_loadSavedPlace().whenComplete(_settle));
+    }
   }
+
+  /// True once the saved place has been read (or found missing), so
+  /// [value] is the real phase rather than the 06:00–18:00 guess. Until
+  /// then the sky isn't drawn, so it doesn't show one phase and then
+  /// switch to the other. Reading it takes a few milliseconds; a fresh
+  /// location reading isn't waited for.
+  bool settled = false;
+
+  void _settle() {
+    if (_disposed) return;
+    if (!settled) {
+      settled = true;
+      notifyListeners();
+    }
+    unawaited(_refreshPlace());
+  }
+
+  /// The phone's time zone as a fixed offset from UTC, for tests; by
+  /// default the phone's own.
+  final Duration? utcOffset;
 
   /// The place the sky follows, shared by every clock. Null until known.
   static final ValueNotifier<SkyPlace?> knownPlace = ValueNotifier(null);
@@ -65,7 +92,8 @@ class SkyClock extends ValueNotifier<SkyPhase> {
   static void resetForTests() {
     knownPlace.value = null;
     _lastLookup = null;
-    _savedLoaded = false;
+    _savedLoad = null;
+    _savedPlaceRead = false;
   }
 
   final DateTime Function() _now;
@@ -84,7 +112,10 @@ class SkyClock extends ValueNotifier<SkyPhase> {
   /// The phone's location is read at most this often.
   static const _lookupEvery = Duration(hours: 1);
   static DateTime? _lastLookup;
-  static bool _savedLoaded = false;
+
+  /// Reading the saved place, once per app run; every clock waits for it.
+  static Future<void>? _savedLoad;
+  static bool _savedPlaceRead = false;
 
   /// When the phase changes next, for tests.
   @visibleForTesting
@@ -99,7 +130,7 @@ class SkyClock extends ValueNotifier<SkyPhase> {
   void _update() {
     if (_disposed) return;
     final now = _now();
-    final state = skyAt(now, place: knownPlace.value);
+    final state = skyAt(now, place: knownPlace.value, utcOffset: utcOffset);
     value = state.phase;
     nextChange = state.nextChange;
     _timer?.cancel();
@@ -111,14 +142,25 @@ class SkyClock extends ValueNotifier<SkyPhase> {
     _timer = Timer(wait, _update);
   }
 
-  static Future<void> _loadSavedPlace() async {
-    if (_savedLoaded || knownPlace.value != null) return;
-    _savedLoaded = true;
+  /// Reads the saved place once; later calls wait for the same read. Gives
+  /// up after a second, so the sky never stays hidden for long.
+  static Future<void> _loadSavedPlace() =>
+      _savedLoad ??= _readSavedPlace()
+          .timeout(const Duration(seconds: 1), onTimeout: () {})
+          .whenComplete(() => _savedPlaceRead = true);
+
+  static Future<void> _readSavedPlace() async {
+    if (knownPlace.value != null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       final lat = prefs.getDouble(_latKey);
       final lng = prefs.getDouble(_lngKey);
-      if (lat != null && lng != null && knownPlace.value == null) {
+      // A broken or impossible place is ignored (06:00–18:00 instead).
+      if (lat != null &&
+          lng != null &&
+          lat.abs() <= 90 &&
+          lng.abs() <= 180 &&
+          knownPlace.value == null) {
         knownPlace.value = (latitude: lat, longitude: lng);
       }
     } catch (_) {

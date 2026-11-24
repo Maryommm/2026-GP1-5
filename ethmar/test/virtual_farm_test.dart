@@ -1,6 +1,7 @@
 import 'package:ethmar/data/sample_plants.dart';
 import 'package:ethmar/models/crop_catalog.dart';
 import 'package:ethmar/models/farm_plant.dart';
+import 'package:ethmar/screens/my_plants_screen.dart';
 import 'package:ethmar/screens/virtual_farm_screen.dart';
 import 'package:ethmar/services/farm_store.dart';
 import 'package:flutter/material.dart';
@@ -83,6 +84,30 @@ void main() {
     FarmStore.plants.value = full;
     await _settle(tester);
     expect(find.text('Add land'), findsOneWidget);
+  });
+
+  testWidgets('My plants: the custom icon, no count badge, opens the list', (
+    tester,
+  ) async {
+    await _showFarm(tester, samplePlants);
+    final button = find.byTooltip('My plants');
+    expect(
+      find.descendant(
+        of: button,
+        matching: find.image(
+          const AssetImage('assets/images/my_plants_icon.png'),
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(Badge), findsNothing);
+    expect(find.text('${samplePlants.length}'), findsNothing);
+    // Still a 48 circle.
+    expect(tester.getSize(button), const Size(48, 48));
+
+    await tester.tap(button);
+    await _settle(tester);
+    expect(find.byType(MyPlantsScreen), findsOneWidget);
   });
 
   testWidgets('removing a plant leaves the others in their squares', (

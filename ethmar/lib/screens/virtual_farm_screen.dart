@@ -251,7 +251,8 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final night = _sky.value == SkyPhase.night;
+    // Until the real phase is known, the usual day colours over the cream.
+    final night = _sky.settled && _sky.value == SkyPhase.night;
     // Over the night sky, light status bar icons, title and hint. The
     // buttons are white and stay as they are.
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -262,7 +263,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
           children: [
             // The landscape stays still behind the farm: only the farm
             // inside the InteractiveViewer pans and zooms.
-            Positioned.fill(child: FarmSky(phase: _sky.value)),
+            Positioned.fill(child: FarmSky(phase: _sky.value, ready: _sky.settled)),
             Positioned.fill(
               child: LayoutBuilder(
                 builder: (context, box) {
@@ -365,7 +366,9 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
               child: EthmarCenteredHeader(
                 title: s.farmTitle,
                 titleColor: night ? _onNight : null,
-                trailing: const _MyPlantsButton(),
+                // On the reading start side: right in Arabic, left in
+                // English. A main tab, so no back button there.
+                leading: const _MyPlantsButton(),
                 showBack: false,
               ),
             ),
@@ -475,31 +478,38 @@ class _EmptyFarmPrompt extends StatelessWidget {
   }
 }
 
-/// "My plants" in the header corner, with how many plants there are.
+/// "My plants" in the header corner: a white circle with a potted plant
+/// beside a list. Opens the list of the user's plants.
 class _MyPlantsButton extends StatelessWidget {
   const _MyPlantsButton();
 
+  /// The picture's box. The drawing fills about 70% of its width.
+  static const _iconSize = 40.0;
+
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<List<FarmPlant>>(
-      valueListenable: FarmStore.plants,
-      builder: (context, plants, _) => Badge(
-        isLabelVisible: plants.isNotEmpty,
-        label: Text('${plants.length}'),
-        backgroundColor: AppColors.coralDark,
-        offset: const Offset(-2, 2),
-        child: Material(
-          color: AppColors.surface,
-          shape: const CircleBorder(),
-          child: IconButton(
-            tooltip: S.of(context).myPlants,
-            onPressed: () =>
-                Navigator.of(context).push(riseRoute(const MyPlantsScreen())),
-            style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-            icon: const Icon(
-              Icons.format_list_bulleted_rounded,
-              color: AppColors.forest,
-            ),
+    return Material(
+      color: AppColors.surface,
+      shape: const CircleBorder(),
+      child: IconButton(
+        tooltip: S.of(context).myPlants,
+        onPressed: () =>
+            Navigator.of(context).push(riseRoute(const MyPlantsScreen())),
+        // Less padding around the bigger picture: still a 48 circle.
+        style: IconButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          padding: const EdgeInsets.all(4),
+        ),
+        iconSize: _iconSize,
+        // The drawing sits a little below the picture's middle; lifted
+        // so it's centred in the circle.
+        icon: Transform.translate(
+          offset: const Offset(0, -_iconSize * 0.046),
+          child: Image.asset(
+            'assets/images/my_plants_icon.png',
+            width: _iconSize,
+            height: _iconSize,
+            fit: BoxFit.contain,
           ),
         ),
       ),

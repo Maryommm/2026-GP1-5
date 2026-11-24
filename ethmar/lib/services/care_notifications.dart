@@ -10,10 +10,11 @@ import 'package:timezone/timezone.dart' as tz;
 import '../l10n/app_strings.dart';
 import '../l10n/locale_controller.dart';
 import '../models/care_task.dart';
-import '../models/daily_task.dart' show DailyTask, TaskType;
+import '../models/daily_task.dart' show TaskType;
 import '../models/farm_plant.dart';
 import '../models/task_log.dart';
 import 'farm_store.dart';
+import 'recent_task_logs.dart';
 
 /// One notification to schedule: when, with which id and text.
 class PlannedReminder {
@@ -72,52 +73,62 @@ int reminderId(String plantId, TaskType type, int slot) {
   return (hash % 5000000) * maxRemindersPerTask + slot;
 }
 
-/// The notifications to schedule for [plants] after [now], built from
-/// [dueTasks] day by day: every alarm of every plant's watering and
-/// fertilizing in the next [reminderHorizonDays] days, and at least the next
-/// [minRemindersPerTask] of each; at most [maxReminders] in all, the soonest
-/// first. [s] gives the text in the app's language.
+/// The notifications to schedule for [plants] after [now]: for every
+/// plant's watering and fertilizing, the tasks careState expects from now
+/// on, every alarm in the next [reminderHorizonDays] days, and at least the
+/// next [minRemindersPerTask] of each; at most [maxReminders] in all, the
+/// soonest first. [s] gives the text in the app's language.
 ///
-/// Tasks already ticked in [done] (a day's task log) get no reminder that
-/// day: someone who watered early isn't told to water again.
+/// The tasks are planned as if none is done before it comes, so a missed
+/// task gets no second reminder, and no reminder comes for a task that a
+/// missed one takes the place of. Doing a task changes the plant, and the
+/// reminders are planned again from its new next task.
+///
+/// [logs] (task logs by date key, see careState) and [done] (one day's log)
+/// tell which tasks are already ticked: a task done today gets no reminder
+/// today, and someone who watered early isn't told to water again.
 List<PlannedReminder> planReminders(
   List<FarmPlant> plants,
   DateTime now,
   S s, {
   TaskLog? done,
+  Map<String, TaskLog> logs = const {},
 }) {
-  final saved = [for (final p in plants) if (p.id != null) p];
-  final slots = <String, int>{};
+  final known = {...logs, if (done != null) done.date: done};
   final planned = <PlannedReminder>[];
   final today = DateTime(now.year, now.month, now.day);
+  final lastDay = DateTime(
+    today.year,
+    today.month,
+    today.day + reminderLookAheadDays,
+  );
   final horizon = DateTime(now.year, now.month, now.day + reminderHorizonDays,
       now.hour, now.minute);
-  for (var offset = 0; offset <= reminderLookAheadDays; offset++) {
-    final day = DateTime(today.year, today.month, today.day + offset);
-    final ticked = done != null && done.date == TaskLog.dateKey(day)
-        ? done.completed.toSet()
-        : const <String>{};
-    for (final task in dueTasks(saved, day)) {
-      if (!task.at.isAfter(now)) continue;
-      if (ticked.contains(DailyTask.taskId(task))) continue;
-      final key = '${task.plant.id}/${task.type.name}';
-      final slot = slots[key] ?? 0;
-      final wanted = slot < minRemindersPerTask || !task.at.isAfter(horizon);
-      if (!wanted || slot >= maxRemindersPerTask) continue;
-      slots[key] = slot + 1;
+  final todayLog = known[TaskLog.dateKey(today)];
+  for (final state in careStates(plants, now, logs: known)) {
+    var slot = 0;
+    for (final day in state.taskDays(today, lastDay)) {
+      final at = state.at(day);
+      if (!at.isAfter(now)) continue;
+      if (day == today && (todayLog?.isCompleted(state.taskId) ?? false)) {
+        continue;
+      }
+      final wanted = slot < minRemindersPerTask || !at.isAfter(horizon);
+      if (!wanted || slot >= maxRemindersPerTask) break;
       // A different message each day, the same one on every sync.
-      final variant = _dayNumber(task.at) % S.reminderVariants;
-      final watering = task.type == TaskType.watering;
+      final variant = _dayNumber(at) % S.reminderVariants;
+      final watering = state.type == TaskType.watering;
       planned.add(PlannedReminder(
-        id: reminderId(task.plant.id!, task.type, slot),
-        at: task.at,
+        id: reminderId(state.plant.id!, state.type, slot),
+        at: at,
         title: s.reminderTitle(watering: watering, variant: variant),
         body: s.reminderBody(
           watering: watering,
           variant: variant,
-          plant: task.plant.name,
+          plant: state.plant.name,
         ),
       ));
+      slot++;
     }
   }
   planned.sort((a, b) => a.at.compareTo(b.at));
@@ -138,8 +149,9 @@ int _dayNumber(DateTime t) =>
 /// - [init] runs once at startup. From then on the reminders follow
 ///   [FarmStore.plants]: editing a plant schedules its alarms again,
 ///   deleting it cancels them, and signing out cancels all of them.
-/// - They also follow today's task log: ticking a task cancels its
-///   reminder for today, unticking it brings the reminder back.
+/// - They also follow the recent task logs: ticking a task (on time or
+///   late) cancels its reminder for today and plans the next ones from the
+///   day it was done; un-ticking it brings the old ones back.
 /// - [askPermissions] asks for the notification and exact-alarm
 ///   permissions; the main shell calls it once the user is signed in.
 /// - Tapping a notification sets [openDailyTasks]; the main shell listens
@@ -168,24 +180,19 @@ class CareNotifications {
   // ignore: unused_field
   static AppLifecycleListener? _lifecycle;
 
-  /// Today's ticked tasks, and the subscription that keeps them current.
-  static TaskLog? _todayLog;
-  static StreamSubscription<TaskLog>? _todayLogChanges;
+  /// The task logs of today and the missed days, kept current, so ticking
+  /// a task (on time or late) plans its reminders again at once.
+  static RecentTaskLogs? _logs;
 
-  /// Follows the task log of today's date. Called again on resume, so a
-  /// new day switches to the new day's log.
+  /// Follows the recent task logs. Called again on resume, so a new day
+  /// switches to the new day's logs.
   static void _watchToday() {
-    final date = TaskLog.dateKey(DateTime.now());
-    if (_todayLogChanges != null && _todayLog?.date == date) return;
-    _todayLogChanges?.cancel();
-    _todayLog = TaskLog(date: date);
-    _todayLogChanges = FarmStore.watchTaskLog(date).listen(
-      (log) {
-        _todayLog = log;
-        sync();
-      },
-      onError: (Object e) => debugPrint('Could not load the task log: $e'),
-    );
+    final logs = _logs;
+    if (logs != null) {
+      logs.checkDay();
+      return;
+    }
+    _logs = RecentTaskLogs()..addListener(sync);
   }
 
   /// Starts the reminders. Call once after Firebase and [FarmStore.start].
@@ -286,7 +293,7 @@ class CareNotifications {
       FarmStore.plants.value,
       DateTime.now(),
       s,
-      done: _todayLog,
+      logs: _logs?.logs ?? const {},
     );
     final wanted = {for (final r in plan) r.id: r};
 

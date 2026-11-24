@@ -10,10 +10,20 @@
 ///   - land           int        which land it's on (0 = the first land)
 ///   - square         int        its square on that land, 0-24
 ///   - irrigation     map|null   {everyDays: int, time: "HH:mm",
-///                               since: "yyyy-mm-dd"}; null when switched
-///                               off. since (optional) is the day the
-///                               schedule was set or last changed: no task
-///                               of it is due before that day
+///                               since: "yyyy-mm-dd",
+///                               lastDone: {date, due},
+///                               previousDone: {date, due}}; null when
+///                               switched off. since (optional) is the
+///                               start day: no task is due before it, and
+///                               with nothing done since, the first one is
+///                               due that day (see savedOver and
+///                               markedUndone). lastDone
+///                               (optional) is the latest time the task
+///                               was done: date is the day it was really
+///                               done, due the day it was for. The next
+///                               task is due everyDays after that date.
+///                               previousDone is the one before, so
+///                               un-ticking lastDone can bring it back
 ///   - fertilization  map|null   same as irrigation
 ///   - plantedAt      Timestamp
 ///   - createdAt      Timestamp
@@ -34,6 +44,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
 import 'crop_catalog.dart';
 import 'crop_recommendation.dart' show CropCategory;
+import 'daily_task.dart' show TaskType;
 
 /// How often a care reminder repeats, from most to least often.
 enum Repeat {
@@ -74,65 +85,214 @@ enum Repeat {
   };
 }
 
+/// One time a care task was done: the day it was really done ([date]) and
+/// the day it was for ([due]). The same day when done on time; [date] is
+/// later when a missed task was done late.
+///
+/// Saved as `{date: "yyyy-mm-dd", due: "yyyy-mm-dd"}`.
+class CareDone {
+  CareDone({required DateTime date, required DateTime due})
+    : date = CareSchedule._day(date),
+      due = CareSchedule._day(due);
+
+  final DateTime date;
+  final DateTime due;
+
+  bool get late => date.isAfter(due);
+
+  /// Later than [other]: done on a later day, or for a later day.
+  bool isAfter(CareDone? other) =>
+      other == null ||
+      date.isAfter(other.date) ||
+      (date == other.date && due.isAfter(other.due));
+
+  @override
+  bool operator ==(Object other) =>
+      other is CareDone && other.date == date && other.due == due;
+
+  @override
+  int get hashCode => Object.hash(date, due);
+
+  @override
+  String toString() => 'CareDone(${dateKey(date)} for ${dateKey(due)})';
+
+  Map<String, String> toMap() => {'date': dateKey(date), 'due': dateKey(due)};
+
+  /// Null when missing. A broken value also gives null, so one bad field
+  /// can't hide the whole plant; the schedule then counts from [since].
+  static CareDone? fromMap(Object? data) {
+    if (data is! Map) return null;
+    final date = data['date'], due = data['due'];
+    if (date is! String || due is! String) return null;
+    try {
+      return CareDone(
+        date: CareSchedule._parseDate(date),
+        due: CareSchedule._parseDate(due),
+      );
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// "yyyy-mm-dd" for the date of [day] (the same as TaskLog.dateKey).
+  static String dateKey(DateTime day) =>
+      '${day.year}-${CareSchedule._twoDigits(day.month)}-'
+      '${CareSchedule._twoDigits(day.day)}';
+}
+
 /// A reminder to water or fertilize: how often, and at what time.
 ///
-/// Saved as `{everyDays: 7, time: "08:00"}` (24-hour time).
+/// Saved as `{everyDays: 7, time: "08:00"}` (24-hour time), with [since],
+/// [lastDone] and [previousDone] when known.
+///
+/// When tasks are due is worked out in care_task.dart (see careState):
+/// the first one on [since], then every [Repeat.days] days after the day
+/// the task was last done ([lastDone]).
 class CareSchedule {
-  const CareSchedule(this.repeat, this.time, {this.since});
+  const CareSchedule(
+    this.repeat,
+    this.time, {
+    this.since,
+    this.lastDone,
+    this.previousDone,
+  });
   final Repeat repeat;
   final TimeOfDay time;
 
-  /// The day the user set this schedule, or last changed it (no time).
-  /// Nothing is due before it, so a schedule added today has no missed
-  /// tasks from yesterday. Null for schedules saved before this was kept;
-  /// those count from the day the plant was last saved (see dueTasks).
+  /// The schedule's start day (no time): no task is due before it, so a
+  /// schedule added today has no missed tasks from yesterday. With nothing
+  /// done since, its first task is due that day. Set when the schedule is
+  /// added, when its repeat changes, and when an un-tick leaves no earlier
+  /// done day (see [savedOver] and [markedUndone]). Null for schedules saved
+  /// before this was kept; those count from the planting day, starting on
+  /// the day the plant was last saved (see careState).
   final DateTime? since;
 
-  /// Same repeat and time; [since] isn't compared.
+  /// The latest time this task was done, on time or late. The next task is
+  /// due [Repeat.days] days after the day it was done. Null until it's
+  /// first done (and for schedules saved before this was kept).
+  final CareDone? lastDone;
+
+  /// The time it was done before [lastDone], so un-ticking [lastDone] can
+  /// put it back.
+  final CareDone? previousDone;
+
+  /// Same repeat and time; [since] and the done days aren't compared.
   bool sameAs(CareSchedule? other) =>
       other != null && other.repeat == repeat && other.time == time;
 
-  /// This schedule as the user saves it in place of [previous]: new or
-  /// changed ones start on [today]; unchanged ones keep their start day.
+  /// This schedule as the user saves it in place of [previous] on [today]:
+  /// - New (switched on): its first task is due [today], as for a plant
+  ///   added today.
+  /// - Same repeat (only the time changed, or nothing): kept as it was,
+  ///   with its start day and done days, so its tasks stay on the same days
+  ///   (a missed task stays missed) and only move to the new time.
+  /// - New repeat, done before: the next task is due [Repeat.days] (the new
+  ///   repeat) days after the day it was last done ([lastDone] is kept), or
+  ///   [today] if that day has already passed. Nothing is due before
+  ///   [today] ([since]), so an older missed task is replaced by it.
+  /// - New repeat, never done: it starts again on [today], as a new one.
   ///
-  /// An unchanged schedule saved before start days were kept has none, and
-  /// counts from [lastSaved], the plant's last save before this one. That
-  /// day is written down now, so this save (e.g. only a new name) doesn't
-  /// move it, and missed tasks stay missed.
+  /// A schedule saved before start days were kept has none: it repeats
+  /// from [plantedAt], starting on [lastSaved], the plant's last save
+  /// before this one. When its repeat stays, its first task from that day
+  /// is written down now as its start day, so this save (e.g. only a new
+  /// name or time) doesn't move it.
   CareSchedule savedOver(
     CareSchedule? previous,
     DateTime today, {
     required DateTime lastSaved,
+    required DateTime plantedAt,
   }) {
-    if (!sameAs(previous)) return CareSchedule(repeat, time, since: _day(today));
-    if (previous!.since != null) return previous;
-    return CareSchedule(repeat, time, since: _day(lastSaved));
+    final day = _day(today);
+    if (previous == null) return CareSchedule(repeat, time, since: day);
+    if (repeat == previous.repeat) {
+      return CareSchedule(
+        repeat,
+        time,
+        since:
+            previous.since ?? firstDayFrom(plantedAt, repeat.days, lastSaved),
+        lastDone: previous.lastDone,
+        previousDone: previous.previousDone,
+      );
+    }
+    return CareSchedule(
+      repeat,
+      time,
+      since: day,
+      lastDone: previous.lastDone,
+      previousDone: previous.lastDone == null ? null : previous.previousDone,
+    );
+  }
+
+  /// The first of [start], [start] + [every] days, [start] + 2 × [every]...
+  /// that is on or after the date of [from]. Calendar days, so a
+  /// daylight-saving change can't shift it.
+  static DateTime firstDayFrom(DateTime start, int every, DateTime from) {
+    final s = _day(start), f = _day(from);
+    final gap = DateTime.utc(f.year, f.month, f.day)
+        .difference(DateTime.utc(s.year, s.month, s.day))
+        .inDays;
+    if (gap <= 0) return s;
+    final steps = (gap + every - 1) ~/ every;
+    return DateTime(s.year, s.month, s.day + steps * every);
+  }
+
+  /// The same schedule with other done days.
+  CareSchedule withDone({CareDone? last, CareDone? previous}) => CareSchedule(
+    repeat,
+    time,
+    since: since,
+    lastDone: last,
+    previousDone: previous,
+  );
+
+  /// After the task due on [done]'s due day is ticked: it becomes
+  /// [lastDone], so the next task counts from the day it was done, and the
+  /// old [lastDone] is kept as [previousDone] for un-ticking. Ticking the
+  /// same task again changes nothing. A tick older than [lastDone] (e.g.
+  /// from another phone) doesn't move the schedule back.
+  CareSchedule markedDone(CareDone done) {
+    final last = lastDone;
+    if (last != null && (last.due == done.due || last.isAfter(done))) {
+      return this;
+    }
+    return withDone(last: done, previous: last);
+  }
+
+  /// After the task due on [due] is un-ticked: if it was [lastDone], the
+  /// time before ([previousDone]) counts again, as if it had never been
+  /// ticked; if it was [previousDone], that is forgotten.
+  ///
+  /// Only two done days are kept, so when there is no [previousDone] to go
+  /// back to (never done before, or already used by an earlier un-tick),
+  /// the un-ticked task's day becomes the start day ([since]): that task
+  /// is the one to do again (due, or missed if its day has passed), and
+  /// the schedule carries on from it. Nothing is made up as done.
+  CareSchedule markedUndone(DateTime due) {
+    final day = _day(due);
+    if (lastDone?.due == day) {
+      final back = previousDone;
+      if (back != null) return withDone(last: back);
+      final start = since;
+      return CareSchedule(
+        repeat,
+        time,
+        since: start != null && start.isAfter(day) ? start : day,
+      );
+    }
+    if (previousDone?.due == day) return withDone(last: lastDone);
+    return this;
   }
 
   static DateTime _day(DateTime t) => DateTime(t.year, t.month, t.day);
 
-  /// The next reminder after [now], counting from [start] (the day the
-  /// plant was planted).
-  DateTime nextAfter(DateTime start, DateTime now) {
-    var next = DateTime(
-      start.year,
-      start.month,
-      start.day,
-      time.hour,
-      time.minute,
-    );
-    while (!next.isAfter(now)) {
-      next = next.add(Duration(days: repeat.days));
-    }
-    return next;
-  }
-
   Map<String, Object> toMap() => {
     'everyDays': repeat.days,
     'time': '${_twoDigits(time.hour)}:${_twoDigits(time.minute)}',
-    if (since case final day?)
-      'since':
-          '${day.year}-${_twoDigits(day.month)}-${_twoDigits(day.day)}',
+    if (since case final day?) 'since': CareDone.dateKey(day),
+    if (lastDone case final done?) 'lastDone': done.toMap(),
+    if (previousDone case final done?) 'previousDone': done.toMap(),
   };
 
   /// Null when the schedule is switched off (saved as null).
@@ -150,6 +310,8 @@ class CareSchedule {
       Repeat.fromDays(everyDays),
       _parseTime(time),
       since: since == null ? null : _parseDate(since as String),
+      lastDone: CareDone.fromMap(data['lastDone']),
+      previousDone: CareDone.fromMap(data['previousDone']),
     );
   }
 
@@ -360,9 +522,17 @@ class FarmPlant {
     return today.difference(planted).inDays;
   }
 
+  /// The schedule of [type]: [irrigation] for watering, [fertilization]
+  /// for fertilizing.
+  CareSchedule? scheduleOf(TaskType type) => switch (type) {
+    TaskType.watering => irrigation,
+    TaskType.fertilizing => fertilization,
+  };
+
   /// The same plant with a new name and schedules (from the edit form).
-  /// A schedule that is new or changed starts on [today] (see
-  /// [CareSchedule.since]); an unchanged one keeps its start day.
+  /// Each schedule keeps or moves its tasks as [CareSchedule.savedOver]
+  /// says: a new time keeps the days, a new repeat counts from the last
+  /// time the task was done.
   FarmPlant edited({
     required String name,
     required CareSchedule? irrigation,
@@ -379,11 +549,13 @@ class FarmPlant {
       this.irrigation,
       today ?? DateTime.now(),
       lastSaved: updatedAt,
+      plantedAt: plantedAt,
     ),
     fertilization: fertilization?.savedOver(
       this.fertilization,
       today ?? DateTime.now(),
       lastSaved: updatedAt,
+      plantedAt: plantedAt,
     ),
     plantedAt: plantedAt,
     createdAt: createdAt,

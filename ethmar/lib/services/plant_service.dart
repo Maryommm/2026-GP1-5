@@ -4,11 +4,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import '../models/daily_task.dart' show TaskType;
 import '../models/farm_plant.dart';
 import '../models/farm_spot.dart';
 import '../models/farm_stats.dart';
+import '../models/plant_edit.dart';
 import '../models/streak.dart';
 import '../models/task_log.dart';
+import 'network_errors.dart';
 
 /// Error when every square on every land already has a plant.
 class FarmFullException implements Exception {
@@ -140,25 +143,124 @@ class PlantService {
     return saved;
   }
 
-  /// Saves the plant's fields over its document.
-  /// Throws an [ArgumentError] if it has never been saved (no id).
-  Future<void> updatePlant(FarmPlant plant) async {
-    final id = plant.id;
+  /// Saves the changes made on the Edit Plant screen: in one transaction,
+  /// reads the plant as it is saved now and updates only the fields the
+  /// user changed (see [PlantEdit.updateOver]). A task done meanwhile
+  /// (its `lastDone`, `previousDone` or the other schedule) is never
+  /// overwritten with the screen's older copy. If the plant changes before
+  /// the transaction ends, Firestore runs it again on the new values.
+  ///
+  /// The streak is updated in the same transaction when the edit changes
+  /// whether today is finished (see [streakAfterScheduleChange]): a task
+  /// added to a completed today takes today's +1 back. [plants] are the
+  /// user's plants (this one is read fresh).
+  ///
+  /// Returns the streak that was lost because a day was missed (0 if
+  /// none), for Home to tell the user. Throws an [ArgumentError] if the
+  /// plant was never saved (no id), and a [StateError] if it no longer
+  /// exists.
+  Future<int> editPlant(PlantEdit edit, {required List<FarmPlant> plants}) async {
+    final id = edit.opened.id;
     if (id == null) {
-      throw ArgumentError.value(plant, 'plant', 'The plant has no id.');
+      throw ArgumentError.value(edit, 'edit', 'The plant has no id.');
     }
-    await _plants(_uid).doc(id).set(plant.toMap());
+    final uid = _uid;
+    final plant = _plants(uid).doc(id);
+    final stats = _stats(uid);
+    return _firestore.runTransaction<int>((transaction) async {
+      final now = DateTime.now();
+      final log = _taskLog(uid, TaskLog.dateKey(now));
+      final data = (await transaction.get(plant)).data();
+      if (data == null) throw StateError('Plant $id no longer exists.');
+      final statsSnapshot = await transaction.get(stats);
+      final logSnapshot = await transaction.get(log);
+      final update = edit.updateOver(data, now, now);
+      if (update.isEmpty) return 0;
+
+      final others = [for (final p in plants) if (p.id != id) p];
+      final beforePlants = [...others, FarmPlant.fromMap(id, data)];
+      final afterPlants = [
+        ...others,
+        FarmPlant.fromMap(id, PlantEdit.applied(data, update)),
+      ];
+      final before = _readStats(statsSnapshot);
+      final after = streakAfterScheduleChange(
+        before,
+        before: beforePlants,
+        after: afterPlants,
+        now: now,
+        todayLog: _readLog(log.id, logSnapshot.data()),
+      );
+
+      transaction.update(plant, {
+        for (final MapEntry(:key, :value) in update.entries)
+          key: value is DeleteField ? FieldValue.delete() : value,
+      });
+      if (after.currentStreak != before.currentStreak ||
+          after.lastCompletedDate != before.lastCompletedDate) {
+        transaction.set(stats, after.toMap());
+      }
+      return streakBroken(before, after, beforePlants)
+          ? before.currentStreak
+          : 0;
+    });
   }
 
-  /// Deletes a plant and all its growth entries. Firestore doesn't delete
+  /// Deletes a plant and then its growth entries. Firestore doesn't delete
   /// subcollections by itself.
-  Future<void> deletePlant(String plantId) async {
-    final plant = _plants(_uid).doc(plantId);
-    final growth = await plant.collection('growth').get();
+  ///
+  /// The plant is deleted in a transaction that also updates the streak
+  /// (see [streakAfterPlantDeleted]): if it had today's last unfinished
+  /// task, today is completed. Both happen, or neither (a transaction
+  /// needs the server, so offline it fails and nothing changes). [others]
+  /// are the user's other plants that stay: not this one, nor ones whose
+  /// delete has already succeeded.
+  ///
+  /// If the connection is lost and it isn't known whether the delete went
+  /// through, the server is asked: a plant already gone counts as deleted.
+  /// Otherwise the error is thrown, the plant stays, and trying again is
+  /// safe (deleting a plant that is already gone changes nothing).
+  ///
+  /// The growth entries are removed afterwards, without waiting: left
+  /// behind, they only take space.
+  ///
+  /// Returns the streak that was lost because a day was missed (0 if
+  /// none), for Home to tell the user.
+  Future<int> deletePlant(
+    String plantId, {
+    List<FarmPlant> others = const [],
+  }) async {
+    final uid = _uid;
+    final plant = _plants(uid).doc(plantId);
+    int lost;
+    try {
+      lost = await _deletePlantAndUpdateStreak(uid, plant, others);
+    } catch (e) {
+      if (!isNetworkError(e) || !await _goneOnServer(plant)) rethrow;
+      lost = 0;
+    }
+    unawaited(
+      _deleteGrowth(plant).catchError(
+        (Object e) => debugPrint('Growth entries of $plantId kept: $e'),
+      ),
+    );
+    return lost;
+  }
 
-    // A batch can hold at most 500 writes. The plant goes last, so if a
-    // batch fails it still exists and deleting it can be tried again.
-    final refs = [...growth.docs.map((doc) => doc.reference), plant];
+  /// True only when the server says [doc] doesn't exist.
+  Future<bool> _goneOnServer(DocumentReference<Object?> doc) async {
+    try {
+      return !(await doc.get(const GetOptions(source: Source.server))).exists;
+    } catch (_) {
+      return false; // Still unknown: report the failure.
+    }
+  }
+
+  /// Deletes every growth entry of [plant]. A batch can hold at most 500
+  /// writes.
+  Future<void> _deleteGrowth(DocumentReference<Object?> plant) async {
+    final growth = await plant.collection('growth').get();
+    final refs = [...growth.docs.map((doc) => doc.reference)];
     for (var start = 0; start < refs.length; start += 500) {
       final batch = _firestore.batch();
       for (final ref in refs.skip(start).take(500)) {
@@ -166,6 +268,47 @@ class PlantService {
       }
       await batch.commit();
     }
+  }
+
+  Future<int> _deletePlantAndUpdateStreak(
+    String uid,
+    DocumentReference<Map<String, dynamic>> plant,
+    List<FarmPlant> others,
+  ) {
+    final plantId = plant.id;
+    final stats = _stats(uid);
+    return _firestore.runTransaction<int>((transaction) async {
+      final now = DateTime.now();
+      final log = _taskLog(uid, TaskLog.dateKey(now));
+      final data = (await transaction.get(plant)).data();
+      final statsSnapshot = await transaction.get(stats);
+      final logSnapshot = await transaction.get(log);
+      transaction.delete(plant);
+      if (data == null) return 0; // Already gone: nothing changes today.
+      final FarmPlant deleted;
+      try {
+        deleted = FarmPlant.fromMap(plantId, data);
+      } on FormatException {
+        return 0; // Unreadable, so it never had tasks on the screens.
+      }
+      final remaining = [for (final p in others) if (p.id != plantId) p];
+      final beforePlants = [...remaining, deleted];
+      final before = _readStats(statsSnapshot);
+      final after = streakAfterPlantDeleted(
+        before,
+        before: beforePlants,
+        after: remaining,
+        now: now,
+        todayLog: _readLog(log.id, logSnapshot.data()),
+      );
+      if (after.currentStreak != before.currentStreak ||
+          after.lastCompletedDate != before.lastCompletedDate) {
+        transaction.set(stats, after.toMap());
+      }
+      return streakBroken(before, after, beforePlants)
+          ? before.currentStreak
+          : 0;
+    });
   }
 
   /// Saves the number of lands. Changes only that field, so the streak in
@@ -198,8 +341,54 @@ class PlantService {
     }),
   );
 
+  /// The plant's schedule of [type] with its done days changed by [change],
+  /// as the fields to update; null when there is nothing to change (no such
+  /// plant or schedule any more, or the same done days).
+  ///
+  /// Only `lastDone`, `previousDone` and, when an un-tick moves it, `since`
+  /// are written (as dotted paths), so a name or schedule saved at the same
+  /// moment isn't overwritten.
+  @visibleForTesting
+  static Map<String, Object>? doneDaysUpdate(
+    Map<String, dynamic>? plant,
+    TaskType type,
+    CareSchedule Function(CareSchedule) change,
+  ) {
+    if (plant == null) return null;
+    final field = switch (type) {
+      TaskType.watering => 'irrigation',
+      TaskType.fertilizing => 'fertilization',
+    };
+    final CareSchedule? schedule;
+    try {
+      schedule = CareSchedule.fromMap(plant[field]);
+    } on FormatException {
+      return null;
+    }
+    if (schedule == null) return null;
+    final changed = change(schedule);
+    final sinceChanged = changed.since != schedule.since;
+    if (changed.lastDone == schedule.lastDone &&
+        changed.previousDone == schedule.previousDone &&
+        !sinceChanged) {
+      return null;
+    }
+    return {
+      '$field.lastDone': changed.lastDone?.toMap() ?? FieldValue.delete(),
+      '$field.previousDone':
+          changed.previousDone?.toMap() ?? FieldValue.delete(),
+      if (sinceChanged)
+        '$field.since': changed.since == null
+            ? FieldValue.delete()
+            : CareDone.dateKey(changed.since!),
+    };
+  }
+
   /// Marks task [taskId] of [today] as done (or not done), and updates the
   /// streak in the same transaction, so the log and the streak always agree.
+  /// The plant [plantId]'s schedule of [type] records it too (see
+  /// [CareSchedule.markedDone] and [CareSchedule.markedUndone]), so its next
+  /// task counts from today, or as before once un-ticked.
   ///
   /// [todayTaskIds] are the ids of every task due today and [plants] the
   /// user's plants; they decide whether the day is complete and whether an
@@ -209,6 +398,8 @@ class PlantService {
   /// for Home to tell the user.
   Future<int> setTaskDone({
     required DateTime today,
+    required String plantId,
+    required TaskType type,
     required String taskId,
     required bool done,
     required List<String> todayTaskIds,
@@ -217,9 +408,11 @@ class PlantService {
     final uid = _uid;
     final log = _taskLog(uid, TaskLog.dateKey(today));
     final stats = _stats(uid);
+    final plant = _plants(uid).doc(plantId);
     return _firestore.runTransaction<int>((transaction) async {
       final logSnapshot = await transaction.get(log);
       final statsSnapshot = await transaction.get(stats);
+      final plantSnapshot = await transaction.get(plant);
 
       final saved = _readLog(log.id, logSnapshot.data());
       final completed = {...saved.completed};
@@ -234,36 +427,77 @@ class PlantService {
         previousTaskDay: previousTaskDay(plants, today),
       );
 
+      final day = DateTime(today.year, today.month, today.day);
+      final doneDays = doneDaysUpdate(
+        plantSnapshot.data(),
+        type,
+        (s) => done
+            ? s.markedDone(CareDone(date: day, due: day))
+            : s.markedUndone(day),
+      );
+
       transaction.set(
         log,
-        TaskLog(date: log.id, completed: [...completed], late: saved.late)
-            .toMap(),
+        TaskLog(
+          date: log.id,
+          completed: [...completed],
+          late: saved.late,
+          lateOn: saved.lateOn,
+        ).toMap(),
       );
       transaction.set(stats, after.toMap());
+      if (doneDays != null) transaction.update(plant, doneDays);
       return streakBroken(before, checked, plants) ? before.currentStreak : 0;
     });
   }
 
-  /// Marks task [taskId] of the past day [day] as done late (or not). Only
-  /// that day's log changes: a task done after its day never adds to the
-  /// streak.
+  /// Marks task [taskId] of the past day [day] as done late on [doneOn]
+  /// (or not done). That day's log keeps it with the day it was really
+  /// done, and the plant [plantId]'s schedule of [type] records it, so its
+  /// next task counts from [doneOn]. The streak doesn't change: a task done
+  /// after its day never adds to it.
   Future<void> setLateTaskDone({
     required DateTime day,
+    required DateTime doneOn,
+    required String plantId,
+    required TaskType type,
     required String taskId,
     required bool done,
   }) async {
-    final log = _taskLog(_uid, TaskLog.dateKey(day));
+    final uid = _uid;
+    final log = _taskLog(uid, TaskLog.dateKey(day));
+    final plant = _plants(uid).doc(plantId);
     await _firestore.runTransaction<void>((transaction) async {
       final saved = _readLog(log.id, (await transaction.get(log)).data());
+      final plantSnapshot = await transaction.get(plant);
       // Done on time after all (e.g. on another phone): nothing to change.
       if (saved.isCompleted(taskId)) return;
       final late = {...saved.late};
-      done ? late.add(taskId) : late.remove(taskId);
+      final lateOn = {...saved.lateOn};
+      if (done) {
+        late.add(taskId);
+        lateOn[taskId] = TaskLog.dateKey(doneOn);
+      } else {
+        late.remove(taskId);
+        lateOn.remove(taskId);
+      }
+      final doneDays = doneDaysUpdate(
+        plantSnapshot.data(),
+        type,
+        (s) => done
+            ? s.markedDone(CareDone(date: doneOn, due: day))
+            : s.markedUndone(day),
+      );
       transaction.set(
         log,
-        TaskLog(date: log.id, completed: saved.completed, late: [...late])
-            .toMap(),
+        TaskLog(
+          date: log.id,
+          completed: saved.completed,
+          late: [...late],
+          lateOn: lateOn,
+        ).toMap(),
       );
+      if (doneDays != null) transaction.update(plant, doneDays);
     });
   }
 

@@ -23,7 +23,12 @@ class EthmarCenteredHeader extends StatelessWidget {
     this.trailing,
     this.showBack = true,
     this.titleColor,
+    this.leading,
   });
+
+  /// A button on the reading start side (right in Arabic, left in English)
+  /// in place of the back button, for main tabs that have no back.
+  final Widget? leading;
   final String title;
 
   /// The title's colour over a dark page; the usual text colour otherwise.
@@ -57,7 +62,9 @@ class EthmarCenteredHeader extends StatelessWidget {
       ),
       child: _CenteredRow(
         minSideWidth: _minSideWidth,
-        start: showBack ? EthmarBackButton(tooltip: S.of(context).back) : null,
+        start:
+            leading ??
+            (showBack ? EthmarBackButton(tooltip: S.of(context).back) : null),
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

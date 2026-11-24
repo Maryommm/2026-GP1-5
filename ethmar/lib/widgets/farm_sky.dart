@@ -9,14 +9,21 @@ import '../theme/app_colors.dart';
 /// night. The same landscape in both, so night looks like the day scene
 /// after sunset. Drawn to fill the screen; it doesn't move with the farm,
 /// and it's only repainted when its size or phase changes.
+///
+/// Until [ready] (the real phase is known, see SkyClock.settled) nothing
+/// is drawn, so the page's own cream shows for those few milliseconds
+/// instead of the wrong scene. The first scene then appears as it is; only
+/// later changes (sunrise, sunset) fade.
 class FarmSky extends StatelessWidget {
-  const FarmSky({super.key, required this.phase});
+  const FarmSky({super.key, required this.phase, this.ready = true});
   final SkyPhase phase;
+  final bool ready;
 
-  static const _fade = Duration(milliseconds: 1200);
+  static const fade = Duration(milliseconds: 1200);
 
   @override
   Widget build(BuildContext context) {
+    if (!ready) return const SizedBox.expand();
     final night = phase == SkyPhase.night;
     // The day scene stays underneath; the night one fades in over it.
     return RepaintBoundary(
@@ -28,7 +35,7 @@ class FarmSky extends StatelessWidget {
             opacity: night ? 1 : 0,
             duration: MediaQuery.disableAnimationsOf(context)
                 ? Duration.zero
-                : _fade,
+                : fade,
             curve: Curves.easeInOut,
             child: const CustomPaint(painter: _SkyPainter(_SkyColors.night)),
           ),

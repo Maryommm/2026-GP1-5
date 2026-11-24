@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
-import '../models/care_task.dart';
 import '../models/daily_task.dart';
 import '../models/farm_stats.dart';
 import '../models/streak.dart' show streakBrokenByMissedTasks;
 import '../models/task_log.dart';
 import '../services/farm_store.dart';
+import '../services/network_errors.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
@@ -22,10 +22,11 @@ import '../widgets/ethmar_logo.dart' show parseSvgPath;
 /// then the missed tasks of the last [missedTaskDays] days.
 ///
 /// The tasks come from the user's plants and their care schedules
-/// ([dueTasks]); ticking one saves it in today's task log and updates the
-/// streak (see [FarmStore.setTaskDone]). A task is only missed once its day
-/// is over; ticking a missed task saves it as done late, in its own day's
-/// log, without touching the streak (see [FarmStore.setLateTaskDone]).
+/// ([tasksForDay] and [missedTasks], both from careState); ticking one
+/// saves it in today's task log, updates the streak and moves the plant's
+/// next task (see [FarmStore.setTaskDone]). A task is only missed once its
+/// day is over; ticking a missed task saves it as done late, in its own
+/// day's log, without touching the streak (see [FarmStore.setLateTaskDone]).
 ///
 /// In the current layout it opens from Home's "Today's Tasks" card, with a
 /// back button; in the classic layout it is a tab ([asTab]), without one.
@@ -49,6 +50,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
   // Ticks shown right away, before Firestore confirms them:
   // DailyTask.key -> done.
   final _pending = <String, bool>{};
+
+  /// Tasks (by [DailyTask.key]) whose tick is being saved right now.
+  final _saving = <String>{};
 
   static DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
 
@@ -108,7 +112,8 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
       final date = TaskLog.dateKey(
         DateTime(_today.year, _today.month, _today.day - back),
       );
-      _logs[date] = TaskLog(date: date);
+      // Only logs that have arrived go in _logs: one still loading must not
+      // look like "nothing done" (see careState).
       _logChanges.add(FarmStore.watchTaskLog(date).listen((log) {
         setState(() {
           _logs[date] = log;
@@ -126,51 +131,77 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
   }
 
   /// The logs with any tick that is still being saved: on time for today,
-  /// late for the days before.
+  /// late (done today) for the days before. The tasks are worked out from
+  /// these, so a tick moves the plant's next task straight away.
   Map<String, TaskLog> _logsWithPending() {
     final today = TaskLog.dateKey(_today);
     final logs = <String, TaskLog>{};
-    _logs.forEach((date, log) {
+    final dates = {
+      ..._logs.keys,
+      for (final key in _pending.keys) key.substring(0, key.indexOf('/')),
+    };
+    for (final date in dates) {
+      final log = _logs[date] ?? TaskLog(date: date);
       final completed = {...log.completed};
       final late = {...log.late};
+      final lateOn = {...log.lateOn};
       final ticks = date == today ? completed : late;
       _pending.forEach((key, done) {
         if (!key.startsWith('$date/')) return;
         final id = key.substring(date.length + 1);
         done ? ticks.add(id) : ticks.remove(id);
+        if (date != today) done ? lateOn[id] = today : lateOn.remove(id);
       });
-      logs[date] = TaskLog(date: date, completed: [...completed], late: [...late]);
-    });
+      logs[date] = TaskLog(
+        date: date,
+        completed: [...completed],
+        late: [...late],
+        lateOn: lateOn,
+      );
+    }
     return logs;
   }
 
   Future<void> _toggle(DailyTask task, List<DailyTask> today) async {
+    // One save at a time per task: a second tap while it's saving would
+    // send the opposite change alongside it.
+    if (!_saving.add(task.key)) return;
     final done = !task.done;
     setState(() => _pending[task.key] = done);
     try {
       if (task.isPast) {
         await FarmStore.setLateTaskDone(
           day: task.day,
+          plantId: task.plantId,
+          type: task.type,
           taskId: task.id,
           done: done,
         );
       } else {
         await FarmStore.setTaskDone(
           today: _today,
+          plantId: task.plantId,
+          type: task.type,
           taskId: task.id,
           done: done,
           todayTaskIds: [for (final t in today) t.id],
         );
       }
     } catch (e) {
+      // Not saved (or not confirmed): the task shows what is saved again.
+      // If the save did reach the server, its log brings the tick back;
+      // ticking again is safe either way.
       debugPrint('Could not save the task: $e');
       if (!mounted) return;
       setState(() => _pending.remove(task.key));
+      final s = S.of(context);
       showEthmarToast(
         context,
-        S.of(context).taskSaveFailed,
+        isNetworkError(e) ? s.taskSaveFailed : s.taskSaveFailedGeneric,
         type: EthmarToastType.error,
       );
+    } finally {
+      _saving.remove(task.key);
     }
   }
 
@@ -179,12 +210,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
     final s = S.of(context);
     final plants = FarmStore.plants.value;
     final logs = _logsWithPending();
-    final tasks = tasksForDay(
-      plants,
-      _today,
-      logs[TaskLog.dateKey(_today)]!,
-      DateTime.now(),
-    );
+    final tasks = tasksForDay(plants, _today, logs, DateTime.now());
     final missed = missedTasks(plants, _today, logs);
     final doneCount = tasks.where((t) => t.done).length;
     // Shown order only: tasks still to do first, done ones last, each group

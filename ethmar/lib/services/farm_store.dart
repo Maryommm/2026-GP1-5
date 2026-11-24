@@ -3,12 +3,39 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../models/daily_task.dart' show TaskType;
 import '../models/farm_plant.dart';
 import '../models/farm_spot.dart';
 import '../models/farm_stats.dart';
+import '../models/plant_edit.dart';
 import '../models/task_log.dart';
 import 'growth_photo_service.dart';
 import 'plant_service.dart';
+
+/// Deletes the plants [ids] one after another with [deleteOne], and
+/// returns the error of each one that couldn't be deleted.
+///
+/// [deleteOne] gets the ids already deleted, so the streak counts only
+/// deletes that succeeded: while a plant with a task still to do isn't
+/// confirmed gone, today can't be completed by deleting the others. A
+/// failure doesn't stop the rest. No delete is tried twice.
+Future<Map<String, Object>> deletePlantsInTurn(
+  List<String> ids,
+  Future<void> Function(String id, Set<String> deleted) deleteOne,
+) async {
+  final deleted = <String>{};
+  final failed = <String, Object>{};
+  for (final id in {...ids}) {
+    try {
+      await deleteOne(id, Set.unmodifiable(deleted));
+      deleted.add(id);
+    } catch (e) {
+      debugPrint('Could not delete plant $id: $e');
+      failed[id] = e;
+    }
+  }
+  return failed;
+}
 
 /// The user's farm while the app is open: the latest lands and plants from
 /// Firestore, ready for the screens to read and listen to.
@@ -79,25 +106,72 @@ class FarmStore {
   static Future<FarmPlant> addPlant(FarmPlant plant) =>
       _service.addPlant(plant, lands: lands.value);
 
-  /// Saves a plant's changes (e.g. after editing its schedules). It keeps
-  /// its square.
-  static Future<void> updatePlant(FarmPlant plant) =>
-      _service.updatePlant(plant);
+  /// Saves the Edit Plant screen's changes: only the fields the user
+  /// changed, over the plant as it is saved now (see
+  /// [PlantService.editPlant]). It keeps its square. The streak follows
+  /// today's tasks after the change (see streakAfterScheduleChange).
+  static Future<void> editPlant(PlantEdit edit) async {
+    final fake = editForTests;
+    if (fake != null) return fake(edit);
+    _reportLost(await _service.editPlant(edit, plants: _savedPlants));
+  }
 
-  /// Deletes a plant, its growth entries and their photos.
+  /// Replaces [editPlant] in widget tests, which have no Firebase.
+  @visibleForTesting
+  static Future<void> Function(PlantEdit edit)? editForTests;
+
+  /// Deletes running now, by plant id, so asking again joins the one
+  /// already running instead of starting a second.
+  static final _deletesRunning = <String, Future<void>>{};
+
+  /// Deletes a plant, its growth entries and their photos. If it had
+  /// today's last unfinished task, today is completed for the streak (see
+  /// PlantService.deletePlant). Throws if it couldn't be deleted; the
+  /// plant then stays.
   static Future<void> deletePlant(String plantId) async {
+    final failed = await deletePlants([plantId]);
+    if (failed[plantId] case final error?) throw error;
+  }
+
+  /// Deletes the plants [ids] one after another (see [deletePlantsInTurn])
+  /// and returns the error of each one that couldn't be deleted; those
+  /// stay on the farm. Each delete counts only the ones already deleted as
+  /// gone, so a failed one can never complete today for the streak.
+  static Future<Map<String, Object>> deletePlants(List<String> ids) =>
+      deletePlantsInTurn(ids, _deleteOne);
+
+  static Future<void> _deleteOne(String id, Set<String> deleted) {
+    final running = _deletesRunning[id];
+    if (running != null) return running;
+    // A block: remove() returns this same future, which whenComplete
+    // would otherwise wait for.
+    final delete = _deleteNow(id, deleted).whenComplete(() {
+      _deletesRunning.remove(id);
+    });
+    _deletesRunning[id] = delete;
+    return delete;
+  }
+
+  static Future<void> _deleteNow(String id, Set<String> deleted) async {
     final fake = deleteForTests;
-    if (fake != null) return fake(plantId);
-    await _service.deletePlant(plantId);
-    // The plant is gone either way; a photo left behind only takes space.
+    if (fake != null) return fake(id);
+    _reportLost(await _service.deletePlant(
+      id,
+      others: [
+        for (final p in _savedPlants)
+          if (p.id != id && !deleted.contains(p.id)) p,
+      ],
+    ));
+    // The plant is gone; a photo left behind only takes space.
     unawaited(
       _photos
-          .deletePlantPhotos(plantId)
+          .deletePlantPhotos(id)
           .catchError((Object e) => debugPrint('Growth photos kept: $e')),
     );
   }
 
-  /// Replaces [deletePlant] in widget tests, which have no Firebase.
+  /// Replaces [deletePlant]'s Firestore work in widget tests, which have
+  /// no Firebase.
   @visibleForTesting
   static Future<void> Function(String plantId)? deleteForTests;
 
@@ -149,16 +223,23 @@ class FarmStore {
   @visibleForTesting
   static Stream<TaskLog> Function(String date)? taskLogForTests;
 
-  /// Marks a task of [today] done or not done, and updates the streak.
+  /// Marks a task of [today] done or not done, and updates the streak and
+  /// the plant's next task (see PlantService.setTaskDone).
   /// [todayTaskIds] are the ids of every task due today.
   static Future<void> setTaskDone({
     required DateTime today,
+    required String plantId,
+    required TaskType type,
     required String taskId,
     required bool done,
     required List<String> todayTaskIds,
   }) async {
+    final fake = taskForTests;
+    if (fake != null) return fake(taskId, done: done, late: false);
     _reportLost(await _service.setTaskDone(
       today: today,
+      plantId: plantId,
+      type: type,
       taskId: taskId,
       done: done,
       todayTaskIds: todayTaskIds,
@@ -166,13 +247,33 @@ class FarmStore {
     ));
   }
 
-  /// Marks a missed task of the past day [day] done late, or not. The
-  /// streak doesn't change.
+  /// Marks a missed task of the past day [day] done late today, or not.
+  /// The plant's next task then counts from today; the streak doesn't
+  /// change.
   static Future<void> setLateTaskDone({
     required DateTime day,
+    required String plantId,
+    required TaskType type,
     required String taskId,
     required bool done,
-  }) => _service.setLateTaskDone(day: day, taskId: taskId, done: done);
+  }) async {
+    final fake = taskForTests;
+    if (fake != null) return fake(taskId, done: done, late: true);
+    await _service.setLateTaskDone(
+      day: day,
+      doneOn: DateTime.now(),
+      plantId: plantId,
+      type: type,
+      taskId: taskId,
+      done: done,
+    );
+  }
+
+  /// Replaces [setTaskDone] and [setLateTaskDone] in widget tests, which
+  /// have no Firebase.
+  @visibleForTesting
+  static Future<void> Function(String taskId,
+      {required bool done, required bool late})? taskForTests;
 
   /// Resets the streak if a day with tasks was missed (see streak.dart).
   static Future<void> checkStreak() async =>
