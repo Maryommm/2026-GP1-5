@@ -1,16 +1,22 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
+import '../services/sky_clock.dart';
+import '../services/sun_times.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../theme/system_bars.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/centered_header.dart';
+import '../widgets/farm_sky.dart';
 import '../widgets/page_routes.dart';
 import '../widgets/plant_picture.dart';
 import 'add_plant_screen.dart';
@@ -18,7 +24,9 @@ import 'my_plants_screen.dart';
 import 'plant_details_screen.dart';
 
 /// Virtual Farm: the user's lands as 3D (isometric) blocks of grass on
-/// soil, floating on a soft sky. Pinch or use the buttons to zoom.
+/// soil, floating on a soft sky over hills ([FarmSky]): by day between the
+/// user's sunrise and sunset, by night otherwise ([SkyClock]). Pinch or use
+/// the buttons to zoom.
 ///
 /// Each land holds 5 × 5 = 25 plants. New plants go in the next free square
 /// automatically, row by row from the back corner. When every land is full,
@@ -28,6 +36,16 @@ import 'plant_details_screen.dart';
 class VirtualFarmScreen extends StatefulWidget {
   const VirtualFarmScreen({super.key});
 
+  /// "Pinch to Zoom" shows until the user first zooms (by pinching or with
+  /// + / −), then never again, also after a restart. Saved on this phone
+  /// under this key.
+  static const zoomHintDoneKey = 'farm_zoom_hint_done';
+
+  /// For tests: forgets what was read, so it's read again.
+  @visibleForTesting
+  static void resetZoomHintForTests() =>
+      _VirtualFarmScreenState._zoomLearned = null;
+
   @override
   State<VirtualFarmScreen> createState() => _VirtualFarmScreenState();
 }
@@ -35,6 +53,9 @@ class VirtualFarmScreen extends StatefulWidget {
 class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     with SingleTickerProviderStateMixin {
   static const _minScale = 0.6;
+
+  /// Text over the night sky: soft white.
+  static const _onNight = Color(0xF2FFFFFF);
 
   /// How far in you can zoom on a single land filling the screen. With more
   /// lands each one is drawn smaller, so the limit grows to match.
@@ -63,16 +84,32 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
   late final _move = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 300),
-  )..addListener(_onMove);
+  )
+    ..addListener(_onMove)
+    ..addStatusListener((status) {
+      if (status == AnimationStatus.completed) _checkButtonZoom();
+    });
   Animation<Matrix4>? _moveTween;
 
   /// Size of the zoomable area, kept from the last layout.
   Size _viewport = Size.zero;
 
+  /// Day or night where the user is, for the sky behind the farm.
+  final _sky = SkyClock.create();
+
+  /// Whether the user has zoomed before, shared by every farm screen once
+  /// read. Null until read, and the hint stays hidden meanwhile.
+  static bool? _zoomLearned;
+
+  /// The zoom when the current pinch or drag started.
+  double _scaleAtStart = 1;
+
   @override
   void initState() {
     super.initState();
     _knownPlants = _plantIds();
+    _sky.addListener(_farmChanged);
+    if (_zoomLearned == null) _loadZoomHint();
     FarmStore.lands.addListener(_farmChanged);
     FarmStore.plantsLoaded.addListener(_farmChanged);
     FarmStore.plants.addListener(_plantsChanged);
@@ -83,6 +120,8 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     FarmStore.lands.removeListener(_farmChanged);
     FarmStore.plantsLoaded.removeListener(_farmChanged);
     FarmStore.plants.removeListener(_plantsChanged);
+    _sky.removeListener(_farmChanged);
+    _sky.dispose();
     _move.dispose();
     _view.dispose();
     super.dispose();
@@ -102,14 +141,59 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     });
   }
 
+  Future<void> _loadZoomHint() async {
+    var learned = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      learned = prefs.getBool(VirtualFarmScreen.zoomHintDoneKey) ?? false;
+    } catch (_) {
+      // Can't read it: show the hint.
+    }
+    // A zoom while it was loading has already set it.
+    _zoomLearned ??= learned;
+    if (mounted) setState(() {});
+  }
+
+  /// The user zoomed for real: hide the hint for good.
+  void _zoomed() {
+    if (_zoomLearned == true) return;
+    setState(() => _zoomLearned = true);
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.setBool(VirtualFarmScreen.zoomHintDoneKey, true))
+        .catchError((Object _) => false);
+  }
+
+  /// True when two zoom levels really differ (not just rounding).
+  static bool _scaleChanged(double a, double b) => (a - b).abs() > a * 0.01;
+
   void _onMove() {
     final tween = _moveTween;
     if (tween != null) _view.value = tween.value;
   }
 
+  /// The zoom before a + or − press, until its move ends; null otherwise
+  /// (recentering, pinching).
+  double? _zoomFrom;
+
+  /// After a + or − move: if the farm's zoom really changed (the viewer
+  /// may hold it at a limit), the user has zoomed.
+  void _checkButtonZoom() {
+    final from = _zoomFrom;
+    _zoomFrom = null;
+    if (from != null && _scaleChanged(from, _view.value.getMaxScaleOnAxis())) {
+      _zoomed();
+    }
+  }
+
+  void _recenter() {
+    _zoomFrom = null;
+    _animateTo(Matrix4.identity());
+  }
+
   void _animateTo(Matrix4 target) {
     if (MediaQuery.disableAnimationsOf(context)) {
       _view.value = target;
+      _checkButtonZoom();
       return;
     }
     _moveTween = Matrix4Tween(
@@ -153,6 +237,9 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
   void _zoomBy(double factor) {
     final current = _view.value.getMaxScaleOnAxis();
     final k = (current * factor).clamp(_minScale, _maxScale) / current;
+    // At the limit nothing changes, so it doesn't count as zooming.
+    if (!_scaleChanged(current, current * k)) return;
+    _zoomFrom = current;
     final c = _viewport.center(Offset.zero);
     final zoom = Matrix4.translationValues(c.dx, c.dy, 0)
       ..multiply(Matrix4.diagonal3Values(k, k, 1))
@@ -164,17 +251,18 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.seaTint, AppColors.background],
-          ),
-        ),
-        child: Stack(
+    final night = _sky.value == SkyPhase.night;
+    // Over the night sky, light status bar icons, title and hint. The
+    // buttons are white and stay as they are.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: night ? ethmarSystemBarsOnDark : ethmarSystemBars,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
           children: [
+            // The landscape stays still behind the farm: only the farm
+            // inside the InteractiveViewer pans and zooms.
+            Positioned.fill(child: FarmSky(phase: _sky.value)),
             Positioned.fill(
               child: LayoutBuilder(
                 builder: (context, box) {
@@ -194,7 +282,20 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                     minScale: _minScale,
                     maxScale: _maxScale,
                     boundaryMargin: const EdgeInsets.all(240),
-                    onInteractionStart: (_) => _move.stop(),
+                    onInteractionStart: (_) {
+                      _move.stop();
+                      _zoomFrom = null;
+                      _scaleAtStart = _view.value.getMaxScaleOnAxis();
+                    },
+                    // A pinch that changed the zoom counts; a pan doesn't.
+                    onInteractionEnd: (_) {
+                      if (_scaleChanged(
+                        _scaleAtStart,
+                        _view.value.getMaxScaleOnAxis(),
+                      )) {
+                        _zoomed();
+                      }
+                    },
                     child: SizedBox.fromSize(
                       size: box.biggest,
                       child: Center(
@@ -263,6 +364,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
               // A main tab: no back button.
               child: EthmarCenteredHeader(
                 title: s.farmTitle,
+                titleColor: night ? _onNight : null,
                 trailing: const _MyPlantsButton(),
                 showBack: false,
               ),
@@ -281,10 +383,14 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              s.farmPinchHint,
-                              style: AppText.small(context),
-                            ),
+                            if (_zoomLearned == false)
+                              Text(
+                                s.farmPinchHint,
+                                style: AppText.small(
+                                  context,
+                                  color: night ? _onNight : null,
+                                ),
+                              ),
                             // The empty farm's prompt has its own button.
                             if (!_farmEmpty) ...[
                               const SizedBox(height: 10),
@@ -300,7 +406,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                       _ZoomControls(
                         onZoomIn: () => _zoomBy(1.4),
                         onZoomOut: () => _zoomBy(1 / 1.4),
-                        onReset: () => _animateTo(Matrix4.identity()),
+                        onReset: _recenter,
                       ),
                     ],
                   ),

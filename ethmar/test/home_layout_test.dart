@@ -125,6 +125,67 @@ void main() {
     expect(taps, [2, 1]);
   });
 
+  testWidgets('the labeled bar: filled icon for the open tab, no highlight', (
+    tester,
+  ) async {
+    var open = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) => Scaffold(
+            bottomNavigationBar: LabeledNavBar(
+              items: const [
+                NavBarItem(
+                  image: 'home_outline_icon',
+                  selectedImage: 'home_filled_icon',
+                  label: 'Home',
+                ),
+                NavBarItem(
+                  image: 'your_farm_outline_icon',
+                  selectedImage: 'your_farm_filled_icon',
+                  label: 'Your Farm',
+                ),
+                NavBarItem(
+                  image: 'ask_thamoor_outline_icon',
+                  selectedImage: 'ask_thamoor_filled_icon',
+                  label: 'Ask Thamoor',
+                ),
+              ],
+              currentIndex: open,
+              onSelect: (i) => setState(() => open = i),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // The pictures on screen (offstage ones are skipped by finders).
+    Set<String> shown() => {
+      for (final image in tester.widgetList<Image>(find.byType(Image)))
+        (image.image as AssetImage).assetName
+            .replaceAll('assets/images/', '')
+            .replaceAll('_icon.png', ''),
+    };
+
+    expect(shown(), {'home_filled', 'your_farm_outline', 'ask_thamoor_outline'});
+    await tester.tap(find.text('Ask Thamoor'));
+    await tester.pump();
+    expect(shown(), {'home_outline', 'your_farm_outline', 'ask_thamoor_filled'});
+
+    // Nothing coloured behind any tab.
+    final bar = find.byType(LabeledNavBar);
+    for (final box in tester.widgetList<Container>(
+      find.descendant(of: bar, matching: find.byType(Container)),
+    )) {
+      expect(box.decoration, isNull);
+      expect(box.color, isNull);
+    }
+    expect(
+      find.descendant(of: bar, matching: find.byType(AnimatedContainer)),
+      findsNothing,
+    );
+  });
+
   testWidgets('the labeled bar mirrors its tab order in Arabic', (
     tester,
   ) async {
@@ -238,7 +299,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byTooltip('Your Farm'));
+    await tester.tap(find.byTooltip('My Farm'));
     await tester.tap(find.byTooltip('Ask Thamoor'));
     await tester.tap(find.byTooltip('Home'));
     expect(taps, ['farm', 'chat', 'home']);

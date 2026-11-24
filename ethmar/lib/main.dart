@@ -9,8 +9,8 @@ import 'screens/splash_screen.dart';
 import 'screens/startup_error_screen.dart';
 import 'services/care_notifications.dart';
 import 'services/farm_store.dart';
-import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+import 'theme/system_bars.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,15 +22,7 @@ Future<void> main() async {
   await loadSavedLocale();
 
   // Configure the system status and navigation bars.
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Color(0x00000000),
-      statusBarIconBrightness: Brightness.dark,
-      statusBarBrightness: Brightness.light,
-      systemNavigationBarColor: AppColors.background,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
+  SystemChrome.setSystemUIOverlayStyle(ethmarSystemBars);
 
   runApp(EthmarApp(firebaseReady: firebaseReady));
 }
@@ -83,6 +75,13 @@ class EthmarApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
+
+        // The usual bars on every page. A page that asks for others (Virtual
+        // Farm at night) gets them only while it's on screen.
+        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: ethmarSystemBars,
+          child: child!,
+        ),
 
         // Start with the splash screen to restore the user session, or a
         // generic error screen if Firebase could not start.

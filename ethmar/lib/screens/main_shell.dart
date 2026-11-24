@@ -135,24 +135,26 @@ class _MainShellState extends State<MainShell> {
     return [
       for (final tab in _tabs)
         switch (tab) {
+          // Outline icons, and the filled ones for the open tab. The drawings
+          // fill their pictures almost equally, so the sizes are close;
+          // Thamoor's bubbles are a little shorter, so a slightly bigger box.
           _Tab.home => NavBarItem(
-            image: 'ethmar_homepage_icon',
+            image: 'home_outline_icon',
+            selectedImage: 'home_filled_icon',
             label: s.navHome,
-            iconSize: pills ? 28 : 26,
+            iconSize: pills ? 30 : 28,
           ),
           _Tab.farm => NavBarItem(
-            image: 'ethmar_add_plant_icon',
+            image: 'your_farm_outline_icon',
+            selectedImage: 'your_farm_filled_icon',
             label: s.navVirtualFarm,
-            tinted: false,
-            // The drawing fills about 68% of its picture (Home's fills 91%),
-            // so a bigger box makes it look the same size as the others.
-            iconSize: pills ? 40 : 37,
+            iconSize: pills ? 31 : 29,
           ),
           _Tab.chat => NavBarItem(
-            image: 'ethmar_chatbot_icon',
+            image: 'ask_thamoor_outline_icon',
+            selectedImage: 'ask_thamoor_filled_icon',
             label: s.navAskThamoor,
-            // Wide, detailed drawing.
-            iconSize: pills ? 38 : 34,
+            iconSize: pills ? 33 : 31,
           ),
           _Tab.dailyTasks => NavBarItem(
             image: 'ethmar_tasks_icon',

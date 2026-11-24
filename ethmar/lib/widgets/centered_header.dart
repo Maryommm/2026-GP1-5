@@ -22,8 +22,12 @@ class EthmarCenteredHeader extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.showBack = true,
+    this.titleColor,
   });
   final String title;
+
+  /// The title's colour over a dark page; the usual text colour otherwise.
+  final Color? titleColor;
 
   /// A short hand-written line under the title (e.g. "who's growing the
   /// most?").
@@ -65,7 +69,10 @@ class EthmarCenteredHeader extends StatelessWidget {
                 title,
                 maxLines: 1,
                 textAlign: TextAlign.center,
-                style: AppText.title(context).copyWith(fontSize: 22),
+                style: AppText.title(
+                  context,
+                  color: titleColor,
+                ).copyWith(fontSize: 22),
               ),
             ),
             if (sub != null)

@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/crop_recommendation.dart';
+import 'sky_clock.dart';
 
 /// Why the recommendations could not be loaded. [status] is the API's error
 /// status (see api/index.py), or "NETWORK" when the server can't be reached.
@@ -42,6 +43,8 @@ class CropRecommendationService {
   /// The first page of crops for the phone's current location.
   Future<CropRecommendationResult> recommend(GrowingSetup setup) async {
     final place = await _location();
+    // Virtual Farm's sky follows the user's sunrise and sunset here.
+    unawaited(SkyClock.rememberPlace(place));
     final month = DateTime.now().month;
 
     // The city name is only for the header, so look it up while the

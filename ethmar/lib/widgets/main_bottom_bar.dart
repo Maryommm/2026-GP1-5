@@ -13,13 +13,24 @@ class NavBarItem {
   const NavBarItem({
     required this.image,
     required this.label,
+    this.selectedImage,
     this.tinted = true,
     this.iconSize = 28,
   });
 
-  /// Picture in assets/images/ (without .png).
+  /// Picture in assets/images/ (without .png); the outline version when
+  /// [selectedImage] is given.
   final String image;
+
+  /// The filled version of [image], shown while this tab is open. Without
+  /// one, the open tab shows [image] too.
+  final String? selectedImage;
+
   final String label;
+
+  /// The picture for the tab's state.
+  String imageFor({required bool selected}) =>
+      selected ? (selectedImage ?? image) : image;
 
   /// Box the picture fits in; wide or padded pictures need a bigger one to
   /// look the same size as the others.
@@ -34,8 +45,9 @@ class NavBarItem {
 // Labeled bar (navBarStyle = NavBarStyle.labeled in app_layout.dart).
 // ---------------------------------------------------------------------------
 
-/// A white bar with each tab's icon above its name. The open tab sits on a
-/// pale-yellow rounded square, in dark green; the others are grey. The tabs
+/// A white bar with each tab's icon above its name. The open tab shows its
+/// filled icon, in dark green; the others show their outline icons, in grey.
+/// Nothing is drawn behind the open tab. The tabs
 /// follow the reading direction (Home on the left in English, on the right
 /// in Arabic).
 class LabeledNavBar extends StatelessWidget {
@@ -102,6 +114,16 @@ class _LabeledTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected ? AppColors.forest : AppColors.textSecondary;
+    Widget picture(String image) => Image.asset(
+      'assets/images/$image.png',
+      width: item.iconSize,
+      height: item.iconSize,
+      fit: BoxFit.contain,
+      color: item.tinted ? color : null,
+      colorBlendMode: item.tinted ? BlendMode.srcIn : null,
+    );
+    final outline = item.imageFor(selected: false);
+    final filled = item.imageFor(selected: true);
     return Semantics(
       button: true,
       selected: selected,
@@ -117,15 +139,9 @@ class _LabeledTab extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+            child: Container(
               constraints: const BoxConstraints(minWidth: 96),
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-              decoration: BoxDecoration(
-                // The open tab sits on a soft light yellow.
-                color: selected ? AppColors.sunTint : null,
-                borderRadius: BorderRadius.circular(16),
-              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -139,14 +155,23 @@ class _LabeledTab extends StatelessWidget {
                       minHeight: 0,
                       maxWidth: item.iconSize,
                       maxHeight: item.iconSize,
-                      child: Image.asset(
-                        'assets/images/${item.image}.png',
-                        width: item.iconSize,
-                        height: item.iconSize,
-                        fit: BoxFit.contain,
-                        color: item.tinted ? color : null,
-                        colorBlendMode: item.tinted ? BlendMode.srcIn : null,
-                      ),
+                      // Both pictures stay loaded, in the same box, so
+                      // switching tabs swaps them at once without a blank
+                      // frame or a jump.
+                      child: outline == filled
+                          ? picture(outline)
+                          : Stack(
+                              children: [
+                                Offstage(
+                                  offstage: selected,
+                                  child: picture(outline),
+                                ),
+                                Offstage(
+                                  offstage: !selected,
+                                  child: picture(filled),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -269,7 +294,8 @@ class _PillTab extends StatelessWidget {
   Widget build(BuildContext context) {
     const size = PillNavBar._circle;
     final icon = Image.asset(
-      'assets/images/${item.image}.png',
+      'assets/images/${item.imageFor(selected: selected)}.png',
+      gaplessPlayback: true,
       width: item.iconSize,
       height: item.iconSize,
       fit: BoxFit.contain,
