@@ -37,6 +37,11 @@ class CropRecommendationService {
     defaultValue: 'https://ethmar-lake.vercel.app',
   );
 
+  /// For testing the "average soil pH" note from the app:
+  /// `flutter run --dart-define=FAKE_SOIL_ESTIMATED=true` shows it as if the
+  /// soil of the area couldn't be fetched. Off unless set.
+  static const _fakeSoilEstimated = bool.fromEnvironment('FAKE_SOIL_ESTIMATED');
+
   /// How many crops to ask for per page. The API sorts them best first.
   static const pageSize = 40;
 
@@ -174,7 +179,8 @@ class CropRecommendationService {
       latitude: place.latitude,
       longitude: place.longitude,
       setup: setup,
-      soilPhEstimated: body['soil_ph_estimated'] == true,
+      soilPhEstimated:
+          _fakeSoilEstimated || body['soil_ph_estimated'] == true,
     );
   }
 
