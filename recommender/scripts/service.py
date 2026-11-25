@@ -24,6 +24,8 @@ Response fields:
     month, location (centre of the ~11 km area),
     climate (this month's average temp_high_c, temp_low_c and rain_mm),
     planting, soil_ph (the pH used for scoring),
+    soil_ph_estimated (true when the soil of the area could not be fetched,
+    so the neutral pH 7.0 was used; asking again may give a better answer),
     total (number of crops that can be grown), total_now,
     offset, results (list of crops, see scoring.Recommendation.to_dict)
 """
@@ -173,6 +175,8 @@ def recommend_crops(data, cache) -> dict:
         },
         "planting": planting,
         "soil_ph": site.ph if site.ph is not None else profile.soil_ph,
+        "soil_ph_estimated": planting == "ground"
+                             and profile.soil_ph_source == "default",
         "total": len(results),
         "total_now": sum(1 for r in results if r.status == "now"),
         "offset": offset,

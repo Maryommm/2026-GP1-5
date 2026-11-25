@@ -128,6 +128,8 @@ class AppStrings {
     'cropFewInShade':
         'Only a few crops grow with less than 3 hours of sun a day. A sunnier spot gives you more choices',
     'cropChangeAnswers': 'Change my answers',
+    'cropSoilEstimated':
+        "We couldn't get the soil of your area right now, so these results use an average soil acidity. For more exact results, try again",
     'cropPlantingPot': 'In a pot',
     'cropPlantingPotHint': 'With bought potting soil',
     'cropPlantingGround': 'In the ground',
@@ -679,6 +681,8 @@ class AppStrings {
     'cropFewInShade':
         'قليل من المحاصيل ينمو بأقل من 3 ساعات شمس يوميًا. المكان المشمس أكثر يمنحك خيارات أكثر',
     'cropChangeAnswers': 'تغيير إجاباتي',
+    'cropSoilEstimated':
+        'تعذّر الوصول إلى بيانات تربة منطقتك حاليًا، لذلك تعتمد النتائج على حموضة تربة متوسطة. للحصول على نتائج أدق حاول مرة أخرى',
     'cropPlantingPot': 'في أصيص',
     'cropPlantingPotHint': 'بتربة زراعية جاهزة',
     'cropPlantingGround': 'في الأرض',
@@ -1219,6 +1223,7 @@ class S {
   String get cropSetupWhy => t('cropSetupWhy');
   String get cropNoCropsLowSun => t('cropNoCropsLowSun');
   String get cropFewInShade => t('cropFewInShade');
+  String get cropSoilEstimated => t('cropSoilEstimated');
   String get cropChangeAnswers => t('cropChangeAnswers');
   String cropSetupStep(int n) => t('cropSetupStep').replaceAll('{n}', '$n');
   String get cropPlantingPot => t('cropPlantingPot');

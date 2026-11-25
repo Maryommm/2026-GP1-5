@@ -303,6 +303,7 @@ class CropRecommendationResult {
     int? total,
     this.latitude = 0,
     this.longitude = 0,
+    this.soilPhEstimated = false,
     this.setup = const GrowingSetup(
       planting: Planting.pot,
       sunlight: Sunlight.full,
@@ -325,6 +326,10 @@ class CropRecommendationResult {
 
   /// The user's answers, so the next pages use the same setup.
   final GrowingSetup setup;
+
+  /// True when the soil of the area couldn't be fetched, so the server used
+  /// an average (neutral) pH. Trying again may give a more exact result.
+  final bool soilPhEstimated;
 }
 
 /// Model notes the crop card never shows (see CropRecommendation.fromJson).

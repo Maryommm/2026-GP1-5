@@ -161,6 +161,7 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
                 result: snap.data!,
                 loadMore: _loadMore,
                 onChangeAnswers: _changeAnswers,
+                onRetry: _retry,
               );
               showingResults = true;
             }
@@ -646,10 +647,14 @@ class _ResultsView extends StatefulWidget {
     required this.result,
     required this.loadMore,
     required this.onChangeAnswers,
+    required this.onRetry,
   });
   final CropRecommendationResult result;
   final LoadMoreCrops loadMore;
   final VoidCallback onChangeAnswers;
+
+  /// Asks the server again; offered when the soil pH was only an average.
+  final VoidCallback onRetry;
 
   @override
   State<_ResultsView> createState() => _ResultsViewState();
@@ -790,6 +795,13 @@ class _ResultsViewState extends State<_ResultsView> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: _LowSunNote(onChangeAnswers: widget.onChangeAnswers),
+          ),
+        // The soil of the area couldn't be fetched, so an average pH was
+        // used. Say so, and let the user ask again for a more exact result.
+        if (widget.result.soilPhEstimated)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: _SoilEstimatedNote(onRetry: widget.onRetry),
           ),
         const SizedBox(height: 10),
         Entrance(
@@ -1631,6 +1643,30 @@ class _LowSunNote extends StatelessWidget {
           background: AppColors.featureCard,
         ),
         EthmarLink(label: s.cropChangeAnswers, onTap: onChangeAnswers),
+      ],
+    );
+  }
+}
+
+/// Shown when the server used an average soil pH because the soil of the
+/// area couldn't be fetched.
+class _SoilEstimatedNote extends StatelessWidget {
+  const _SoilEstimatedNote({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _NoteLine(
+          icon: Icons.info_outline_rounded,
+          text: s.cropSoilEstimated,
+          color: AppColors.warning,
+          background: AppColors.warningTint,
+        ),
+        EthmarLink(label: s.tryAgain, onTap: onRetry),
       ],
     );
   }

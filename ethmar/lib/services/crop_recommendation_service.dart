@@ -174,6 +174,7 @@ class CropRecommendationService {
       latitude: place.latitude,
       longitude: place.longitude,
       setup: setup,
+      soilPhEstimated: body['soil_ph_estimated'] == true,
     );
   }
 
