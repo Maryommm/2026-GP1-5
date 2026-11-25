@@ -1,4 +1,4 @@
-# Crops beginners grow most, with the reviewed group and display names. Read by
+# Crops beginners grow most (listed in a reference below), with the reviewed group and display names. Read by
 # recommender/scripts/clean_dataset.py.
 # crop_group overrides the rule-based group, and name_en / name_ar are the names
 # shown in the app, for every row.
@@ -79,3 +79,25 @@ vitis vinifera,Grape,عنب,fruit_tree,العنب,
 morus alba,Mulberry,توت,fruit_tree,,
 prunus persica,Peach,خوخ,fruit_tree,الخوخ,
 carica papaya,Papaya,بابايا,fruit_tree,,
+musa acuminata,Banana,موز,fruit_tree,الموز,
+malus domestica,Apple,تفاح,fruit_tree,التفاح,
+prunus armeniaca,Apricot,مشمش,fruit_tree,مشمش,
+allium fistulosum,Green onion,بصل أخضر,leafy_herb,بصل أخضر,"AZ1005: Onions, Green"
+sesamum indicum,Sesame,سمسم,other,السمسم,
+cynara cardunculus,Artichoke,خرشوف,leafy_herb,,"AZ1005: Artichokes, Globe"
+asparagus officinalis,Asparagus,هليون,leafy_herb,,AZ1005: Asparagus
+brassica juncea,Mustard greens,أوراق الخردل,leafy_herb,,AZ1005: Mustard
+allium ampeloprasum,Leek,كراث,leafy_herb,,AZ1005: Leek
+pastinaca sativa,Parsnip,جزر أبيض,root,,AZ1005: Parsnips
+arachis hypogaea,Peanut,فول سوداني,legume,,AZ1005: Peanuts
+helianthus annuus,Sunflower,دوار الشمس,other,,AZ1005: Sunflower
+helianthus tuberosus,Jerusalem artichoke,طرطوفة,root,,"AZ1005: Artichokes, Jerusalem"
+brassica napus,Rutabaga,لفت سويدي,root,,AZ1005: Rutabagas
+phaseolus lunatus,Lima bean,فاصوليا ليما,legume,,"AZ1005: Beans, Lima"
+foeniculum vulgare,Fennel,شمر,leafy_herb,,AZ2061: *Fennel
+allium schoenoprasum,Chives,ثوم معمر,leafy_herb,,AZ2061: *Chives
+allium tuberosum,Garlic chives,ثوم صيني,leafy_herb,,AZ2061: *Garlic Chives
+origanum vulgare,Oregano,أوريجانو,leafy_herb,,AZ2061: *Oregano
+origanum majorana,Marjoram,بردقوش,leafy_herb,,AZ2061: *Marjoram
+cymbopogon citratus,Lemongrass,عشبة الليمون,leafy_herb,,AZ2061: *Lemon Grass
+lavandula angustifolia,Lavender,خزامى,other,,AZ2061: *Lavendar
