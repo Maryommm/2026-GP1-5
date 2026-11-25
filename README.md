@@ -9,7 +9,7 @@ This repository contains the complete source code of the project:
 | [api/](api/) | The recommendation API that the app calls | Python, Flask, deployed on Vercel |
 | [recommender/](recommender/) | The data pipeline, the scoring model and the climate lookup | Python, pandas |
 | [data/](data/) | The raw crop dataset and the cleaned tables | CSV |
-| [workers/profile-images/](workers/profile-images/) | Upload service for profile pictures and plant growth photos | TypeScript, Cloudflare Workers, Cloudinary |
+| [workers/profile-images/](workers/profile-images/) | Upload service for profile pictures and Plant Journey photos | TypeScript, Cloudflare Workers, Cloudinary |
 | [.github/workflows/](.github/workflows/) | A check that validates the crop table on every push | GitHub Actions |
 
 The API, the Worker and the Firebase project are already deployed. To run

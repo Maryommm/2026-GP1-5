@@ -54,37 +54,37 @@ class PlantService {
   DocumentReference<Map<String, dynamic>> _taskLog(String uid, String date) =>
       _userDoc(uid).collection('taskLog').doc(date);
 
-  CollectionReference<Map<String, dynamic>> _growth(
+  CollectionReference<Map<String, dynamic>> _journey(
     String uid,
     String plantId,
-  ) => _plants(uid).doc(plantId).collection('growth');
+  ) => _plants(uid).doc(plantId).collection('journey');
 
-  /// Live growth timeline of [plantId], newest first. Empty when signed out.
-  Stream<List<GrowthEntry>> watchGrowth(String plantId) => _forEachUser(
+  /// Live journey timeline of [plantId], newest first. Empty when signed out.
+  Stream<List<JourneyEntry>> watchJourney(String plantId) => _forEachUser(
     signedOut: const [],
-    watch: (uid) => _growth(
+    watch: (uid) => _journey(
       uid,
       plantId,
-    ).snapshots().map((snapshot) => _readGrowth(snapshot.docs)),
+    ).snapshots().map((snapshot) => _readJourney(snapshot.docs)),
   );
 
-  /// A new, unused id for a growth entry of [plantId]. The photo is
+  /// A new, unused id for a journey entry of [plantId]. The photo is
   /// uploaded under it first, then the entry is saved with it.
-  String newGrowthEntryId(String plantId) => _growth(_uid, plantId).doc().id;
+  String newJourneyEntryId(String plantId) => _journey(_uid, plantId).doc().id;
 
-  /// Saves growth entry [entryId] of [plantId]. The date is the server's
+  /// Saves journey entry [entryId] of [plantId]. The date is the server's
   /// time of saving; the rules accept no other.
   ///
   /// Saved on the server or not at all (see [SaveOnServer.saveOnServer]):
   /// offline it fails, and the photo already uploaded for it is deleted,
   /// so an entry can't reach the server later pointing at a deleted photo.
-  Future<void> saveGrowthEntry(
+  Future<void> saveJourneyEntry(
     String plantId,
     String entryId, {
-    required GrowthPhoto photo,
+    required JourneyPhoto photo,
     String? notes,
   }) {
-    final entry = _growth(_uid, plantId).doc(entryId);
+    final entry = _journey(_uid, plantId).doc(entryId);
     return _firestore.saveOnServer<void>((transaction) async {
       transaction.set(entry, {
         'date': FieldValue.serverTimestamp(),
@@ -95,10 +95,10 @@ class PlantService {
   }
 
   /// Builds the entries, newest first. One bad document is skipped.
-  List<GrowthEntry> _readGrowth(
+  List<JourneyEntry> _readJourney(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) {
-    final entries = <GrowthEntry>[];
+    final entries = <JourneyEntry>[];
     for (final doc in docs) {
       var data = doc.data();
       // Saved on this phone but not yet on the server: the server's date
@@ -107,9 +107,9 @@ class PlantService {
         data = {...data, 'date': Timestamp.now()};
       }
       try {
-        entries.add(GrowthEntry.fromMap(doc.id, data));
+        entries.add(JourneyEntry.fromMap(doc.id, data));
       } on FormatException catch (e) {
-        debugPrint('Skipping growth entry ${doc.id}: $e');
+        debugPrint('Skipping journey entry ${doc.id}: $e');
       }
     }
     return entries..sort((a, b) => b.date.compareTo(a.date));
@@ -118,8 +118,8 @@ class PlantService {
   /// Live list of the user's plants, sorted by land, then square. Empty when
   /// signed out; it switches over when another user signs in.
   ///
-  /// The plants have no growth entries: those live in their own subcollection
-  /// (see [watchGrowth]).
+  /// The plants have no journey entries: those live in their own subcollection
+  /// (see [watchJourney]).
   Stream<List<FarmPlant>> watchPlants() => _forEachUser(
     signedOut: const [],
     watch: (uid) =>
@@ -239,7 +239,7 @@ class PlantService {
     });
   }
 
-  /// Deletes a plant and then its growth entries. Firestore doesn't delete
+  /// Deletes a plant and then its journey entries. Firestore doesn't delete
   /// subcollections by itself.
   ///
   /// The plant is deleted in a transaction that also updates the streak
@@ -254,7 +254,7 @@ class PlantService {
   /// Otherwise the error is thrown, the plant stays, and trying again is
   /// safe (deleting a plant that is already gone changes nothing).
   ///
-  /// The growth entries are removed afterwards, without waiting: left
+  /// The journey entries are removed afterwards, without waiting: left
   /// behind, they only take space.
   ///
   /// Returns the streak that was lost because a day was missed (0 if
@@ -273,8 +273,8 @@ class PlantService {
       lost = 0;
     }
     unawaited(
-      _deleteGrowth(plant).catchError(
-        (Object e) => debugPrint('Growth entries of $plantId kept: $e'),
+      _deleteJourney(plant).catchError(
+        (Object e) => debugPrint('Journey entries of $plantId kept: $e'),
       ),
     );
     return lost;
@@ -291,11 +291,11 @@ class PlantService {
     }
   }
 
-  /// Deletes every growth entry of [plant]. A batch can hold at most 500
+  /// Deletes every journey entry of [plant]. A batch can hold at most 500
   /// writes.
-  Future<void> _deleteGrowth(DocumentReference<Object?> plant) async {
-    final growth = await plant.collection('growth').get();
-    final refs = [...growth.docs.map((doc) => doc.reference)];
+  Future<void> _deleteJourney(DocumentReference<Object?> plant) async {
+    final journey = await plant.collection('journey').get();
+    final refs = [...journey.docs.map((doc) => doc.reference)];
     for (var start = 0; start < refs.length; start += 500) {
       final batch = _firestore.batch();
       for (final ref in refs.skip(start).take(500)) {

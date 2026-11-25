@@ -1,4 +1,4 @@
-import { CloudinaryError, growthPublicId, profilePublicId } from "../src/cloudinary";
+import { CloudinaryError, journeyPublicId, profilePublicId } from "../src/cloudinary";
 import { AuthenticationError } from "../src/firebase-auth";
 import { createWorker } from "../src/index";
 import type {
@@ -66,45 +66,45 @@ function defaultMocks() {
       notFound: false,
     }),
   );
-  const uploadGrowthPhoto = vi.fn<WorkerDependencies["uploadGrowthPhoto"]>(
+  const uploadJourneyPhoto = vi.fn<WorkerDependencies["uploadJourneyPhoto"]>(
     async (_env, uid, plantId, entryId) => ({
       ...uploaded(uid, 1),
-      publicId: growthPublicId(uid, plantId, entryId),
+      publicId: journeyPublicId(uid, plantId, entryId),
     }),
   );
-  const deleteGrowthPhoto = vi.fn<WorkerDependencies["deleteGrowthPhoto"]>(
+  const deleteJourneyPhoto = vi.fn<WorkerDependencies["deleteJourneyPhoto"]>(
     async (_env, uid, plantId, entryId) => ({
-      publicId: growthPublicId(uid, plantId, entryId),
+      publicId: journeyPublicId(uid, plantId, entryId),
       deleted: true,
       notFound: false,
     }),
   );
-  const deletePlantGrowthPhotos = vi.fn<WorkerDependencies["deletePlantGrowthPhotos"]>(
+  const deletePlantJourneyPhotos = vi.fn<WorkerDependencies["deletePlantJourneyPhotos"]>(
     async () => ({ deleted: 2 }),
   );
   return {
     verifyToken,
     uploadProfileImage,
     deleteProfileImage,
-    uploadGrowthPhoto,
-    deleteGrowthPhoto,
-    deletePlantGrowthPhotos,
+    uploadJourneyPhoto,
+    deleteJourneyPhoto,
+    deletePlantJourneyPhotos,
   };
 }
 
-function growthUpload(fields: Array<[string, string]>, token = "valid-token"): Request {
+function journeyUpload(fields: Array<[string, string]>, token = "valid-token"): Request {
   const form = new FormData();
-  form.set("file", new File([ONE_PIXEL_PNG], "growth.png", { type: "image/png" }));
+  form.set("file", new File([ONE_PIXEL_PNG], "journey.png", { type: "image/png" }));
   for (const [name, value] of fields) form.append(name, value);
-  return new Request("https://worker.test/v1/plant-growth", {
+  return new Request("https://worker.test/v1/plant-journey", {
     method: "POST",
     headers: { authorization: "Bearer " + token },
     body: form,
   });
 }
 
-function growthDelete(query: string): Request {
-  return new Request("https://worker.test/v1/plant-growth" + query, {
+function journeyDelete(query: string): Request {
+  return new Request("https://worker.test/v1/plant-journey" + query, {
     method: "DELETE",
     headers: { authorization: "Bearer valid-token" },
   });
@@ -347,20 +347,20 @@ describe("profile image Worker", () => {
   });
 });
 
-describe("growth photo endpoint", () => {
+describe("journey photo endpoint", () => {
   beforeEach(() => vi.restoreAllMocks());
 
   it("uploads into the verified user's folder for that plant and entry", async () => {
     const mocks = defaultMocks();
     const response = await createWorker(mocks).fetch(
-      growthUpload([["plantId", "plant-1"], ["entryId", "entry-1"]]),
+      journeyUpload([["plantId", "plant-1"], ["entryId", "entry-1"]]),
       env,
     );
 
     expect(response.status).toBe(200);
     const body = await response.json() as { image: UploadedProfileImage };
-    expect(body.image.publicId).toBe("ethmar/plant-growth/user-a/plant-1/entry-1");
-    expect(mocks.uploadGrowthPhoto.mock.calls[0].slice(1, 4))
+    expect(body.image.publicId).toBe("ethmar/plant-journey/user-a/plant-1/entry-1");
+    expect(mocks.uploadJourneyPhoto.mock.calls[0].slice(1, 4))
       .toEqual(["user-a", "plant-1", "entry-1"]);
     expect(mocks.uploadProfileImage).not.toHaveBeenCalled();
   });
@@ -368,12 +368,12 @@ describe("growth photo endpoint", () => {
   it("needs a login, like the profile image", async () => {
     const mocks = defaultMocks();
     const response = await createWorker(mocks).fetch(
-      growthUpload([["plantId", "plant-1"], ["entryId", "entry-1"]], "bad-token"),
+      journeyUpload([["plantId", "plant-1"], ["entryId", "entry-1"]], "bad-token"),
       env,
     );
 
     expect(response.status).toBe(401);
-    expect(mocks.uploadGrowthPhoto).not.toHaveBeenCalled();
+    expect(mocks.uploadJourneyPhoto).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -384,25 +384,25 @@ describe("growth photo endpoint", () => {
   ])("rejects $case", async ({ fields }) => {
     const mocks = defaultMocks();
     const response = await createWorker(mocks).fetch(
-      growthUpload(fields as Array<[string, string]>),
+      journeyUpload(fields as Array<[string, string]>),
       env,
     );
 
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ error: { code: "INVALID_ID" } });
-    expect(mocks.uploadGrowthPhoto).not.toHaveBeenCalled();
+    expect(mocks.uploadJourneyPhoto).not.toHaveBeenCalled();
   });
 
   it("rejects a client-provided UID or public ID", async () => {
     for (const field of ["uid", "public_id"]) {
       const mocks = defaultMocks();
       const response = await createWorker(mocks).fetch(
-        growthUpload([["plantId", "p"], ["entryId", "e"], [field, "user-b"]]),
+        journeyUpload([["plantId", "p"], ["entryId", "e"], [field, "user-b"]]),
         env,
       );
       expect(response.status).toBe(400);
       expect(await response.json()).toMatchObject({ error: { code: "UNEXPECTED_FIELD" } });
-      expect(mocks.uploadGrowthPhoto).not.toHaveBeenCalled();
+      expect(mocks.uploadJourneyPhoto).not.toHaveBeenCalled();
     }
   });
 
@@ -410,45 +410,45 @@ describe("growth photo endpoint", () => {
     const mocks = defaultMocks();
     const limit = vi.fn(async () => ({ success: true }));
     await createWorker(mocks).fetch(
-      growthUpload([["plantId", "p"], ["entryId", "e"]]),
+      journeyUpload([["plantId", "p"], ["entryId", "e"]]),
       { ...env, PROFILE_IMAGE_RATE_LIMITER: { limit } },
     );
 
-    expect(limit).toHaveBeenCalledWith({ key: "growth:user-a" });
+    expect(limit).toHaveBeenCalledWith({ key: "journey:user-a" });
   });
 
   it("deletes one entry's photo", async () => {
     const mocks = defaultMocks();
     const response = await createWorker(mocks).fetch(
-      growthDelete("?plantId=plant-1&entryId=entry-1"),
+      journeyDelete("?plantId=plant-1&entryId=entry-1"),
       env,
     );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ deleted: true, status: "deleted" });
-    expect(mocks.deleteGrowthPhoto).toHaveBeenCalledWith(env, "user-a", "plant-1", "entry-1");
-    expect(mocks.deletePlantGrowthPhotos).not.toHaveBeenCalled();
+    expect(mocks.deleteJourneyPhoto).toHaveBeenCalledWith(env, "user-a", "plant-1", "entry-1");
+    expect(mocks.deletePlantJourneyPhotos).not.toHaveBeenCalled();
   });
 
   it("deletes every photo of a plant", async () => {
     const mocks = defaultMocks();
-    const response = await createWorker(mocks).fetch(growthDelete("?plantId=plant-1"), env);
+    const response = await createWorker(mocks).fetch(journeyDelete("?plantId=plant-1"), env);
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ deletedPhotos: 2 });
-    expect(mocks.deletePlantGrowthPhotos).toHaveBeenCalledWith(env, "user-a", "plant-1");
+    expect(mocks.deletePlantJourneyPhotos).toHaveBeenCalledWith(env, "user-a", "plant-1");
   });
 
   it.each(["", "?entryId=e", "?plantId=a/b", "?plantId=p&folder=x", "?plantId=p&plantId=q"])(
     "rejects the delete query %j",
     async (query) => {
       const mocks = defaultMocks();
-      const response = await createWorker(mocks).fetch(growthDelete(query), env);
+      const response = await createWorker(mocks).fetch(journeyDelete(query), env);
 
       expect(response.status).toBe(400);
       expect(await response.json()).toMatchObject({ error: { code: "INVALID_ID" } });
-      expect(mocks.deleteGrowthPhoto).not.toHaveBeenCalled();
-      expect(mocks.deletePlantGrowthPhotos).not.toHaveBeenCalled();
+      expect(mocks.deleteJourneyPhoto).not.toHaveBeenCalled();
+      expect(mocks.deletePlantJourneyPhotos).not.toHaveBeenCalled();
     },
   );
 });

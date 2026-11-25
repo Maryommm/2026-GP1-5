@@ -106,7 +106,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
       if (_selected.contains(p.id)) p,
   ];
 
-  /// Asks first, then deletes [plants] and their growth entries.
+  /// Asks first, then deletes [plants] and their journey entries.
   ///
   /// Each plant leaves the list once its delete is confirmed; one that
   /// can't be deleted (e.g. offline) stays, and the screen says so.
@@ -513,7 +513,7 @@ class _ToolbarButton extends StatelessWidget {
   }
 }
 
-/// Asks before deleting the ticked plants; their growth entries go too.
+/// Asks before deleting the ticked plants; their journey entries go too.
 /// One plant is named, as on its details page.
 class _DeletePlantsDialog extends StatelessWidget {
   const _DeletePlantsDialog({required this.plants});

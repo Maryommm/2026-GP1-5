@@ -204,13 +204,13 @@ void main() {
               if (date == TaskLog.dateKey(day)) 'a_fertilization',
             ],
           ));
-      FarmStore.growthForTests = (_) => Stream.value(const []);
+      FarmStore.journeyForTests = (_) => Stream.value(const []);
     });
 
     tearDown(() {
       FarmStore.plants.value = const [];
       FarmStore.taskLogForTests = null;
-      FarmStore.growthForTests = null;
+      FarmStore.journeyForTests = null;
     });
     final longName = 'My very favourite tomato plant on the balcony';
     final plants = [

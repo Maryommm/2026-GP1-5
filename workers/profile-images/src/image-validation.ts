@@ -271,12 +271,12 @@ function actualType(bytes: Uint8Array): SupportedImageType | null {
   return null;
 }
 
-// IDs a growth photo may name: Firestore document IDs made by the app.
-const GROWTH_ID = /^[A-Za-z0-9_-]{1,64}$/;
+// IDs a journey photo may name: Firestore document IDs made by the app.
+const JOURNEY_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
-// True for a plant or growth entry ID the Worker accepts.
-export function isValidGrowthId(value: string | null): value is string {
-  return value !== null && GROWTH_ID.test(value);
+// True for a plant or journey entry ID the Worker accepts.
+export function isValidJourneyId(value: string | null): value is string {
+  return value !== null && JOURNEY_ID.test(value);
 }
 
 // Accept exactly one valid image from the multipart request.
@@ -284,19 +284,19 @@ export async function parseProfileImageRequest(request: Request): Promise<Valida
   return (await parseImageForm(request, [])).image;
 }
 
-// Accept one valid growth photo and the plant and growth entry it is for.
-export async function parseGrowthPhotoRequest(request: Request): Promise<{
+// Accept one valid journey photo and the plant and journey entry it is for.
+export async function parseJourneyPhotoRequest(request: Request): Promise<{
   image: ValidatedImage;
   plantId: string;
   entryId: string;
 }> {
   const { image, fields } = await parseImageForm(request, ["plantId", "entryId"]);
   const { plantId, entryId } = fields;
-  if (!isValidGrowthId(plantId) || !isValidGrowthId(entryId)) {
+  if (!isValidJourneyId(plantId) || !isValidJourneyId(entryId)) {
     throw new RequestValidationError(
       "INVALID_ID",
       400,
-      "The plant or growth entry ID is invalid.",
+      "The plant or journey entry ID is invalid.",
     );
   }
   return { image, plantId, entryId };

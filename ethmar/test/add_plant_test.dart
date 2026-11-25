@@ -58,8 +58,8 @@ void main() {
     FarmStore.plants.value = const [];
     FarmStore.plantsLoaded.value = false;
     FarmStore.lands.value = 1;
-    // Plant Details reads the growth timeline; tests have no Firebase.
-    FarmStore.growthForTests = (_) => Stream.value(const []);
+    // Plant Details reads the journey timeline; tests have no Firebase.
+    FarmStore.journeyForTests = (_) => Stream.value(const []);
   }
 
   Future<_PagePushObserver> openAddPlant(

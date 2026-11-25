@@ -1,10 +1,10 @@
 import {
-  deleteGrowthPhoto,
-  deletePlantGrowthPhotos,
+  deleteJourneyPhoto,
+  deletePlantJourneyPhotos,
   deleteProfileImage,
-  GROWTH_PHOTO_TRANSFORMATION,
-  growthPublicId,
-  uploadGrowthPhoto,
+  JOURNEY_PHOTO_TRANSFORMATION,
+  journeyPublicId,
+  uploadJourneyPhoto,
   PROFILE_IMAGE_FORMAT,
   PROFILE_IMAGE_TRANSFORMATION,
   profilePublicId,
@@ -216,25 +216,25 @@ describe("Cloudinary profile image operations", () => {
   });
 });
 
-describe("Cloudinary growth photo operations", () => {
-  const growthId = "ethmar/plant-growth/user-a/plant-1/entry-1";
+describe("Cloudinary journey photo operations", () => {
+  const journeyId = "ethmar/plant-journey/user-a/plant-1/entry-1";
 
   it("uploads to the entry's ID inside the user's plant folder, at most 2048 px", async () => {
     vi.spyOn(Date, "now").mockReturnValue(1_710_000_000_000);
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const form = init?.body as FormData;
-      expect(form.get("public_id")).toBe(growthId);
-      expect(form.get("transformation")).toBe(GROWTH_PHOTO_TRANSFORMATION);
-      expect(GROWTH_PHOTO_TRANSFORMATION).toBe("c_limit,h_2048,w_2048/fl_force_strip");
+      expect(form.get("public_id")).toBe(journeyId);
+      expect(form.get("transformation")).toBe(JOURNEY_PHOTO_TRANSFORMATION);
+      expect(JOURNEY_PHOTO_TRANSFORMATION).toBe("c_limit,h_2048,w_2048/fl_force_strip");
       const canonical = "format=webp&invalidate=true&overwrite=true"
-        + "&public_id=" + growthId
+        + "&public_id=" + journeyId
         + "&timestamp=1710000000"
-        + "&transformation=" + GROWTH_PHOTO_TRANSFORMATION;
+        + "&transformation=" + JOURNEY_PHOTO_TRANSFORMATION;
       expect(form.get("signature")).toBe(await sha1Hex(canonical + env.CLOUDINARY_API_SECRET));
       return Response.json({
         resource_type: "image",
-        public_id: growthId,
-        secure_url: "https://res.cloudinary.com/k7otdsln/image/upload/v5/" + growthId + ".webp",
+        public_id: journeyId,
+        secure_url: "https://res.cloudinary.com/k7otdsln/image/upload/v5/" + journeyId + ".webp",
         version: 5,
         format: "webp",
         width: 2048,
@@ -244,13 +244,13 @@ describe("Cloudinary growth photo operations", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(uploadGrowthPhoto(env, "user-a", "plant-1", "entry-1", image))
-      .resolves.toMatchObject({ publicId: growthId, version: 5, width: 2048 });
-    expect(growthPublicId("user-a", "plant-1", "entry-1")).toBe(growthId);
+    await expect(uploadJourneyPhoto(env, "user-a", "plant-1", "entry-1", image))
+      .resolves.toMatchObject({ publicId: journeyId, version: 5, width: 2048 });
+    expect(journeyPublicId("user-a", "plant-1", "entry-1")).toBe(journeyId);
   });
 
   it("rejects an upload stored under another public ID", async () => {
-    const otherId = "ethmar/plant-growth/user-b/plant-1/entry-1";
+    const otherId = "ethmar/plant-journey/user-b/plant-1/entry-1";
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({
       resource_type: "image",
       public_id: otherId,
@@ -262,19 +262,19 @@ describe("Cloudinary growth photo operations", () => {
       bytes: 3,
     })));
 
-    await expect(uploadGrowthPhoto(env, "user-a", "plant-1", "entry-1", image))
+    await expect(uploadJourneyPhoto(env, "user-a", "plant-1", "entry-1", image))
       .rejects.toMatchObject({ kind: "CLOUDINARY_INVALID_RESPONSE" });
   });
 
-  it("deletes one growth photo by its ID", async () => {
+  it("deletes one journey photo by its ID", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      expect((init?.body as URLSearchParams).get("public_id")).toBe(growthId);
+      expect((init?.body as URLSearchParams).get("public_id")).toBe(journeyId);
       return Response.json({ result: "ok" });
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(deleteGrowthPhoto(env, "user-a", "plant-1", "entry-1")).resolves.toEqual({
-      publicId: growthId,
+    await expect(deleteJourneyPhoto(env, "user-a", "plant-1", "entry-1")).resolves.toEqual({
+      publicId: journeyId,
       deleted: true,
       notFound: false,
     });
@@ -282,13 +282,13 @@ describe("Cloudinary growth photo operations", () => {
 
   it("deletes a plant's folder, with the final slash, until nothing is left", async () => {
     const replies = [
-      { deleted: { [growthId]: "deleted", "x/2": "deleted" }, partial: true },
+      { deleted: { [journeyId]: "deleted", "x/2": "deleted" }, partial: true },
       { deleted: { "x/3": "deleted", "x/4": "not_found" }, partial: false },
     ];
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input));
       expect(url.pathname).toBe("/v1_1/k7otdsln/resources/image/upload");
-      expect(url.searchParams.get("prefix")).toBe("ethmar/plant-growth/user-a/plant-1/");
+      expect(url.searchParams.get("prefix")).toBe("ethmar/plant-journey/user-a/plant-1/");
       expect(init?.method).toBe("DELETE");
       expect(new Headers(init?.headers).get("authorization"))
         .toBe("Basic " + btoa(env.CLOUDINARY_API_KEY + ":" + env.CLOUDINARY_API_SECRET));
@@ -296,7 +296,7 @@ describe("Cloudinary growth photo operations", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(deletePlantGrowthPhotos(env, "user-a", "plant-1"))
+    await expect(deletePlantJourneyPhotos(env, "user-a", "plant-1"))
       .resolves.toEqual({ deleted: 3 });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
@@ -309,7 +309,7 @@ describe("Cloudinary growth photo operations", () => {
 
     let failure: unknown;
     try {
-      await deletePlantGrowthPhotos(env, "user-a", "plant-1");
+      await deletePlantJourneyPhotos(env, "user-a", "plant-1");
     } catch (error) {
       failure = error;
     }

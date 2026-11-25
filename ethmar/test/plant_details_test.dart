@@ -12,19 +12,19 @@ import 'package:google_fonts/google_fonts.dart';
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
-  /// What the growth timeline shows; tests have no Firebase.
-  late StreamController<List<GrowthEntry>> growth;
+  /// What the journey timeline shows; tests have no Firebase.
+  late StreamController<List<JourneyEntry>> journey;
 
   setUp(() {
-    growth = StreamController<List<GrowthEntry>>.broadcast();
-    FarmStore.growthForTests = (_) => growth.stream;
+    journey = StreamController<List<JourneyEntry>>.broadcast();
+    FarmStore.journeyForTests = (_) => journey.stream;
   });
 
   tearDown(() {
     FarmStore.plants.value = const [];
     FarmStore.plantsLoaded.value = false;
-    FarmStore.growthForTests = null;
-    growth.close();
+    FarmStore.journeyForTests = null;
+    journey.close();
   });
 
   Future<void> settle(WidgetTester tester) async {
@@ -120,23 +120,23 @@ void main() {
     });
   });
 
-  group('growth timeline', () {
+  group('journey timeline', () {
     // The sample tomato was planted on 1 September 2026.
-    final photo = GrowthPhoto(
-      publicId: GrowthPhoto.publicIdFor('uid', 'sample-tomato', 'e2'),
+    final photo = JourneyPhoto(
+      publicId: JourneyPhoto.publicIdFor('uid', 'sample-tomato', 'e2'),
       version: 3,
       format: 'webp',
       width: 1600,
       height: 1200,
       bytes: 200000,
     );
-    final newest = GrowthEntry(
+    final newest = JourneyEntry(
       id: 'e2',
       date: DateTime(2026, 10, 5, 17, 45),
       notes: 'Flowers are opening.',
       photo: photo,
     );
-    final oldest = GrowthEntry(
+    final oldest = JourneyEntry(
       id: 'e1',
       date: DateTime(2026, 9, 10, 9),
       photo: photo,
@@ -144,10 +144,10 @@ void main() {
 
     Future<void> showTimeline(
       WidgetTester tester,
-      List<GrowthEntry> entries,
+      List<JourneyEntry> entries,
     ) async {
       await openDetails(tester);
-      growth.add(entries);
+      journey.add(entries);
       await settle(tester);
       await tester.scrollUntilVisible(find.text('Upload a picture'), 200);
       await settle(tester);
@@ -189,7 +189,7 @@ void main() {
         urls,
         contains(
           'https://res.cloudinary.com/k7otdsln/image/upload/v3/'
-          'ethmar/plant-growth/uid/sample-tomato/e2.webp',
+          'ethmar/plant-journey/uid/sample-tomato/e2.webp',
         ),
       );
     });

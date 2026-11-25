@@ -317,6 +317,7 @@ class AppStrings {
     'aboutGoalTitle': 'Our Goal',
     'aboutGoalBody':
         'Ethmar aims to encourage home gardening and increase its adoption by providing an integrated experience that brings together the services and features users need in one application, making growing and caring for plants easier and more organized.',
+    'aboutPlantDataCredit': 'Plant data: Permapeople.org (CC BY-SA 4.0)',
     // Contact Ethmar
     'contactEmailTitle': 'Email',
     'contactXTitle': 'X Platform',
@@ -487,7 +488,7 @@ class AppStrings {
     'deleteSelected': 'Delete ({n})',
     'deletePlantsTitle': 'Delete {n} plants?',
     'deletePlantsMessage':
-        "These plants and their growth records will be deleted. This can't be undone.",
+        "These plants and their journey entries will be deleted. This can't be undone.",
     'plantsDeleteFailed':
         "Couldn't delete some plants. Check your connection and try again.",
     'plantsDeleteFailedGeneric':
@@ -496,8 +497,8 @@ class AppStrings {
     'plantDays': '{n} days',
     'plantDayOne': '1 day',
     'daysSincePlanting': 'Days since planting',
-    'stagesTitle': 'My Plant’s Journey',
-    'stagesEmpty':
+    'journeyTitle': 'My Plant’s Journey',
+    'journeyEmpty':
         "You haven't added any photos of your plant yet. Add a photo to document its growth over time.",
     // Plant Details: the crop card and an unset schedule row.
     'plantCropLabel': 'Crop',
@@ -506,10 +507,10 @@ class AppStrings {
     'notesTitle': 'Add a note?',
     'notesLabel': 'Notes (optional)',
     'notesHint': 'e.g. First flowers appeared',
-    'pictureAdded': 'Picture added to the growth timeline',
-    'growthDay': 'Day {n}',
+    'pictureAdded': 'Picture added to your plant’s journey',
+    'journeyDay': 'Day {n}',
     'uploadingPicture': 'Uploading the picture…',
-    'errGrowthUpload':
+    'errJourneyUpload':
         "Couldn't add the picture. Check your connection and try again.",
     'careSchedule': 'Care schedule',
     'edit': 'Edit',
@@ -536,7 +537,7 @@ class AppStrings {
     'deletePlant': 'Delete plant',
     'deletePlantTitle': 'Delete this plant?',
     'deletePlantMessage':
-        "Delete {name} and its growth records? This can't be undone.",
+        "Delete {name} and its journey entries? This can't be undone.",
     'plantDeleteFailed':
         "Couldn't delete the plant. Check your connection and try again.",
     'farmSaveFailed': "Couldn't save. Check your connection and try again.",
@@ -854,6 +855,7 @@ class AppStrings {
     'aboutGoalTitle': 'هدفنا',
     'aboutGoalBody':
         'يهدف إثمار إلى تشجيع الزراعة المنزلية وزيادة انتشارها من خلال توفير تجربة متكاملة تجمع الخدمات والميزات التي يحتاجها المستخدم في تطبيق واحد، مما يجعل زراعة النباتات والعناية بها أكثر سهولة وتنظيمًا.',
+    'aboutPlantDataCredit': 'بيانات النباتات: Permapeople.org (CC BY-SA 4.0)',
     // Contact Ethmar
 
     'contactEmailTitle': "البريد الإلكتروني",
@@ -1021,7 +1023,7 @@ class AppStrings {
     'deleteSelected': 'حذف ({n})',
     'deletePlantsTitle': 'حذف النباتات المحددة ({n})؟',
     'deletePlantsMessage':
-        'راح تنحذف هذه النباتات وسجلات نموها، وما تقدر تتراجع بعدين.',
+        'راح تنحذف هذه النباتات وسجلات رحلتها، وما تقدر تتراجع بعدين.',
     'plantsDeleteFailed':
         'ما قدرنا نحذف بعض النباتات. تأكد من اتصالك وحاول مرة ثانية.',
     'plantsDeleteFailedGeneric':
@@ -1030,8 +1032,8 @@ class AppStrings {
     'plantDays': '{n} يوم',
     'plantDayOne': 'يوم واحد',
     'daysSincePlanting': 'أيام منذ الزراعة',
-    'stagesTitle': ' رحلة نبتتي',
-    'stagesEmpty':
+    'journeyTitle': 'رحلة نبتتي',
+    'journeyEmpty':
         'لم تُضف صورًا لنبتتك بعد. أضف صورة لتوثيق نموها مع مرور الوقت.',
     'plantCropLabel': 'المحصول',
     'scheduleNotSet': 'لم يُحدَّد',
@@ -1039,10 +1041,10 @@ class AppStrings {
     'notesTitle': 'تضيف ملاحظة؟',
     'notesLabel': 'ملاحظات (اختياري)',
     'notesHint': 'مثلًا: طلعت أول زهرة',
-    'pictureAdded': 'تمت إضافة الصورة لمراحل النمو',
-    'growthDay': 'اليوم {n}',
+    'pictureAdded': 'تمت إضافة الصورة إلى رحلة نبتتي',
+    'journeyDay': 'اليوم {n}',
     'uploadingPicture': 'جارٍ رفع الصورة…',
-    'errGrowthUpload': 'تعذر إضافة الصورة. تحقق من اتصالك وحاول مرة أخرى.',
+    'errJourneyUpload': 'تعذر إضافة الصورة. تحقق من اتصالك وحاول مرة أخرى.',
     'careSchedule': 'جدول العناية',
     'edit': 'تعديل',
     'scheduleNext': 'القادم: {when}',
@@ -1068,7 +1070,7 @@ class AppStrings {
     'deletePlant': 'حذف النبتة',
     'deletePlantTitle': 'حذف هذه النبتة؟',
     'deletePlantMessage':
-        'هل تريد حذف {name} وسجل نموها؟ لا يمكن التراجع عن ذلك.',
+        'هل تريد حذف {name} وسجل رحلتها؟ لا يمكن التراجع عن ذلك.',
     'plantDeleteFailed':
         'تعذر حذف النبتة. تحقق من اتصالك وحاول مرة أخرى.',
     'farmSaveFailed': 'تعذر الحفظ. تحقق من اتصالك وحاول مرة أخرى.',
@@ -1398,6 +1400,7 @@ class S {
   String get aboutCard3Body => t('aboutCard3Body');
   String get aboutGoalTitle => t('aboutGoalTitle');
   String get aboutGoalBody => t('aboutGoalBody');
+  String get aboutPlantDataCredit => t('aboutPlantDataCredit');
   String get contactEmailTitle => t('contactEmailTitle');
   String get contactXTitle => t('contactXTitle');
   String get errOpenEmail => t('errOpenEmail');
@@ -1575,8 +1578,8 @@ class S {
     _ => t('plantDays').replaceAll('{n}', '$days'),
   };
   String get daysSincePlanting => t('daysSincePlanting');
-  String get stagesTitle => t('stagesTitle');
-  String get stagesEmpty => t('stagesEmpty');
+  String get journeyTitle => t('journeyTitle');
+  String get journeyEmpty => t('journeyEmpty');
   String get plantCropLabel => t('plantCropLabel');
   String get scheduleNotSet => t('scheduleNotSet');
   String get uploadPicture => t('uploadPicture');
@@ -1584,10 +1587,10 @@ class S {
   String get notesLabel => t('notesLabel');
   String get notesHint => t('notesHint');
   String get pictureAdded => t('pictureAdded');
-  /// "Day 12": which day of the plant's life a growth picture is from.
-  String growthDay(int n) => t('growthDay').replaceAll('{n}', '$n');
+  /// "Day 12": which day of the plant's life a journey picture is from.
+  String journeyDay(int n) => t('journeyDay').replaceAll('{n}', '$n');
   String get uploadingPicture => t('uploadingPicture');
-  String get errGrowthUpload => t('errGrowthUpload');
+  String get errJourneyUpload => t('errJourneyUpload');
   String get careSchedule => t('careSchedule');
   String get edit => t('edit');
   String scheduleNext(String when) =>

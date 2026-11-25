@@ -9,7 +9,7 @@ import '../models/farm_spot.dart';
 import '../models/farm_stats.dart';
 import '../models/plant_edit.dart';
 import '../models/task_log.dart';
-import 'growth_photo_service.dart';
+import 'journey_photo_service.dart';
 import 'plant_service.dart';
 
 /// Deletes the plants [ids] one after another with [deleteOne], and
@@ -62,7 +62,7 @@ class FarmStore {
   static final stats = ValueNotifier<FarmStats>(const FarmStats());
 
   static final _service = PlantService();
-  static final _photos = GrowthPhotoService();
+  static final _photos = JourneyPhotoService();
 
   /// The latest plants and lands, exactly as saved.
   static List<FarmPlant> _savedPlants = const [];
@@ -129,7 +129,7 @@ class FarmStore {
   /// already running instead of starting a second.
   static final _deletesRunning = <String, Future<void>>{};
 
-  /// Deletes a plant, its growth entries and their photos. If it had
+  /// Deletes a plant, its journey entries and their photos. If it had
   /// today's last unfinished task, today is completed for the streak (see
   /// PlantService.deletePlant). Throws if it couldn't be deleted; the
   /// plant then stays.
@@ -171,7 +171,7 @@ class FarmStore {
     unawaited(
       _photos
           .deletePlantPhotos(id)
-          .catchError((Object e) => debugPrint('Growth photos kept: $e')),
+          .catchError((Object e) => debugPrint('Journey photos kept: $e')),
     );
   }
 
@@ -180,31 +180,31 @@ class FarmStore {
   @visibleForTesting
   static Future<void> Function(String plantId)? deleteForTests;
 
-  /// Live growth timeline of [plantId], newest first.
-  static Stream<List<GrowthEntry>> watchGrowth(String plantId) =>
-      (growthForTests ?? _service.watchGrowth)(plantId);
+  /// Live journey timeline of [plantId], newest first.
+  static Stream<List<JourneyEntry>> watchJourney(String plantId) =>
+      (journeyForTests ?? _service.watchJourney)(plantId);
 
-  /// Replaces [watchGrowth] in widget tests, which have no Firebase.
+  /// Replaces [watchJourney] in widget tests, which have no Firebase.
   @visibleForTesting
-  static Stream<List<GrowthEntry>> Function(String plantId)? growthForTests;
+  static Stream<List<JourneyEntry>> Function(String plantId)? journeyForTests;
 
-  /// Adds [image] to [plantId]'s growth timeline, with optional [notes].
+  /// Adds [image] to [plantId]'s journey timeline, with optional [notes].
   /// The photo is uploaded first; if the entry then can't be saved, the
-  /// photo is deleted again. Throws a [GrowthPhotoException] if the upload
+  /// photo is deleted again. Throws a [JourneyPhotoException] if the upload
   /// fails, or Firestore's error if saving does.
-  static Future<void> addGrowth(
+  static Future<void> addJourneyEntry(
     String plantId,
     XFile image, {
     String? notes,
   }) async {
-    final entryId = _service.newGrowthEntryId(plantId);
+    final entryId = _service.newJourneyEntryId(plantId);
     final photo = await _photos.upload(
       image,
       plantId: plantId,
       entryId: entryId,
     );
     try {
-      await _service.saveGrowthEntry(
+      await _service.saveJourneyEntry(
         plantId,
         entryId,
         photo: photo,
@@ -214,7 +214,7 @@ class FarmStore {
       unawaited(
         _photos
             .deleteEntryPhoto(plantId: plantId, entryId: entryId)
-            .catchError((Object e) => debugPrint('Growth photo kept: $e')),
+            .catchError((Object e) => debugPrint('Journey photo kept: $e')),
       );
       rethrow;
     }

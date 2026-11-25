@@ -71,14 +71,14 @@ service cloud.firestore {
           data.updatedAt is timestamp;
     }
 
-    // A growth photo's metadata (see GrowthPhoto.toMap). It must be the
+    // A journey photo's metadata (see JourneyPhoto.toMap). It must be the
     // WebP the image Worker saved for this exact user, plant and entry, so
     // an entry can't point at somebody else's picture.
-    function validGrowthPhoto(photo, uid, plantId, entryId) {
+    function validJourneyPhoto(photo, uid, plantId, entryId) {
       return photo is map &&
           photo.keys().hasAll(['publicId', 'version', 'format', 'width', 'height', 'bytes']) &&
           photo.keys().hasOnly(['publicId', 'version', 'format', 'width', 'height', 'bytes']) &&
-          photo.publicId == 'ethmar/plant-growth/' + uid + '/' + plantId + '/' + entryId &&
+          photo.publicId == 'ethmar/plant-journey/' + uid + '/' + plantId + '/' + entryId &&
           photo.version is int && photo.version > 0 &&
           photo.format == 'webp' &&
           photo.width is int && photo.width > 0 && photo.width <= 4096 &&
@@ -86,16 +86,16 @@ service cloud.firestore {
           photo.bytes is int && photo.bytes > 0 && photo.bytes <= 5 * 1024 * 1024;
     }
 
-    // One step on a plant's growth timeline (see GrowthEntry.toMap): a
+    // One step on a plant's journey (see JourneyEntry.toMap): a
     // photo is required, notes are optional, and the date is the server's
     // time of saving (the app sends a server timestamp).
-    function validGrowthEntry(data, uid, plantId, entryId) {
+    function validJourneyEntry(data, uid, plantId, entryId) {
       return data.keys().hasAll(['date', 'notes', 'photo']) &&
           data.keys().hasOnly(['date', 'notes', 'photo']) &&
           data.date == request.time &&
           (data.notes == null || (data.notes is string &&
               data.notes.size() > 0 && data.notes.size() <= 500)) &&
-          validGrowthPhoto(data.photo, uid, plantId, entryId);
+          validJourneyPhoto(data.photo, uid, plantId, entryId);
     }
 
     // One day's finished tasks (see TaskLog.toMap): on time, and late (done
@@ -257,13 +257,13 @@ service cloud.firestore {
             request.resource.data.cropId == resource.data.cropId &&
             request.resource.data.createdAt == resource.data.createdAt;
 
-        // Each plant's growth timeline. Entries are added and deleted, not
+        // Each plant's journey (Plant Journey). Entries are added and deleted, not
         // edited, and only under a plant that exists.
-        match /growth/{entryId} {
+        match /journey/{entryId} {
           allow read, delete: if ownsFarm(uid);
           allow create: if ownsFarm(uid) &&
               exists(/databases/$(database)/documents/users/$(uid)/plants/$(plantId)) &&
-              validGrowthEntry(request.resource.data, uid, plantId, entryId);
+              validJourneyEntry(request.resource.data, uid, plantId, entryId);
         }
       }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
@@ -100,10 +101,56 @@ class AboutScreen extends StatelessWidget {
                       body: s.aboutGoalBody,
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  Entrance(
+                    delay: const Duration(milliseconds: 340),
+                    child: _PlantDataCredit(label: s.aboutPlantDataCredit),
+                  ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Credit for the plant data, as Permapeople asks of free API users: a
+/// line that links back to their site.
+class _PlantDataCredit extends StatelessWidget {
+  const _PlantDataCredit({required this.label});
+  final String label;
+
+  static final _site = Uri.parse('https://permapeople.org');
+
+  Future<void> _open() async {
+    try {
+      await launchUrl(_site, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // No browser to open it: the credit is still shown.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Semantics(
+        link: true,
+        child: InkWell(
+          onTap: _open,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: AppText.small(context, color: AppColors.forest).copyWith(
+                decoration: TextDecoration.underline,
+                decorationColor: AppColors.forest,
+              ),
+            ),
+          ),
         ),
       ),
     );

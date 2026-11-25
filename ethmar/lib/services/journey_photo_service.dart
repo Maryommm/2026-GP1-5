@@ -10,10 +10,10 @@ import 'package:image_picker/image_picker.dart';
 import '../models/farm_plant.dart';
 
 /// Who is uploading: the user's id and a Firebase ID token for the Worker.
-typedef GrowthPhotoSession = ({String uid, String idToken});
+typedef JourneyPhotoSession = ({String uid, String idToken});
 
-/// Why a growth photo couldn't be uploaded or deleted.
-enum GrowthPhotoError {
+/// Why a journey photo couldn't be uploaded or deleted.
+enum JourneyPhotoError {
   notSignedIn,
   emailNotVerified,
   unreadableImage,
@@ -24,28 +24,28 @@ enum GrowthPhotoError {
   server,
 }
 
-class GrowthPhotoException implements Exception {
-  const GrowthPhotoException(this.error, {this.statusCode});
-  final GrowthPhotoError error;
+class JourneyPhotoException implements Exception {
+  const JourneyPhotoException(this.error, {this.statusCode});
+  final JourneyPhotoError error;
   final int? statusCode;
 
   @override
-  String toString() => 'GrowthPhotoException($error, HTTP $statusCode)';
+  String toString() => 'JourneyPhotoException($error, HTTP $statusCode)';
 }
 
-/// Uploads and deletes growth timeline photos through the image Worker
-/// (`workers/profile-images`, endpoint `/v1/plant-growth`), which keeps the
+/// Uploads and deletes journey timeline photos through the image Worker
+/// (`workers/profile-images`, endpoint `/v1/plant-journey`), which keeps the
 /// Cloudinary key off the phone. Each photo is saved at
-/// [GrowthPhoto.publicIdFor]; the Worker takes the uid from the login token.
-class GrowthPhotoService {
-  GrowthPhotoService({
+/// [JourneyPhoto.publicIdFor]; the Worker takes the uid from the login token.
+class JourneyPhotoService {
+  JourneyPhotoService({
     http.Client? client,
-    Future<GrowthPhotoSession> Function()? session,
+    Future<JourneyPhotoSession> Function()? session,
   }) : _client = client ?? http.Client(),
        _session = session ?? _firebaseSession;
 
   static final Uri _endpoint = Uri.parse(
-    'https://ethmar-profile-images.fanyeol-23.workers.dev/v1/plant-growth',
+    'https://ethmar-profile-images.fanyeol-23.workers.dev/v1/plant-journey',
   );
 
   /// The Worker accepts up to 5 MB. Photos are shrunk when picked (see
@@ -60,10 +60,10 @@ class GrowthPhotoService {
   static const _timeout = Duration(seconds: 60);
 
   final http.Client _client;
-  final Future<GrowthPhotoSession> Function() _session;
+  final Future<JourneyPhotoSession> Function() _session;
 
-  /// Uploads [image] as the photo of growth entry [entryId] of [plantId].
-  Future<GrowthPhoto> upload(
+  /// Uploads [image] as the photo of journey entry [entryId] of [plantId].
+  Future<JourneyPhoto> upload(
     XFile image, {
     required String plantId,
     required String entryId,
@@ -72,17 +72,17 @@ class GrowthPhotoService {
     try {
       bytes = await image.readAsBytes();
     } catch (_) {
-      throw const GrowthPhotoException(GrowthPhotoError.unreadableImage);
+      throw const JourneyPhotoException(JourneyPhotoError.unreadableImage);
     }
     if (bytes.isEmpty) {
-      throw const GrowthPhotoException(GrowthPhotoError.unreadableImage);
+      throw const JourneyPhotoException(JourneyPhotoError.unreadableImage);
     }
     if (bytes.length > maxBytes) {
-      throw const GrowthPhotoException(GrowthPhotoError.tooLarge);
+      throw const JourneyPhotoException(JourneyPhotoError.tooLarge);
     }
     final type = _mediaType(bytes);
     if (type == null) {
-      throw const GrowthPhotoException(GrowthPhotoError.unsupportedImage);
+      throw const JourneyPhotoException(JourneyPhotoError.unsupportedImage);
     }
 
     final session = await _session();
@@ -94,7 +94,7 @@ class GrowthPhotoService {
         http.MultipartFile.fromBytes(
           'file',
           bytes,
-          filename: 'growth.${type.subtype == 'jpeg' ? 'jpg' : type.subtype}',
+          filename: 'journey.${type.subtype == 'jpeg' ? 'jpg' : type.subtype}',
           contentType: type,
         ),
       );
@@ -102,17 +102,17 @@ class GrowthPhotoService {
 
     // Accept only the photo this user asked for, as the Worker saves it.
     final saved = _json(response)?['image'];
-    final expectedId = GrowthPhoto.publicIdFor(session.uid, plantId, entryId);
+    final expectedId = JourneyPhoto.publicIdFor(session.uid, plantId, entryId);
     if (saved is! Map<String, dynamic> ||
         saved['publicId'] != expectedId ||
         saved['format'] != 'webp') {
-      throw GrowthPhotoException(
-        GrowthPhotoError.server,
+      throw JourneyPhotoException(
+        JourneyPhotoError.server,
         statusCode: response.statusCode,
       );
     }
     try {
-      final photo = GrowthPhoto.fromMap(saved)!;
+      final photo = JourneyPhoto.fromMap(saved)!;
       if (photo.version <= 0 ||
           photo.width <= 0 ||
           photo.height <= 0 ||
@@ -122,21 +122,21 @@ class GrowthPhotoService {
       }
       return photo;
     } on FormatException {
-      throw GrowthPhotoException(
-        GrowthPhotoError.server,
+      throw JourneyPhotoException(
+        JourneyPhotoError.server,
         statusCode: response.statusCode,
       );
     }
   }
 
-  /// Deletes the photo of growth entry [entryId] of [plantId]. A photo
+  /// Deletes the photo of journey entry [entryId] of [plantId]. A photo
   /// that's already gone counts as deleted.
   Future<void> deleteEntryPhoto({
     required String plantId,
     required String entryId,
   }) => _delete({'plantId': plantId, 'entryId': entryId});
 
-  /// Deletes every growth photo of [plantId], when the plant is deleted.
+  /// Deletes every journey photo of [plantId], when the plant is deleted.
   Future<void> deletePlantPhotos(String plantId) =>
       _delete({'plantId': plantId});
 
@@ -149,26 +149,26 @@ class GrowthPhotoService {
     await _send(request);
   }
 
-  /// Sends [request] and turns a failure into a [GrowthPhotoException].
+  /// Sends [request] and turns a failure into a [JourneyPhotoException].
   Future<http.Response> _send(http.BaseRequest request) async {
     final http.Response response;
     try {
       final streamed = await _client.send(request).timeout(_timeout);
       response = await http.Response.fromStream(streamed).timeout(_timeout);
     } on TimeoutException {
-      throw const GrowthPhotoException(GrowthPhotoError.network);
+      throw const JourneyPhotoException(JourneyPhotoError.network);
     } on http.ClientException {
-      throw const GrowthPhotoException(GrowthPhotoError.network);
+      throw const JourneyPhotoException(JourneyPhotoError.network);
     }
     final code = response.statusCode;
     if (code >= 200 && code < 300) return response;
-    throw GrowthPhotoException(switch (code) {
-      401 => GrowthPhotoError.notSignedIn,
-      403 => GrowthPhotoError.emailNotVerified,
-      413 => GrowthPhotoError.tooLarge,
-      415 => GrowthPhotoError.unsupportedImage,
-      429 => GrowthPhotoError.rateLimited,
-      _ => GrowthPhotoError.server,
+    throw JourneyPhotoException(switch (code) {
+      401 => JourneyPhotoError.notSignedIn,
+      403 => JourneyPhotoError.emailNotVerified,
+      413 => JourneyPhotoError.tooLarge,
+      415 => JourneyPhotoError.unsupportedImage,
+      429 => JourneyPhotoError.rateLimited,
+      _ => JourneyPhotoError.server,
     }, statusCode: code);
   }
 
@@ -199,25 +199,25 @@ class GrowthPhotoService {
 
   /// The signed-in user and a fresh ID token. Refreshed every time, like
   /// the profile picture's, so a newly verified email counts at once.
-  static Future<GrowthPhotoSession> _firebaseSession() async {
+  static Future<JourneyPhotoSession> _firebaseSession() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      throw const GrowthPhotoException(GrowthPhotoError.notSignedIn);
+      throw const JourneyPhotoException(JourneyPhotoError.notSignedIn);
     }
     if (!user.emailVerified) {
-      throw const GrowthPhotoException(GrowthPhotoError.emailNotVerified);
+      throw const JourneyPhotoException(JourneyPhotoError.emailNotVerified);
     }
     try {
       final token = await user.getIdToken(true);
       if (token == null || token.isEmpty) {
-        throw const GrowthPhotoException(GrowthPhotoError.notSignedIn);
+        throw const JourneyPhotoException(JourneyPhotoError.notSignedIn);
       }
       return (uid: user.uid, idToken: token);
     } on FirebaseAuthException catch (e) {
-      throw GrowthPhotoException(
+      throw JourneyPhotoException(
         e.code == 'network-request-failed'
-            ? GrowthPhotoError.network
-            : GrowthPhotoError.notSignedIn,
+            ? JourneyPhotoError.network
+            : JourneyPhotoError.notSignedIn,
       );
     }
   }

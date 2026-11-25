@@ -1,13 +1,13 @@
 import 'dart:convert';
 
-import 'package:ethmar/services/growth_photo_service.dart';
+import 'package:ethmar/services/journey_photo_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:image_picker/image_picker.dart';
 
 const _uid = 'user-1';
-const _publicId = 'ethmar/plant-growth/$_uid/plant-1/entry-1';
+const _publicId = 'ethmar/plant-journey/$_uid/plant-1/entry-1';
 
 final _pngBytes = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDw'
@@ -29,7 +29,7 @@ Map<String, Object> _saved({String publicId = _publicId}) => {
   },
 };
 
-GrowthPhotoService _service(MockClient client) => GrowthPhotoService(
+JourneyPhotoService _service(MockClient client) => JourneyPhotoService(
   client: client,
   session: () async => (uid: _uid, idToken: 'token'),
 );
@@ -53,7 +53,7 @@ void main() {
       );
 
       expect(sent.method, 'POST');
-      expect(sent.url.path, '/v1/plant-growth');
+      expect(sent.url.path, '/v1/plant-journey');
       expect(sent.headers['Authorization'], 'Bearer token');
       // The picture's bytes aren't text, so read the form byte for byte.
       final body = latin1.decode(sent.bodyBytes);
@@ -73,7 +73,7 @@ void main() {
     final service = _service(
       MockClient(
         (_) async => http.Response(
-          jsonEncode(_saved(publicId: 'ethmar/plant-growth/other/p/e')),
+          jsonEncode(_saved(publicId: 'ethmar/plant-journey/other/p/e')),
           200,
         ),
       ),
@@ -82,10 +82,10 @@ void main() {
     await expectLater(
       service.upload(_png(), plantId: 'plant-1', entryId: 'entry-1'),
       throwsA(
-        isA<GrowthPhotoException>().having(
+        isA<JourneyPhotoException>().having(
           (e) => e.error,
           'error',
-          GrowthPhotoError.server,
+          JourneyPhotoError.server,
         ),
       ),
     );
@@ -107,10 +107,10 @@ void main() {
         entryId: 'entry-1',
       ),
       throwsA(
-        isA<GrowthPhotoException>().having(
+        isA<JourneyPhotoException>().having(
           (e) => e.error,
           'error',
-          GrowthPhotoError.unsupportedImage,
+          JourneyPhotoError.unsupportedImage,
         ),
       ),
     );
@@ -119,11 +119,11 @@ void main() {
 
   test('turns Worker errors into reasons the screen can explain', () async {
     for (final (status, error) in [
-      (401, GrowthPhotoError.notSignedIn),
-      (403, GrowthPhotoError.emailNotVerified),
-      (413, GrowthPhotoError.tooLarge),
-      (429, GrowthPhotoError.rateLimited),
-      (502, GrowthPhotoError.server),
+      (401, JourneyPhotoError.notSignedIn),
+      (403, JourneyPhotoError.emailNotVerified),
+      (413, JourneyPhotoError.tooLarge),
+      (429, JourneyPhotoError.rateLimited),
+      (502, JourneyPhotoError.server),
     ]) {
       final service = _service(
         MockClient((_) async => http.Response('{"error":{}}', status)),
@@ -131,7 +131,7 @@ void main() {
       await expectLater(
         service.upload(_png(), plantId: 'plant-1', entryId: 'entry-1'),
         throwsA(
-          isA<GrowthPhotoException>().having((e) => e.error, '$status', error),
+          isA<JourneyPhotoException>().having((e) => e.error, '$status', error),
         ),
       );
     }
@@ -145,10 +145,10 @@ void main() {
     await expectLater(
       service.upload(_png(), plantId: 'plant-1', entryId: 'entry-1'),
       throwsA(
-        isA<GrowthPhotoException>().having(
+        isA<JourneyPhotoException>().having(
           (e) => e.error,
           'error',
-          GrowthPhotoError.network,
+          JourneyPhotoError.network,
         ),
       ),
     );

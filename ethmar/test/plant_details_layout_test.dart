@@ -103,13 +103,13 @@ void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
   setUp(() {
-    FarmStore.growthForTests = (_) => Stream.value(const []);
+    FarmStore.journeyForTests = (_) => Stream.value(const []);
     FarmStore.taskLogForTests = (date) => Stream.value(TaskLog(date: date));
   });
 
   tearDown(() {
     FarmStore.plants.value = const [];
-    FarmStore.growthForTests = null;
+    FarmStore.journeyForTests = null;
     FarmStore.taskLogForTests = null;
   });
 
@@ -159,7 +159,7 @@ void main() {
       expect(find.text(s.plantCropLabel), findsOneWidget);
 
       // The journey's empty text.
-      expect(find.text(s.stagesEmpty), findsOneWidget);
+      expect(find.text(s.journeyEmpty), findsOneWidget);
 
       // Upload: a 36-high pill in a 48-high tap band.
       final upload = find.byKey(const Key('upload-picture'));

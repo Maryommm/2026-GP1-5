@@ -45,7 +45,7 @@ void main() {
 
     test('rejects a saved value that is not a map', () {
       expect(() => CareSchedule.fromMap('daily'), throwsFormatException);
-      expect(() => GrowthPhoto.fromMap(7), throwsFormatException);
+      expect(() => JourneyPhoto.fromMap(7), throwsFormatException);
     });
 
     test('null means switched off', () {
@@ -84,12 +84,12 @@ void main() {
     });
   });
 
-  group('GrowthEntry', () {
+  group('JourneyEntry', () {
     test('round-trips with a photo', () {
-      final entry = samplePlants.first.growth.last;
+      final entry = samplePlants.first.journey.last;
       expect(entry.photo, isNotNull);
 
-      final back = GrowthEntry.fromMap(entry.id!, entry.toMap());
+      final back = JourneyEntry.fromMap(entry.id!, entry.toMap());
       expect(back.id, entry.id);
       expect(back.date, entry.date);
       expect(back.notes, entry.notes);
@@ -97,12 +97,12 @@ void main() {
     });
 
     test('round-trips without notes or a photo', () {
-      final entry = GrowthEntry(id: 'e1', date: DateTime(2026, 10, 1, 8));
+      final entry = JourneyEntry(id: 'e1', date: DateTime(2026, 10, 1, 8));
       final map = entry.toMap();
       expect(map['notes'], isNull);
       expect(map['photo'], isNull);
 
-      final back = GrowthEntry.fromMap('e1', map);
+      final back = JourneyEntry.fromMap('e1', map);
       expect(back.date, entry.date);
       expect(back.notes, isNull);
       expect(back.photo, isNull);
@@ -159,7 +159,7 @@ void main() {
       }
     });
 
-    test('every sample plant round-trips (growth is saved separately)', () {
+    test('every sample plant round-trips (journey is saved separately)', () {
       for (final plant in samplePlants) {
         final map = plant.toMap();
         expect(map['cropId'], plant.crop.id);
@@ -176,7 +176,7 @@ void main() {
         expect(back.plantedAt, plant.plantedAt);
         expect(back.createdAt, plant.createdAt);
         expect(back.updatedAt, plant.updatedAt);
-        expect(back.growth, isEmpty);
+        expect(back.journey, isEmpty);
       }
     });
 
@@ -226,10 +226,10 @@ void main() {
       expect(placed.name, plant.name);
       expect(placed.createdAt, plant.createdAt);
       expect(placed.updatedAt, plant.updatedAt);
-      expect(placed.growth, plant.growth);
+      expect(placed.journey, plant.journey);
     });
 
-    test('edited() and withGrowth() keep the id, spot and dates', () {
+    test('edited() and withJourneyEntry() keep the id, spot and dates', () {
       final plant = samplePlants.first;
       final edited = plant.edited(
         name: 'Renamed',
@@ -243,10 +243,10 @@ void main() {
       expect(edited.updatedAt.isAfter(plant.updatedAt), isTrue);
       expect(edited.irrigation, isNull);
 
-      final grown = plant.withGrowth(GrowthEntry(date: DateTime(2026, 10, 20)));
+      final grown = plant.withJourneyEntry(JourneyEntry(date: DateTime(2026, 10, 20)));
       expect(grown.id, plant.id);
       expect(grown.updatedAt, plant.updatedAt);
-      expect(grown.growth, hasLength(plant.growth.length + 1));
+      expect(grown.journey, hasLength(plant.journey.length + 1));
     });
   });
 

@@ -11,7 +11,7 @@ import '../models/daily_task.dart' show TaskType;
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
 import '../services/network_errors.dart';
-import '../services/growth_photo_service.dart';
+import '../services/journey_photo_service.dart';
 import '../services/recent_task_logs.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -29,7 +29,7 @@ import '../widgets/plant_picture.dart';
 import 'edit_plant_screen.dart';
 
 /// One plant, from the sketch: its picture, days since planting and
-/// watering, the growth timeline (pictures with notes and dates), and the
+/// watering, the journey timeline (pictures with notes and dates), and the
 /// care schedule with an Edit button.
 ///
 /// [plantId] is the plant's Firestore document id.
@@ -45,19 +45,19 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
   bool _deleting = false;
   bool _closing = false;
 
-  /// True while a growth picture is being uploaded and saved.
+  /// True while a journey picture is being uploaded and saved.
   bool _uploading = false;
 
   final _picker = ImagePicker();
 
-  /// The growth timeline, newest first, live from Firestore.
-  late final Stream<List<GrowthEntry>> _growth = FarmStore.watchGrowth(
+  /// The journey timeline, newest first, live from Firestore.
+  late final Stream<List<JourneyEntry>> _journey = FarmStore.watchJourney(
     widget.plantId,
   );
 
   String get plantId => widget.plantId;
 
-  /// Asks first, then deletes the plant and its growth entries.
+  /// Asks first, then deletes the plant and its journey entries.
   Future<void> _requestDelete(FarmPlant plant) async {
     if (_deleting) return;
     final confirmed = await showDialog<bool>(
@@ -156,33 +156,33 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
 
     setState(() => _uploading = true);
     try {
-      await FarmStore.addGrowth(
+      await FarmStore.addJourneyEntry(
         plantId,
         image,
         notes: notes.isEmpty ? null : notes,
       );
       if (context.mounted) showEthmarToast(context, s.pictureAdded);
-    } on GrowthPhotoException catch (e) {
-      debugPrint('Growth picture not added: $e');
+    } on JourneyPhotoException catch (e) {
+      debugPrint('Journey picture not added: $e');
       if (context.mounted) {
         _error(context, switch (e.error) {
-          GrowthPhotoError.network => s.errNetwork,
-          GrowthPhotoError.rateLimited => s.errProfilePhotoRateLimit,
-          GrowthPhotoError.unreadableImage ||
-          GrowthPhotoError.unsupportedImage => s.errImageRead,
-          _ => s.errGrowthUpload,
+          JourneyPhotoError.network => s.errNetwork,
+          JourneyPhotoError.rateLimited => s.errProfilePhotoRateLimit,
+          JourneyPhotoError.unreadableImage ||
+          JourneyPhotoError.unsupportedImage => s.errImageRead,
+          _ => s.errJourneyUpload,
         });
       }
     } catch (e) {
-      debugPrint('Growth entry not saved: $e');
-      if (context.mounted) _error(context, s.errGrowthUpload);
+      debugPrint('Journey entry not saved: $e');
+      if (context.mounted) _error(context, s.errJourneyUpload);
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
   }
 
   /// Opens the camera or gallery. Null when cancelled or not allowed.
-  /// The photo comes back shrunk (see [GrowthPhotoService.pickWidth]).
+  /// The photo comes back shrunk (see [JourneyPhotoService.pickWidth]).
   Future<XFile?> _pick(BuildContext context, ImageSource source) async {
     final s = S.of(context);
     if (source == ImageSource.camera && !await ensureCameraAccess(context)) {
@@ -191,9 +191,9 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
     try {
       return await _picker.pickImage(
         source: source,
-        maxWidth: GrowthPhotoService.pickWidth,
-        maxHeight: GrowthPhotoService.pickWidth,
-        imageQuality: GrowthPhotoService.pickQuality,
+        maxWidth: JourneyPhotoService.pickWidth,
+        maxHeight: JourneyPhotoService.pickWidth,
+        imageQuality: JourneyPhotoService.pickQuality,
         requestFullMetadata: false,
       );
     } on PlatformException catch (e) {
@@ -312,10 +312,10 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                       ),
                       const SizedBox(height: 16),
                       _Panel(
-                        title: s.stagesTitle,
-                        child: StreamBuilder<List<GrowthEntry>>(
-                          stream: _growth,
-                          builder: (context, snapshot) => _GrowthTimeline(
+                        title: s.journeyTitle,
+                        child: StreamBuilder<List<JourneyEntry>>(
+                          stream: _journey,
+                          builder: (context, snapshot) => _JourneyTimeline(
                             entries: snapshot.data ?? const [],
                             loading: !snapshot.hasData && !snapshot.hasError,
                             uploading: _uploading,
@@ -388,7 +388,7 @@ class _DeleteButton extends StatelessWidget {
   }
 }
 
-/// Asks before deleting; the plant's growth entries go with it.
+/// Asks before deleting; the plant's journey entries go with it.
 class _DeletePlantDialog extends StatelessWidget {
   const _DeletePlantDialog({required this.plantName});
 
@@ -648,18 +648,18 @@ class _SmallButton extends StatelessWidget {
   }
 }
 
-/// The growth timeline: newest at the top, a dot and line down the side,
+/// The journey timeline: newest at the top, a dot and line down the side,
 /// then the "Upload a picture" button. Each entry shows its picture, which
 /// day of the plant's life it's from, its notes and its date.
-class _GrowthTimeline extends StatelessWidget {
-  const _GrowthTimeline({
+class _JourneyTimeline extends StatelessWidget {
+  const _JourneyTimeline({
     required this.entries,
     required this.loading,
     required this.uploading,
     required this.plantedAt,
     required this.onAdd,
   });
-  final List<GrowthEntry> entries;
+  final List<JourneyEntry> entries;
 
   /// True until the entries first arrive.
   final bool loading;
@@ -696,7 +696,7 @@ class _GrowthTimeline extends StatelessWidget {
               const _PhotoFrame(),
               const SizedBox(width: 14),
               Expanded(
-                child: Text(s.stagesEmpty, style: AppText.small(context)),
+                child: Text(s.journeyEmpty, style: AppText.small(context)),
               ),
             ],
           )
@@ -750,7 +750,7 @@ class _GrowthTimeline extends StatelessWidget {
     BuildContext context,
     S s,
     MaterialLocalizations loc,
-    GrowthEntry entry,
+    JourneyEntry entry,
   ) {
     final notes = entry.notes;
     final photo = entry.photo;
@@ -770,7 +770,7 @@ class _GrowthTimeline extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                s.growthDay(entry.dayOf(plantedAt)),
+                s.journeyDay(entry.dayOf(plantedAt)),
                 style: AppText.label(context)
                     .copyWith(fontWeight: FontWeight.w700),
               ),
@@ -791,7 +791,7 @@ class _GrowthTimeline extends StatelessWidget {
   }
 
   /// The picture full screen, to zoom in, with its notes underneath.
-  void _showPhoto(BuildContext context, GrowthEntry entry) {
+  void _showPhoto(BuildContext context, JourneyEntry entry) {
     final photo = entry.photo!;
     showDialog<void>(
       context: context,
@@ -799,7 +799,7 @@ class _GrowthTimeline extends StatelessWidget {
       builder: (context) => _PhotoViewer(
         photo: photo,
         caption: [
-          S.of(context).growthDay(entry.dayOf(plantedAt)),
+          S.of(context).journeyDay(entry.dayOf(plantedAt)),
           ?entry.notes,
         ].join(' · '),
       ),
@@ -855,7 +855,7 @@ class _PhotoFrame extends StatelessWidget {
     this.onTap,
     this.size = 76,
   });
-  final GrowthPhoto? photo;
+  final JourneyPhoto? photo;
   final Uint8List? preview;
   final bool busy;
   final VoidCallback? onTap;
@@ -923,10 +923,10 @@ class _PhotoFrame extends StatelessWidget {
   }
 }
 
-/// A growth picture full screen: pinch to zoom, X (or back) to close.
+/// A journey picture full screen: pinch to zoom, X (or back) to close.
 class _PhotoViewer extends StatelessWidget {
   const _PhotoViewer({required this.photo, required this.caption});
-  final GrowthPhoto photo;
+  final JourneyPhoto photo;
   final String caption;
 
   @override

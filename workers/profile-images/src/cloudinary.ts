@@ -1,9 +1,9 @@
 import type {
-  DeletedGrowthPhoto,
-  DeletedPlantGrowthPhotos,
+  DeletedJourneyPhoto,
+  DeletedPlantJourneyPhotos,
   DeletedProfileImage,
   Env,
-  UploadedGrowthPhoto,
+  UploadedJourneyPhoto,
   UploadedProfileImage,
   ValidatedImage,
 } from "./types";
@@ -68,8 +68,8 @@ interface CloudinaryDeleteByPrefixResponse {
 // Set the output format and image transformation.
 export const PROFILE_IMAGE_TRANSFORMATION = "c_limit,h_4096,w_4096/fl_force_strip";
 export const PROFILE_IMAGE_FORMAT = "webp";
-// Growth photos are smaller: the timeline never needs more than 2048 px.
-export const GROWTH_PHOTO_TRANSFORMATION = "c_limit,h_2048,w_2048/fl_force_strip";
+// Journey photos are smaller: the timeline never needs more than 2048 px.
+export const JOURNEY_PHOTO_TRANSFORMATION = "c_limit,h_2048,w_2048/fl_force_strip";
 // Cloudinary deletes at most 1000 photos per call; a plant never has that
 // many, so a few rounds are always enough.
 const MAX_DELETE_BY_PREFIX_ROUNDS = 5;
@@ -122,15 +122,15 @@ export function profilePublicId(uid: string): string {
   return "ethmar/profile-images/" + uid + "/profile";
 }
 
-// The folder holding every growth photo of one plant (with the final "/",
+// The folder holding every journey photo of one plant (with the final "/",
 // so plant "ab" never matches plant "abc").
-export function growthPlantFolder(uid: string, plantId: string): string {
-  return "ethmar/plant-growth/" + uid + "/" + plantId + "/";
+export function journeyPlantFolder(uid: string, plantId: string): string {
+  return "ethmar/plant-journey/" + uid + "/" + plantId + "/";
 }
 
-// One growth photo: its plant's folder, then the growth entry's ID.
-export function growthPublicId(uid: string, plantId: string, entryId: string): string {
-  return growthPlantFolder(uid, plantId) + entryId;
+// One journey photo: its plant's folder, then the journey entry's ID.
+export function journeyPublicId(uid: string, plantId: string, entryId: string): string {
+  return journeyPlantFolder(uid, plantId) + entryId;
 }
 
 // Parse Cloudinary responses and reject invalid JSON.
@@ -295,20 +295,20 @@ export function uploadProfileImage(
   return uploadImage(env, profilePublicId(uid), image, PROFILE_IMAGE_TRANSFORMATION, "profile");
 }
 
-// Upload one growth photo. A retry for the same entry replaces it.
-export function uploadGrowthPhoto(
+// Upload one journey photo. A retry for the same entry replaces it.
+export function uploadJourneyPhoto(
   env: Env,
   uid: string,
   plantId: string,
   entryId: string,
   image: ValidatedImage,
-): Promise<UploadedGrowthPhoto> {
+): Promise<UploadedJourneyPhoto> {
   return uploadImage(
     env,
-    growthPublicId(uid, plantId, entryId),
+    journeyPublicId(uid, plantId, entryId),
     image,
-    GROWTH_PHOTO_TRANSFORMATION,
-    "growth",
+    JOURNEY_PHOTO_TRANSFORMATION,
+    "journey",
   );
 }
 
@@ -395,26 +395,26 @@ export function deleteProfileImage(env: Env, uid: string): Promise<DeletedProfil
   return destroyImage(env, profilePublicId(uid));
 }
 
-// Delete one growth photo.
-export function deleteGrowthPhoto(
+// Delete one journey photo.
+export function deleteJourneyPhoto(
   env: Env,
   uid: string,
   plantId: string,
   entryId: string,
-): Promise<DeletedGrowthPhoto> {
-  return destroyImage(env, growthPublicId(uid, plantId, entryId));
+): Promise<DeletedJourneyPhoto> {
+  return destroyImage(env, journeyPublicId(uid, plantId, entryId));
 }
 
-// Delete every growth photo of one plant, with Cloudinary's Admin API
+// Delete every journey photo of one plant, with Cloudinary's Admin API
 // (the upload API can only delete one image at a time).
-export async function deletePlantGrowthPhotos(
+export async function deletePlantJourneyPhotos(
   env: Env,
   uid: string,
   plantId: string,
-): Promise<DeletedPlantGrowthPhotos> {
+): Promise<DeletedPlantJourneyPhotos> {
   const config = configFrom(env);
   const url = "https://api.cloudinary.com/v1_1/" + encodeURIComponent(config.cloudName)
-    + "/resources/image/upload?prefix=" + encodeURIComponent(growthPlantFolder(uid, plantId))
+    + "/resources/image/upload?prefix=" + encodeURIComponent(journeyPlantFolder(uid, plantId))
     + "&invalidate=true";
   const authorization = "Basic " + btoa(config.apiKey + ":" + config.apiSecret);
 

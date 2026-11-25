@@ -1,4 +1,4 @@
-/// A plant on the user's farm, its care schedules and its growth timeline.
+/// A plant on the user's farm, its care schedules and its journey timeline.
 ///
 /// Plant: `users/{uid}/plants/{plantId}`
 ///   - cropId         String     a [cropCatalog] id, e.g. "tomato" (also
@@ -29,13 +29,13 @@
 ///   - createdAt      Timestamp
 ///   - updatedAt      Timestamp
 ///
-/// Growth entry: `users/{uid}/plants/{plantId}/growth/{entryId}`
+/// Journey entry: `users/{uid}/plants/{plantId}/journey/{entryId}`
 ///   - date   Timestamp  set by the server when the entry is saved
 ///   - notes  String|null
 ///   - photo  map        {publicId, version, format, width, height, bytes},
 ///                       the same shape as `users/{uid}/media/profile`.
 ///                       The picture is on Cloudinary at
-///                       `ethmar/plant-growth/{uid}/{plantId}/{entryId}`.
+///                       `ethmar/plant-journey/{uid}/{plantId}/{entryId}`.
 library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -342,10 +342,10 @@ class CareSchedule {
   }
 }
 
-/// A picture on the growth timeline, uploaded to Cloudinary. Same fields
+/// A picture on the journey timeline, uploaded to Cloudinary. Same fields
 /// as the profile picture's metadata (`users/{uid}/media/profile`).
-class GrowthPhoto {
-  const GrowthPhoto({
+class JourneyPhoto {
+  const JourneyPhoto({
     required this.publicId,
     required this.version,
     required this.format,
@@ -367,7 +367,7 @@ class GrowthPhoto {
   /// Where it's saved on Cloudinary, for [uid]'s entry [entryId] of plant
   /// [plantId]. Firestore's rules allow no other.
   static String publicIdFor(String uid, String plantId, String entryId) =>
-      'ethmar/plant-growth/$uid/$plantId/$entryId';
+      'ethmar/plant-journey/$uid/$plantId/$entryId';
 
   /// The address to show it from. The version makes a replaced picture a
   /// new address, so an old copy is never shown from a cache.
@@ -385,9 +385,9 @@ class GrowthPhoto {
 
   /// Null when the entry has no picture.
   /// Throws a [FormatException] if the saved values aren't valid.
-  static GrowthPhoto? fromMap(Object? data) {
+  static JourneyPhoto? fromMap(Object? data) {
     if (data == null) return null;
-    if (data is! Map) throw FormatException('Invalid growth photo: $data');
+    if (data is! Map) throw FormatException('Invalid journey photo: $data');
     final publicId = data['publicId'];
     final version = data['version'];
     final format = data['format'];
@@ -400,9 +400,9 @@ class GrowthPhoto {
         width is! int ||
         height is! int ||
         bytes is! int) {
-      throw FormatException('Invalid growth photo: $data');
+      throw FormatException('Invalid journey photo: $data');
     }
-    return GrowthPhoto(
+    return JourneyPhoto(
       publicId: publicId,
       version: version,
       format: format,
@@ -413,10 +413,10 @@ class GrowthPhoto {
   }
 }
 
-/// One step on a plant's growth timeline: a picture, optional notes, and
+/// One step on a plant's journey timeline: a picture, optional notes, and
 /// when it was added.
-class GrowthEntry {
-  const GrowthEntry({required this.date, this.id, this.notes, this.photo});
+class JourneyEntry {
+  const JourneyEntry({required this.date, this.id, this.notes, this.photo});
 
   /// The Firestore document id. Null until the entry is saved.
   final String? id;
@@ -424,7 +424,7 @@ class GrowthEntry {
   final String? notes;
 
   /// Every saved entry has one; null only in sample data and old entries.
-  final GrowthPhoto? photo;
+  final JourneyPhoto? photo;
 
   /// Which day of the plant's life it was taken: 0 on the planting day.
   int dayOf(DateTime plantedAt) {
@@ -447,17 +447,17 @@ class GrowthEntry {
 
   /// Builds an entry from document [id] and its fields.
   /// Throws a [FormatException] if the saved values aren't valid.
-  factory GrowthEntry.fromMap(String id, Map<String, dynamic> data) {
+  factory JourneyEntry.fromMap(String id, Map<String, dynamic> data) {
     final date = data['date'];
     final notes = data['notes'];
     if (date is! Timestamp || (notes != null && notes is! String)) {
-      throw FormatException('Invalid growth entry $id: $data');
+      throw FormatException('Invalid journey entry $id: $data');
     }
-    return GrowthEntry(
+    return JourneyEntry(
       id: id,
       date: date.toDate(),
       notes: notes as String?,
-      photo: GrowthPhoto.fromMap(data['photo']),
+      photo: JourneyPhoto.fromMap(data['photo']),
     );
   }
 }
@@ -475,7 +475,7 @@ class FarmPlant {
     DateTime? plantedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
-    this.growth = const [],
+    this.journey = const [],
     CropCategory? category,
   }) : category = crop.id == unknownCropId
            ? category ?? crop.category
@@ -510,9 +510,9 @@ class FarmPlant {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  /// Oldest first. Saved in the `growth` subcollection, not in the plant's
+  /// Oldest first. Saved in the `journey` subcollection, not in the plant's
   /// document, so [fromMap] leaves it empty.
-  final List<GrowthEntry> growth;
+  final List<JourneyEntry> journey;
 
   /// Whole days since planting (0 on the day it was planted).
   int get daysSincePlanting {
@@ -560,7 +560,7 @@ class FarmPlant {
     plantedAt: plantedAt,
     createdAt: createdAt,
     updatedAt: DateTime.now(),
-    growth: growth,
+    journey: journey,
   );
 
   /// The same plant once it has a document [id] and a spot on the farm.
@@ -580,13 +580,13 @@ class FarmPlant {
     plantedAt: plantedAt,
     createdAt: createdAt,
     updatedAt: updatedAt,
-    growth: growth,
+    journey: journey,
   );
 
   /// The same plant with [entry] added to its timeline. The plant's own
-  /// document doesn't change (entries live in `growth`), so neither does
+  /// document doesn't change (entries live in `journey`), so neither does
   /// [updatedAt].
-  FarmPlant withGrowth(GrowthEntry entry) => FarmPlant(
+  FarmPlant withJourneyEntry(JourneyEntry entry) => FarmPlant(
     id: id,
     crop: crop,
     category: category,
@@ -598,11 +598,11 @@ class FarmPlant {
     plantedAt: plantedAt,
     createdAt: createdAt,
     updatedAt: updatedAt,
-    growth: [...growth, entry],
+    journey: [...journey, entry],
   );
 
   /// The document's fields. Not included: the id (it's the document name)
-  /// and [growth] (its own subcollection).
+  /// and [journey] (its own subcollection).
   Map<String, Object?> toMap() => {
     'cropId': crop.id,
     'name': name,
@@ -617,7 +617,7 @@ class FarmPlant {
   };
 
   /// Builds a plant from document [id] and its fields, looking up `cropId`
-  /// in [cropCatalog]. [growth] starts empty; load it separately.
+  /// in [cropCatalog]. [journey] starts empty; load it separately.
   /// Throws a [FormatException] if the saved values aren't valid.
   factory FarmPlant.fromMap(String id, Map<String, dynamic> data) {
     final cropId = data['cropId'];

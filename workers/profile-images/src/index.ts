@@ -1,9 +1,9 @@
 import {
   CloudinaryError,
-  deleteGrowthPhoto,
-  deletePlantGrowthPhotos,
+  deleteJourneyPhoto,
+  deletePlantJourneyPhotos,
   deleteProfileImage,
-  uploadGrowthPhoto,
+  uploadJourneyPhoto,
   uploadProfileImage,
 } from "./cloudinary";
 import {
@@ -13,8 +13,8 @@ import {
 } from "./firebase-auth";
 import {
   assertDeclaredRequestSize,
-  isValidGrowthId,
-  parseGrowthPhotoRequest,
+  isValidJourneyId,
+  parseJourneyPhotoRequest,
   parseProfileImageRequest,
   RequestValidationError,
 } from "./image-validation";
@@ -22,9 +22,9 @@ import { errorResponse, jsonResponse } from "./responses";
 import type { Env, WorkerDependencies } from "./types";
 
 const PROFILE_IMAGE_PATH = "/v1/profile-image";
-const GROWTH_PHOTO_PATH = "/v1/plant-growth";
+const JOURNEY_PHOTO_PATH = "/v1/plant-journey";
 
-type Route = "profile" | "growth";
+type Route = "profile" | "journey";
 
 // Treat transport-level empty streams as bodyless requests.
 async function hasBodyBytes(request: Request): Promise<boolean> {
@@ -57,9 +57,9 @@ const defaultDependencies: WorkerDependencies = {
   verifyToken: verifyFirebaseIdToken,
   uploadProfileImage,
   deleteProfileImage,
-  uploadGrowthPhoto,
-  deleteGrowthPhoto,
-  deletePlantGrowthPhotos,
+  uploadJourneyPhoto,
+  deleteJourneyPhoto,
+  deletePlantJourneyPhotos,
 };
 
 // Create the authenticated image API handler.
@@ -86,19 +86,19 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
     });
   }
 
-  // Growth photos: one per growth entry, in a folder per plant.
+  // Journey photos: one per journey entry, in a folder per plant.
   //   POST   multipart: file, plantId, entryId
   //   DELETE ?plantId=…&entryId=…   one photo
   //   DELETE ?plantId=…             every photo of the plant
-  async function handleGrowth(
+  async function handleJourney(
     request: Request,
     url: URL,
     env: Env,
     uid: string,
   ): Promise<Response> {
     if (request.method === "POST") {
-      const { image, plantId, entryId } = await parseGrowthPhotoRequest(request);
-      const uploaded = await dependencies.uploadGrowthPhoto(env, uid, plantId, entryId, image);
+      const { image, plantId, entryId } = await parseJourneyPhotoRequest(request);
+      const uploaded = await dependencies.uploadJourneyPhoto(env, uid, plantId, entryId, image);
       return jsonResponse({ image: uploaded });
     }
 
@@ -112,17 +112,17 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
       keys.some((key) => key !== "plantId" && key !== "entryId")
       || plantIds.length !== 1
       || entryIds.length > 1
-      || !isValidGrowthId(plantIds[0])
-      || (entryIds.length === 1 && !isValidGrowthId(entryIds[0]))
+      || !isValidJourneyId(plantIds[0])
+      || (entryIds.length === 1 && !isValidJourneyId(entryIds[0]))
     ) {
-      return errorResponse(400, "INVALID_ID", "The plant or growth entry ID is invalid.");
+      return errorResponse(400, "INVALID_ID", "The plant or journey entry ID is invalid.");
     }
 
     if (entryIds.length === 0) {
-      const result = await dependencies.deletePlantGrowthPhotos(env, uid, plantIds[0]);
+      const result = await dependencies.deletePlantJourneyPhotos(env, uid, plantIds[0]);
       return jsonResponse({ deletedPhotos: result.deleted });
     }
-    const deleted = await dependencies.deleteGrowthPhoto(env, uid, plantIds[0], entryIds[0]);
+    const deleted = await dependencies.deleteJourneyPhoto(env, uid, plantIds[0], entryIds[0]);
     return jsonResponse({
       deleted: deleted.deleted,
       status: deleted.notFound ? "not_found" : "deleted",
@@ -136,7 +136,7 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
       // Accept requests only for the image endpoints.
       const route: Route | null = url.pathname === PROFILE_IMAGE_PATH
         ? "profile"
-        : url.pathname === GROWTH_PHOTO_PATH ? "growth" : null;
+        : url.pathname === JOURNEY_PHOTO_PATH ? "journey" : null;
       if (route === null) {
         return errorResponse(404, "NOT_FOUND", "The requested endpoint does not exist.");
       }
@@ -155,9 +155,9 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
         const user = await dependencies.verifyToken(token, env);
 
         // Limit image operations separately for each authenticated user,
-        // with a separate budget for growth photos.
+        // with a separate budget for journey photos.
         const rateLimit = await env.PROFILE_IMAGE_RATE_LIMITER.limit({
-          key: route === "profile" ? user.uid : "growth:" + user.uid,
+          key: route === "profile" ? user.uid : "journey:" + user.uid,
         });
         if (!rateLimit.success) {
           return errorResponse(
@@ -170,7 +170,7 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
 
         return route === "profile"
           ? await handleProfile(request, env, user.uid)
-          : await handleGrowth(request, url, env, user.uid);
+          : await handleJourney(request, url, env, user.uid);
       } catch (error) {
         // Return safe error responses without exposing sensitive details.
         if (error instanceof AuthenticationError) {
@@ -184,7 +184,7 @@ export function createWorker(overrides: Partial<WorkerDependencies> = {}) {
           console.warn(
             route === "profile"
               ? "Profile image provider failure:"
-              : "Growth photo provider failure:",
+              : "Journey photo provider failure:",
             error.kind,
             "upstream_status:",
             error.upstreamStatus ?? "none",

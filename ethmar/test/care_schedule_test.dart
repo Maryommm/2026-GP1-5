@@ -898,10 +898,10 @@ void main() {
           completed: date == TaskLog.dateKey(today)
               ? ['p_fertilization']
               : const []));
-      FarmStore.growthForTests = (_) => const Stream.empty();
+      FarmStore.journeyForTests = (_) => const Stream.empty();
       addTearDown(() {
         FarmStore.taskLogForTests = null;
-        FarmStore.growthForTests = null;
+        FarmStore.journeyForTests = null;
         FarmStore.plants.value = const [];
       });
       FarmStore.plants.value = [p];

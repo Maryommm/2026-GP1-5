@@ -8,7 +8,7 @@
 ///   - both schedules off:  Lemon tree
 ///   - two lands:           land 0 (squares 0-3) and land 1 (squares 0-1),
 ///                          so [sampleStats] has 2 lands
-///   - growth entries:      Tomato (2, one with a photo) and Mint (1)
+///   - journey entries:      Tomato (2, one with a photo) and Mint (1)
 library;
 
 import 'package:flutter/material.dart';
@@ -42,20 +42,20 @@ final samplePlants = <FarmPlant>[
     plantedAt: DateTime(2026, 9, 1),
     createdAt: DateTime(2026, 9, 1, 10, 15),
     updatedAt: DateTime(2026, 9, 20, 18, 30),
-    growth: [
-      GrowthEntry(
+    journey: [
+      JourneyEntry(
         id: 'sample-tomato-1',
         date: DateTime(2026, 9, 10, 9, 0),
         notes: 'First leaves!',
       ),
-      GrowthEntry(
+      JourneyEntry(
         id: 'sample-tomato-2',
         date: DateTime(2026, 10, 5, 17, 45),
         notes: 'Flowers are opening.',
         // A made-up Cloudinary picture, in the folder real ones use
-        // (see GrowthPhoto.publicIdFor).
-        photo: const GrowthPhoto(
-          publicId: 'ethmar/plant-growth/sample-uid/sample-tomato/sample-tomato-2',
+        // (see JourneyPhoto.publicIdFor).
+        photo: const JourneyPhoto(
+          publicId: 'ethmar/plant-journey/sample-uid/sample-tomato/sample-tomato-2',
           version: 1,
           format: 'webp',
           width: 1080,
@@ -82,8 +82,8 @@ final samplePlants = <FarmPlant>[
     plantedAt: DateTime(2026, 9, 15),
     createdAt: DateTime(2026, 9, 15, 16, 0),
     updatedAt: DateTime(2026, 9, 15, 16, 0),
-    growth: [
-      GrowthEntry(id: 'sample-mint-1', date: DateTime(2026, 10, 1, 8, 20)),
+    journey: [
+      JourneyEntry(id: 'sample-mint-1', date: DateTime(2026, 10, 1, 8, 20)),
     ],
   ),
   FarmPlant(
