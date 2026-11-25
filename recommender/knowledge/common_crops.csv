@@ -61,7 +61,7 @@ solanum tuberosum,Potato,بطاطس,root,بطاطس,
 ipomoea batatas,Sweet potato,بطاطا حلوة,root,,"AZ1005: Potatoes, Sweet"
 beta vulgaris,Beetroot,شمندر,root,,AZ1005: Beets
 brassica rapa,Turnip,لفت,root,,AZ1005: Turnips
-phaseolus vulgaris,Green bean,فاصوليا,legume,فاصوليا,
+phaseolus vulgaris,Green bean,فاصوليا خضراء,legume,فاصوليا,
 vicia faba,Broad bean,فول,legume,,
 pisum sativum,Pea,بازلاء,legume,,AZ1005: Peas
 cicer arietinum,Chickpea,حمص,legume,,
@@ -96,7 +96,7 @@ brassica napus,Rutabaga,لفت سويدي,root,,AZ1005: Rutabagas
 phaseolus lunatus,Lima bean,فاصوليا ليما,legume,,"AZ1005: Beans, Lima"
 foeniculum vulgare,Fennel,شمر,leafy_herb,,AZ2061: *Fennel
 allium schoenoprasum,Chives,ثوم معمر,leafy_herb,,AZ2061: *Chives
-allium tuberosum,Garlic chives,ثوم صيني,leafy_herb,,AZ2061: *Garlic Chives
+allium tuberosum,Garlic chives,كراث صيني,leafy_herb,,AZ2061: *Garlic Chives
 origanum vulgare,Oregano,أوريجانو,leafy_herb,,AZ2061: *Oregano
 origanum majorana,Marjoram,بردقوش,leafy_herb,,AZ2061: *Marjoram
 cymbopogon citratus,Lemongrass,عشبة الليمون,leafy_herb,,AZ2061: *Lemon Grass
