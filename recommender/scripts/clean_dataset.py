@@ -46,6 +46,8 @@ RECOMMENDABLE_PATH = PROCESSED_DIR / "ethmar_recommendable.csv"
 REFERENCE_PATH = PROCESSED_DIR / "ethmar_reference.csv"
 COMMON_CROPS_PATH = ROOT / "recommender" / "knowledge" / "common_crops.csv"
 CROP_NAMES_PATH = ROOT / "recommender" / "knowledge" / "crop_names.csv"
+# Columns of common_crops.csv naming the crop as written in each reference.
+REFERENCE_COLUMNS = ("mewa_2024", "ua_extension")
 PLANT_REVIEW_PATH = ROOT / "recommender" / "knowledge" / "plant_review.csv"
 
 # --------------------------------------------------------------------------- #
@@ -571,7 +573,8 @@ def add_crop_groups(df: pd.DataFrame) -> pd.DataFrame:
     Every crop gets its English and Arabic display names from
     recommender/knowledge/crop_names.csv. For the crops in recommender/knowledge/common_crops.csv,
     the reviewed group, English name and Arabic name replace these, and
-    is_common is set to 1. The model uses is_common to rank common crops
+    is_common is set to 1 for those listed in a reference (REFERENCE_COLUMNS).
+    The model uses is_common to rank common crops
     (such as tomato) above wild plants that need a similar climate.
     """
     df = df.copy()
@@ -596,7 +599,12 @@ def add_crop_groups(df: pd.DataFrame) -> pd.DataFrame:
         # Permapeople sometimes uses the Latin name as the common name
         # (for example "Cucumis melo"), so the reviewed English name is used.
         df.loc[match, "common_name"] = names.map(lookup["name_en"]).values
-        df.loc[match, "is_common"] = 1
+        # Only crops a reference lists count as popular (see the top of
+        # common_crops.csv); the others keep the reviewed group and names only.
+        listed = pd.Series(False, index=lookup.index)
+        for column in REFERENCE_COLUMNS:
+            listed |= lookup[column].fillna("").astype(str).str.strip() != ""
+        df.loc[match, "is_common"] = names.map(listed).astype(int).values
 
     prosy = df["ecocrop_prosy"].fillna("")
     df["home_garden"] = prosy.str.contains("home garden", case=False).astype(int)
@@ -630,7 +638,7 @@ def _load_plant_review() -> dict:
     """Read the hand-reviewed decisions: canonical_binomial -> decision."""
     if not PLANT_REVIEW_PATH.exists():
         return {}
-    review = pd.read_csv(PLANT_REVIEW_PATH)
+    review = pd.read_csv(PLANT_REVIEW_PATH, comment="#")
     return dict(zip(review["canonical_binomial"].str.strip().str.lower(),
                     review["decision"].str.strip()))
 

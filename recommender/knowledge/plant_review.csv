@@ -1,97 +1,110 @@
-canonical_binomial,decision,note
-ricinus communis,exclude_toxic,seeds contain ricin
-jatropha curcas,exclude_toxic,seeds contain curcin and phorbol esters
-nicotiana tabacum,exclude_toxic,contains nicotine; not a food crop
-calotropis procera,exclude_toxic,latex contains cardiac glycosides
-catharanthus roseus,exclude_toxic,contains vinca alkaloids
-aleurites fordii,exclude_toxic,seeds and oil are poisonous
-papaver somniferum,exclude_toxic,contains opium alkaloids; controlled plant
-erythroxylum coca,exclude_toxic,contains cocaine; controlled plant
-cannabis sativa,exclude_toxic,controlled plant
-apocynum cannabinum,exclude_toxic,contains cardiac glycosides
-ailanthus altissima,exclude_toxic,toxic leaves and bark; invasive tree
-sapium sebiferum,exclude_toxic,toxic sap and berries
-robinia pseudoacacia,exclude_toxic,bark seeds and leaves contain robin (toxic lectin)
-ruta graveolens,exclude_toxic,causes skin burns in sunlight; toxic in large amounts
-senna siamea,exclude_toxic,leaves are toxic to the liver
-senna alata,exclude_toxic,strong laxative; medicinal only
-cassia fistula,exclude_toxic,strong laxative; ornamental tree
-crotalaria juncea,exclude_toxic,contains pyrrolizidine alkaloids
-phytolacca acinosa,exclude_toxic,pokeweed; roots and berries are poisonous
-phytolacca esculenta,exclude_toxic,pokeweed; roots and berries are poisonous
-phytolacca dioica,exclude_toxic,pokeweed tree; poisonous sap and berries
-asclepias incarnata,exclude_toxic,milkweed; contains cardiac glycosides
-asclepias speciosa,exclude_toxic,milkweed; contains cardiac glycosides
-asclepias lanceolata,exclude_toxic,milkweed; contains cardiac glycosides
-aesculus indica,exclude_toxic,horse chestnut; nuts contain aesculin
-solanum nigrum,exclude_toxic,unripe berries and leaves contain solanine
-caltha palustris,exclude_toxic,contains protoanemonin
-areca catechu,exclude_toxic,betel nut; carcinogenic to humans
-duboisia myoporoides,exclude_toxic,contains tropane alkaloids
-castanospermum australe,exclude_toxic,seeds are poisonous without long processing
-macadamia ternifolia,exclude_toxic,Gympie nut; cyanogenic and not edible
-dipteryx odorata,exclude_toxic,tonka bean; high coumarin content
-mentha pulegium,exclude_toxic,pennyroyal; pulegone damages the liver
-aquilegia canadensis,exclude_toxic,seeds and roots are poisonous
-citrullus colocynthis,exclude_toxic,colocynth; cucurbitacins are poisonous
-acorus calamus,exclude_toxic,contains beta-asarone (carcinogenic)
-blighia sapida,exclude_toxic,ackee; unripe fruit contains hypoglycin
-dioscorea bulbifera,exclude_toxic,air potato; wild forms are poisonous
-gliricidia sepium,exclude_toxic,used as a rat poison
-melilotus officinalis,exclude_toxic,sweet clover; coumarin; forage only
-melilotus suaveolens,exclude_toxic,sweet clover; coumarin; forage only
-melilotus albus,exclude_toxic,sweet clover; coumarin; forage only
-mimosa pudica,exclude_toxic,contains mimosine
-leucaena leucocephala,exclude_toxic,contains mimosine; forage tree
-cinchona pubescens,exclude_toxic,quinine bark; medicinal drug only
-cinchona officinalis,exclude_toxic,quinine bark; medicinal drug only
-cinchona calisaya,exclude_toxic,quinine bark; medicinal drug only
-indigofera arrecta,exclude_toxic,dye plant; not a food crop
-schinus molle,exclude_toxic,berries are irritant in large amounts
-aloe ferox,exclude_not_food,bitter aloe; strong laxative
-aloe arborescens,exclude_not_food,ornamental and medicinal aloe
-panax ginseng,exclude_not_food,medicinal root
-cananga odorata,exclude_not_food,perfume tree
-genista tinctoria,exclude_not_food,dye plant
-trichanthera gigantea,exclude_not_food,forage shrub
-cinnamomum camphora,exclude_not_food,camphor tree; camphor is toxic when eaten
-gossypium herbaceum,exclude_not_food,fibre crop
-azadirachta indica,exclude_not_food,medicinal and pesticide tree
-symphyotrichum cordifolium,exclude_not_food,ornamental aster
-lotus corniculatus,exclude_not_food,forage legume
-girardinia diversifolia,exclude_not_food,fibre nettle
-cyperus rotundus,exclude_not_food,weed
-trifolium pratense,exclude_not_food,forage clover
-valeriana officinalis,exclude_not_food,medicinal sedative
-echinacea purpurea,exclude_not_food,medicinal and ornamental
-andrographis paniculata,exclude_not_food,bitter medicinal herb
-rhodiola rosea,exclude_not_food,medicinal root
-serenoa repens,exclude_not_food,medicinal palm
-myrsine africana,exclude_not_food,medicinal shrub
-cnicus benedictus,exclude_not_food,medicinal thistle
-silybum marianum,exclude_not_food,medicinal thistle
-terminalia chebula,exclude_not_food,medicinal and tanning tree
-sinapis alba,keep_food,white mustard
-helianthus annuus,keep_food,sunflower
-anthriscus cerefolium,keep_food,chervil
-ipomoea batatas,keep_food,sweet potato
-mentha arvensis,keep_food,field mint
-mentha spicata,keep_food,mint
-pyrus pyrifolia,keep_food,Asian pear
-cymbopogon citratus,keep_food,lemongrass
-brassica nigra,keep_food,black mustard
-saccharum officinarum,keep_food,sugarcane
-sesamum indicum,keep_food,sesame
-vitis labrusca,keep_food,fox grape
-macadamia tetraphylla,keep_food,macadamia nut
-crambe cordifolia,keep_food,sea kale
-brosimum alicastrum,keep_food,Maya nut
-pandanus julianettii,keep_food,karuka nut
-borassus flabellifer,keep_food,palmyra palm fruit and sap
-argania spinosa,keep_food,argan oil
-vitellaria paradoxa,keep_food,shea butter and fruit
-ceratonia siliqua,keep_food,carob pods
-bixa orellana,keep_food,annatto food colouring
-pithecellobium dulce,keep_food,Manila tamarind fruit
-nasturtium officinale,keep_food,watercress; grows in pots kept wet
-ipomoea aquatica,keep_food,water spinach; grows in pots kept wet
+# Plants hand-reviewed before recommending: exclude_toxic (poisonous or
+# controlled), exclude_not_food (grown for fibre, forage, dye, perfume, or as a
+# medicinal or ornamental plant) or keep_food (a real food crop that the
+# automatic not-food check would wrongly drop). Read by
+# recommender/scripts/clean_dataset.py (only canonical_binomial and decision).
+# Reference: Plants For A Future (PFAF) plant database, https://pfaf.org,
+#   each plant's "Known Hazards" text and "Edibility Rating" (1-5), checked
+#   on 2026-11-25. Column pfaf: whether PFAF agrees with the decision.
+#   A toxic decision agrees when PFAF reports harm from eating the plant (or,
+#   for Asclepias, from its genus); not-food agrees when the edibility rating
+#   is 2 or less; keep_food agrees when it is 3 or more.
+#   Where PFAF differs, the plant stays excluded on purpose: wrongly leaving
+#   out a crop costs little, wrongly recommending a harmful plant does not.
+canonical_binomial,decision,note,pfaf
+ricinus communis,exclude_toxic,seeds contain ricin,"agrees: edibility 1/5, hazard: harmful if eaten"
+jatropha curcas,exclude_toxic,seeds contain curcin and phorbol esters,"agrees: edibility 2/5, hazard: harmful if eaten"
+nicotiana tabacum,exclude_toxic,contains nicotine; not a food crop,"agrees: edibility 2/5, hazard: harmful if eaten"
+calotropis procera,exclude_toxic,latex contains cardiac glycosides,"agrees: edibility 1/5, hazard: harmful if eaten"
+catharanthus roseus,exclude_toxic,contains vinca alkaloids,"agrees: edibility 1/5, hazard: harmful if eaten"
+aleurites fordii,exclude_toxic,seeds and oil are poisonous,"agrees: edibility 1/5, hazard: harmful if eaten"
+papaver somniferum,exclude_toxic,contains opium alkaloids; controlled plant,"agrees: edibility 4/5, hazard: harmful if eaten"
+erythroxylum coca,exclude_toxic,contains cocaine; controlled plant,"agrees: edibility 1/5, hazard: harmful if eaten"
+cannabis sativa,exclude_toxic,controlled plant,"agrees: edibility 4/5, hazard: harmful if eaten"
+apocynum cannabinum,exclude_toxic,contains cardiac glycosides,"agrees: edibility 2/5, hazard: harmful if eaten"
+ailanthus altissima,exclude_toxic,toxic leaves and bark; invasive tree,"agrees: edibility 1/5, hazard: harmful if eaten"
+sapium sebiferum,exclude_toxic,toxic sap and berries,"agrees: edibility 2/5, hazard: harmful if eaten"
+robinia pseudoacacia,exclude_toxic,bark seeds and leaves contain robin (toxic lectin),"agrees: edibility 3/5, hazard: harmful if eaten"
+ruta graveolens,exclude_toxic,causes skin burns in sunlight; toxic in large amounts,"agrees: edibility 1/5, hazard: harmful if eaten"
+senna siamea,exclude_toxic,leaves are toxic to the liver,"agrees: edibility 1/5, hazard: harmful if eaten"
+senna alata,exclude_toxic,strong laxative; medicinal only,"agrees: edibility 2/5, hazard: harmful if eaten"
+cassia fistula,exclude_toxic,strong laxative; ornamental tree,"agrees: edibility 1/5, hazard: harmful if eaten"
+crotalaria juncea,exclude_toxic,contains pyrrolizidine alkaloids,"agrees: edibility 1/5, hazard: harmful if eaten"
+phytolacca acinosa,exclude_toxic,pokeweed; roots and berries are poisonous,"agrees: edibility 2/5, hazard: harmful if eaten"
+phytolacca esculenta,exclude_toxic,pokeweed; roots and berries are poisonous,"agrees: edibility 2/5, hazard: harmful if eaten"
+phytolacca dioica,exclude_toxic,pokeweed tree; poisonous sap and berries,"agrees: edibility 2/5, hazard: harmful if eaten"
+asclepias incarnata,exclude_toxic,milkweed; contains cardiac glycosides,"agrees: edibility 3/5, hazard: toxic in genus"
+asclepias speciosa,exclude_toxic,milkweed; contains cardiac glycosides,"agrees: edibility 4/5, hazard: toxic in genus"
+asclepias lanceolata,exclude_toxic,milkweed; contains cardiac glycosides,"agrees: edibility 2/5, hazard: toxic in genus"
+aesculus indica,exclude_toxic,horse chestnut; nuts contain aesculin,"agrees: edibility 3/5, hazard: harmful if eaten"
+solanum nigrum,exclude_toxic,unripe berries and leaves contain solanine,"agrees: edibility 2/5, hazard: harmful if eaten"
+caltha palustris,exclude_toxic,contains protoanemonin,"agrees: edibility 2/5, hazard: harmful if eaten"
+areca catechu,exclude_toxic,betel nut; carcinogenic to humans,"agrees: edibility 3/5, hazard: harmful if eaten"
+duboisia myoporoides,exclude_toxic,contains tropane alkaloids,"agrees: edibility 0/5, hazard: harmful if eaten"
+castanospermum australe,exclude_toxic,seeds are poisonous without long processing,"agrees: edibility 4/5, hazard: harmful if eaten"
+macadamia ternifolia,exclude_toxic,Gympie nut; cyanogenic and not edible,"differs: edibility 4/5, hazard: none for eating"
+dipteryx odorata,exclude_toxic,tonka bean; high coumarin content,"agrees: edibility 3/5, hazard: harmful if eaten"
+mentha pulegium,exclude_toxic,pennyroyal; pulegone damages the liver,"agrees: edibility 3/5, hazard: harmful if eaten"
+aquilegia canadensis,exclude_toxic,seeds and roots are poisonous,"differs: edibility 2/5, hazard: none for eating"
+citrullus colocynthis,exclude_toxic,colocynth; cucurbitacins are poisonous,"agrees: edibility 3/5, hazard: harmful if eaten"
+acorus calamus,exclude_toxic,contains beta-asarone (carcinogenic),"agrees: edibility 3/5, hazard: harmful if eaten"
+blighia sapida,exclude_toxic,ackee; unripe fruit contains hypoglycin,"agrees: edibility 3/5, hazard: harmful if eaten"
+dioscorea bulbifera,exclude_toxic,air potato; wild forms are poisonous,"agrees: edibility 4/5, hazard: harmful if eaten"
+gliricidia sepium,exclude_toxic,used as a rat poison,"agrees: edibility 2/5, hazard: harmful if eaten"
+melilotus officinalis,exclude_toxic,sweet clover; coumarin; forage only,"agrees: edibility 2/5, hazard: harmful if eaten"
+melilotus suaveolens,exclude_toxic,sweet clover; coumarin; forage only,"agrees: edibility 1/5, hazard: harmful if eaten"
+melilotus albus,exclude_toxic,sweet clover; coumarin; forage only,"agrees: edibility 2/5, hazard: harmful if eaten"
+mimosa pudica,exclude_toxic,contains mimosine,"agrees: edibility 2/5, hazard: harmful if eaten"
+leucaena leucocephala,exclude_toxic,contains mimosine; forage tree,"agrees: edibility 3/5, hazard: harmful if eaten"
+cinchona pubescens,exclude_toxic,quinine bark; medicinal drug only,"differs: edibility 2/5, hazard: none for eating"
+cinchona officinalis,exclude_toxic,quinine bark; medicinal drug only,"agrees: edibility 2/5, hazard: harmful if eaten"
+cinchona calisaya,exclude_toxic,quinine bark; medicinal drug only,"agrees: edibility 2/5, hazard: harmful if eaten"
+indigofera arrecta,exclude_toxic,dye plant; not a food crop,"differs: edibility 2/5, hazard: none for eating"
+schinus molle,exclude_toxic,berries are irritant in large amounts,"agrees: edibility 2/5, hazard: harmful if eaten"
+aloe ferox,exclude_not_food,bitter aloe; strong laxative,"agrees: edibility 2/5, low edibility"
+aloe arborescens,exclude_not_food,ornamental and medicinal aloe,"agrees: edibility 2/5, low edibility"
+panax ginseng,exclude_not_food,medicinal root,"agrees: edibility 2/5, low edibility"
+cananga odorata,exclude_not_food,perfume tree,"agrees: edibility 2/5, low edibility"
+genista tinctoria,exclude_not_food,dye plant,"agrees: edibility 1/5, low edibility"
+trichanthera gigantea,exclude_not_food,forage shrub,"agrees: edibility 2/5, low edibility"
+cinnamomum camphora,exclude_not_food,camphor tree; camphor is toxic when eaten,"agrees: edibility 2/5, low edibility"
+gossypium herbaceum,exclude_not_food,fibre crop,"differs: edibility 3/5, edibility not low"
+azadirachta indica,exclude_not_food,medicinal and pesticide tree,"agrees: edibility 2/5, low edibility"
+symphyotrichum cordifolium,exclude_not_food,ornamental aster,not in PFAF
+lotus corniculatus,exclude_not_food,forage legume,"agrees: edibility 1/5, low edibility"
+girardinia diversifolia,exclude_not_food,fibre nettle,"agrees: edibility 2/5, low edibility"
+cyperus rotundus,exclude_not_food,weed,"differs: edibility 3/5, edibility not low"
+trifolium pratense,exclude_not_food,forage clover,"differs: edibility 3/5, edibility not low"
+valeriana officinalis,exclude_not_food,medicinal sedative,"agrees: edibility 2/5, low edibility"
+echinacea purpurea,exclude_not_food,medicinal and ornamental,"agrees: edibility 1/5, low edibility"
+andrographis paniculata,exclude_not_food,bitter medicinal herb,"agrees: edibility 1/5, low edibility"
+rhodiola rosea,exclude_not_food,medicinal root,"agrees: edibility 2/5, low edibility"
+serenoa repens,exclude_not_food,medicinal palm,"agrees: edibility 2/5, low edibility"
+myrsine africana,exclude_not_food,medicinal shrub,"agrees: edibility 1/5, low edibility"
+cnicus benedictus,exclude_not_food,medicinal thistle,"agrees: edibility 2/5, low edibility"
+silybum marianum,exclude_not_food,medicinal thistle,"differs: edibility 3/5, edibility not low"
+terminalia chebula,exclude_not_food,medicinal and tanning tree,"differs: edibility 3/5, edibility not low"
+sinapis alba,keep_food,white mustard,"agrees: edibility 3/5, edible"
+helianthus annuus,keep_food,sunflower,"agrees: edibility 5/5, edible"
+anthriscus cerefolium,keep_food,chervil,"agrees: edibility 3/5, edible"
+ipomoea batatas,keep_food,sweet potato,"agrees: edibility 5/5, edible"
+mentha arvensis,keep_food,field mint,"agrees: edibility 3/5, edible"
+mentha spicata,keep_food,mint,"agrees: edibility 4/5, edible"
+pyrus pyrifolia,keep_food,Asian pear,"agrees: edibility 4/5, edible"
+cymbopogon citratus,keep_food,lemongrass,"agrees: edibility 3/5, edible"
+brassica nigra,keep_food,black mustard,"agrees: edibility 3/5, edible"
+saccharum officinarum,keep_food,sugarcane,"agrees: edibility 4/5, edible"
+sesamum indicum,keep_food,sesame,"agrees: edibility 3/5, edible"
+vitis labrusca,keep_food,fox grape,"agrees: edibility 3/5, edible"
+macadamia tetraphylla,keep_food,macadamia nut,"agrees: edibility 4/5, edible"
+crambe cordifolia,keep_food,sea kale,"agrees: edibility 3/5, edible"
+brosimum alicastrum,keep_food,Maya nut,"agrees: edibility 3/5, edible"
+pandanus julianettii,keep_food,karuka nut,"agrees: edibility 4/5, edible"
+borassus flabellifer,keep_food,palmyra palm fruit and sap,"agrees: edibility 4/5, edible"
+argania spinosa,keep_food,argan oil,"agrees: edibility 4/5, edible"
+vitellaria paradoxa,keep_food,shea butter and fruit,"agrees: edibility 4/5, edible"
+ceratonia siliqua,keep_food,carob pods,"agrees: edibility 3/5, edible"
+bixa orellana,keep_food,annatto food colouring,"agrees: edibility 3/5, edible"
+pithecellobium dulce,keep_food,Manila tamarind fruit,"agrees: edibility 4/5, edible"
+nasturtium officinale,keep_food,watercress; grows in pots kept wet,"agrees: edibility 5/5, edible"
+ipomoea aquatica,keep_food,water spinach; grows in pots kept wet,"agrees: edibility 4/5, edible"

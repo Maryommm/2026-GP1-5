@@ -1,58 +1,81 @@
-# Reviewed list of crops beginners grow most. Read by recommender/scripts/clean_dataset.py.
-# crop_group overrides the rule-based group; listed crops are flagged is_common
-# so the recommender prefers them over wild plants with a similar climate need.
+# Crops beginners grow most, with the reviewed group and display names. Read by
+# recommender/scripts/clean_dataset.py.
+# crop_group overrides the rule-based group, and name_en / name_ar are the names
+# shown in the app, for every row.
+# A crop is flagged is_common (ranked as popular) only when one of the two
+# references below lists it. Each reference column holds the crop's name as
+# written in that reference, or is empty when the reference does not list it.
+# Crops listed by neither keep their group and names only.
+#
+# mewa_2024: Ministry of Environment, Water and Agriculture (MEWA), Saudi
+#   Arabia, The Statistical Book 2024 (الكتاب الإحصائي 2024م), section 3.1 Plant
+#   wealth: "Cultivated area and crop production 2024" (fruits, cereals,
+#   open-field and protected vegetables), the 2024 self-sufficiency table
+#   (strawberry), and the 2024 wholesale price tables for local produce
+#   (garlic, lettuce, parsley, cauliflower, pumpkin). "القرع" is taken for both
+#   squash rows and "القرنبيط" (cauliflower) for brassica oleracea, the same
+#   species as cabbage.
+#   https://www.mewa.gov.sa/ar/InformationCenter/Researchs/Reports/GeneralReports/TheStatisticalBook.pdf
+# ua_extension: The University of Arizona Cooperative Extension, home-garden
+#   guides for a hot desert climate:
+#   AZ1005 Umeda, K. (2018) Vegetable Planting Calendar for Maricopa County.
+#     https://extension.arizona.edu/sites/default/files/2024-08/az1005-2018.pdf
+#   AZ2061 Green, D. & Bavier, G. (2023) Growing Herbs in Tucson; the herbs
+#     marked * are "herbs for the beginning gardener".
+#     https://extension.arizona.edu/sites/extension.arizona.edu/files/pubs/az2061-2023.pdf
+#
 # crop_group: leafy_herb | fruiting | root | legume | fruit_tree | other
-canonical_binomial,name_en,name_ar,crop_group
-solanum lycopersicum,Tomato,طماطم,fruiting
-capsicum annuum,Pepper,فلفل,fruiting
-solanum melongena,Eggplant,باذنجان,fruiting
-cucumis sativus,Cucumber,خيار,fruiting
-cucumis melo,Melon,شمام,fruiting
-citrullus lanatus,Watermelon,بطيخ,fruiting
-cucurbita pepo,Zucchini,كوسة,fruiting
-cucurbita moschata,Butternut squash,قرع,fruiting
-cucurbita maxima,Pumpkin,يقطين,fruiting
-abelmoschus esculentus,Okra,بامية,fruiting
-fragaria ananassa,Strawberry,فراولة,fruiting
-zea mays,Sweet corn,ذرة,fruiting
-lactuca sativa,Lettuce,خس,leafy_herb
-spinacia oleracea,Spinach,سبانخ,leafy_herb
-mentha spicata,Mint,نعناع,leafy_herb
-ocimum basilicum,Basil,ريحان,leafy_herb
-petroselinum crispum,Parsley,بقدونس,leafy_herb
-coriandrum sativum,Coriander,كزبرة,leafy_herb
-eruca vesicaria,Arugula,جرجير,leafy_herb
-anethum graveolens,Dill,شبت,leafy_herb
-brassica oleracea,Cabbage,ملفوف,leafy_herb
-apium graveolens,Celery,كرفس,leafy_herb
-portulaca oleracea,Purslane,رجلة,leafy_herb
-trigonella foenum-graecum,Fenugreek,حلبة,leafy_herb
-salvia rosmarinus,Rosemary,إكليل الجبل,leafy_herb
-thymus vulgaris,Thyme,زعتر,leafy_herb
-salvia officinalis,Sage,مريمية,leafy_herb
-daucus carota,Carrot,جزر,root
-raphanus sativus,Radish,فجل,root
-allium cepa,Onion,بصل,root
-allium sativum,Garlic,ثوم,root
-solanum tuberosum,Potato,بطاطس,root
-ipomoea batatas,Sweet potato,بطاطا حلوة,root
-beta vulgaris,Beetroot,شمندر,root
-brassica rapa,Turnip,لفت,root
-phaseolus vulgaris,Green bean,فاصوليا,legume
-vicia faba,Broad bean,فول,legume
-pisum sativum,Pea,بازلاء,legume
-cicer arietinum,Chickpea,حمص,legume
-lens culinaris,Lentil,عدس,legume
-vigna unguiculata,Cowpea,لوبيا,legume
-phoenix dactylifera,Date palm,نخيل التمر,fruit_tree
-ficus carica,Fig,تين,fruit_tree
-citrus limon,Lemon,ليمون,fruit_tree
-citrus sinensis,Orange,برتقال,fruit_tree
-punica granatum,Pomegranate,رمان,fruit_tree
-olea europaea,Olive,زيتون,fruit_tree
-mangifera indica,Mango,مانجو,fruit_tree
-psidium guajava,Guava,جوافة,fruit_tree
-vitis vinifera,Grape,عنب,fruit_tree
-morus alba,Mulberry,توت,fruit_tree
-prunus persica,Peach,خوخ,fruit_tree
-carica papaya,Papaya,بابايا,fruit_tree
+canonical_binomial,name_en,name_ar,crop_group,mewa_2024,ua_extension
+solanum lycopersicum,Tomato,طماطم,fruiting,الطماطم,
+capsicum annuum,Pepper,فلفل,fruiting,الفلفل,
+solanum melongena,Eggplant,باذنجان,fruiting,الباذنجان,
+cucumis sativus,Cucumber,خيار,fruiting,خيار,
+cucumis melo,Melon,شمام,fruiting,الشمام,
+citrullus lanatus,Watermelon,بطيخ,fruiting,البطيخ,
+cucurbita pepo,Zucchini,كوسة,fruiting,الكوسا,
+cucurbita moschata,Butternut squash,قرع,fruiting,القرع,
+cucurbita maxima,Pumpkin,يقطين,fruiting,القرع,
+abelmoschus esculentus,Okra,بامية,fruiting,الباميا,
+fragaria ananassa,Strawberry,فراولة,fruiting,الفراولة,
+zea mays,Sweet corn,ذرة,fruiting,ذرة سكرية,
+lactuca sativa,Lettuce,خس,leafy_herb,خس,
+spinacia oleracea,Spinach,سبانخ,leafy_herb,,AZ1005: Spinach
+mentha spicata,Mint,نعناع,leafy_herb,,AZ2061: *Mint
+ocimum basilicum,Basil,ريحان,leafy_herb,,AZ2061: *Basil
+petroselinum crispum,Parsley,بقدونس,leafy_herb,بقدونس,
+coriandrum sativum,Coriander,كزبرة,leafy_herb,,AZ2061: *Cilantro
+eruca vesicaria,Arugula,جرجير,leafy_herb,,
+anethum graveolens,Dill,شبت,leafy_herb,,AZ2061: *Dill
+brassica oleracea,Cabbage,ملفوف,leafy_herb,القرنبيط,
+apium graveolens,Celery,كرفس,leafy_herb,,AZ1005: Celery
+portulaca oleracea,Purslane,رجلة,leafy_herb,,
+trigonella foenum-graecum,Fenugreek,حلبة,leafy_herb,,
+salvia rosmarinus,Rosemary,إكليل الجبل,leafy_herb,,AZ2061: *Rosemary
+thymus vulgaris,Thyme,زعتر,leafy_herb,,AZ2061: *Thyme
+salvia officinalis,Sage,مريمية,leafy_herb,,AZ2061: *Sage
+daucus carota,Carrot,جزر,root,الجزر,
+raphanus sativus,Radish,فجل,root,,AZ1005: Radishes
+allium cepa,Onion,بصل,root,البصل,
+allium sativum,Garlic,ثوم,root,ثوم,
+solanum tuberosum,Potato,بطاطس,root,بطاطس,
+ipomoea batatas,Sweet potato,بطاطا حلوة,root,,"AZ1005: Potatoes, Sweet"
+beta vulgaris,Beetroot,شمندر,root,,AZ1005: Beets
+brassica rapa,Turnip,لفت,root,,AZ1005: Turnips
+phaseolus vulgaris,Green bean,فاصوليا,legume,فاصوليا,
+vicia faba,Broad bean,فول,legume,,
+pisum sativum,Pea,بازلاء,legume,,AZ1005: Peas
+cicer arietinum,Chickpea,حمص,legume,,
+lens culinaris,Lentil,عدس,legume,,
+vigna unguiculata,Cowpea,لوبيا,legume,,AZ1005: Blackeyed Peas
+phoenix dactylifera,Date palm,نخيل التمر,fruit_tree,التمور,
+ficus carica,Fig,تين,fruit_tree,التين,
+citrus limon,Lemon,ليمون,fruit_tree,الليمون,
+citrus sinensis,Orange,برتقال,fruit_tree,البرتقال,
+punica granatum,Pomegranate,رمان,fruit_tree,الرمان,
+olea europaea,Olive,زيتون,fruit_tree,الزيتون,
+mangifera indica,Mango,مانجو,fruit_tree,المانجو,
+psidium guajava,Guava,جوافة,fruit_tree,,
+vitis vinifera,Grape,عنب,fruit_tree,العنب,
+morus alba,Mulberry,توت,fruit_tree,,
+prunus persica,Peach,خوخ,fruit_tree,الخوخ,
+carica papaya,Papaya,بابايا,fruit_tree,,
