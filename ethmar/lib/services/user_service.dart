@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import 'network_errors.dart';
 import 'pending_username_store.dart';
 
 // Store the current username and update the UI when it changes.
@@ -58,10 +59,10 @@ class UserService {
     final trimmedUsername = username.trim();
     if (!_isAllowedUsername(trimmedUsername)) return false;
 
-    final snapshot = await _firestore
+    final snapshot = await withServerTimeout(_firestore
         .collection('usernames')
         .doc(trimmedUsername.toLowerCase())
-        .get(const GetOptions(source: Source.server));
+        .get(const GetOptions(source: Source.server)));
     return !snapshot.exists;
   }
 
@@ -103,7 +104,7 @@ class UserService {
         .doc(normalizedUsername);
 
     // Create the profile and reserve the username together.
-    await _firestore.runTransaction<void>((transaction) async {
+    await _firestore.saveOnServer<void>((transaction) async {
       // Check if the username and profile already exist.
       final reservationSnapshot = await transaction.get(reservation);
       final profileSnapshot = await transaction.get(profile);
@@ -188,10 +189,10 @@ class UserService {
     }
 
     // Ask the server, not the cache, before deleting anything.
-    final profile = await _firestore
+    final profile = await withServerTimeout(_firestore
         .collection('users')
         .doc(user.uid)
-        .get(const GetOptions(source: Source.server));
+        .get(const GetOptions(source: Source.server)));
     if (profile.exists) {
       throw const UserProfileConflictException();
     }
@@ -274,7 +275,7 @@ class UserService {
         .doc(normalizedUsername);
 
     // Update the username safely using a Firestore transaction.
-    await _firestore.runTransaction<void>((transaction) async {
+    await _firestore.saveOnServer<void>((transaction) async {
       // Read the profile before making any changes.
       final profileSnapshot = await transaction.get(profile);
       final data = profileSnapshot.data();

@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'network_errors.dart';
+
 // Define a custom provider for Firebase sessions.
 typedef ProfileImageSessionProvider = Future<ProfileImageSession> Function();
 
@@ -176,14 +178,25 @@ class FirestoreProfileImageMetadataStore implements ProfileImageMetadataStore {
       .collection('media')
       .doc('profile');
 
+  // Both save on the server or not at all: offline, a plain set or delete
+  // would wait forever instead of failing (see saveOnServer).
   @override
   // Save uploaded image details.
-  Future<void> save(String uid, UploadedProfileImage image) =>
-      _document(uid).set(image.toFirestore());
+  Future<void> save(String uid, UploadedProfileImage image) {
+    final document = _document(uid);
+    return _firestore.saveOnServer<void>(
+      (transaction) async => transaction.set(document, image.toFirestore()),
+    );
+  }
 
   @override
   // Delete saved image details.
-  Future<void> delete(String uid) => _document(uid).delete();
+  Future<void> delete(String uid) {
+    final document = _document(uid);
+    return _firestore.saveOnServer<void>(
+      (transaction) async => transaction.delete(document),
+    );
+  }
 
   @override
   // Listen for changes to image details.

@@ -540,6 +540,7 @@ class AppStrings {
     'plantDeleteFailed':
         "Couldn't delete the plant. Check your connection and try again.",
     'farmSaveFailed': "Couldn't save. Check your connection and try again.",
+    'plantAddFailedGeneric': "Couldn't add the plant. Please try again.",
     'plantDeleteFailedGeneric': "Couldn't delete the plant. Please try again.",
     'editSaveFailed':
         "Couldn't save changes. Check your internet connection and try again.",
@@ -1071,6 +1072,7 @@ class AppStrings {
     'plantDeleteFailed':
         'تعذر حذف النبتة. تحقق من اتصالك وحاول مرة أخرى.',
     'farmSaveFailed': 'تعذر الحفظ. تحقق من اتصالك وحاول مرة أخرى.',
+    'plantAddFailedGeneric': 'تعذرت إضافة النبتة. حاول مرة أخرى.',
     'plantDeleteFailedGeneric': 'تعذر حذف النبتة. حاول مرة أخرى.',
     'editSaveFailed':
         'تعذّر حفظ التغييرات. تحقق من اتصالك بالإنترنت وحاول مرة أخرى.',
@@ -1630,6 +1632,7 @@ class S {
       t('deletePlantMessage').replaceAll('{name}', name);
   String get plantDeleteFailed => t('plantDeleteFailed');
   String get farmSaveFailed => t('farmSaveFailed');
+  String get plantAddFailedGeneric => t('plantAddFailedGeneric');
   String get plantDeleteFailedGeneric => t('plantDeleteFailedGeneric');
   String get editSaveFailed => t('editSaveFailed');
   String get editSaveFailedGeneric => t('editSaveFailedGeneric');

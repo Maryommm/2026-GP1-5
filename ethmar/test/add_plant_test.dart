@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseException;
 import 'package:ethmar/models/crop_catalog.dart';
 import 'package:ethmar/models/crop_recommendation.dart' show CropCategory;
 import 'package:ethmar/models/farm_plant.dart';
 import 'package:ethmar/screens/add_plant_screen.dart';
 import 'package:ethmar/screens/plant_details_screen.dart';
 import 'package:ethmar/services/farm_store.dart';
+import 'package:ethmar/services/network_errors.dart';
 import 'package:ethmar/widgets/plant_picture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -284,7 +286,10 @@ void main() {
   ) async {
     final observer = await openAddPlant(
       tester,
-      (_) async => throw Exception('offline'),
+      (_) async => throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'unavailable',
+      ),
     );
     final pushesBeforeSaving = observer.pagePushes;
     await openSummary(tester);
@@ -299,6 +304,41 @@ void main() {
       find.text("Couldn't save. Check your connection and try again."),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a save that times out says to check the connection, and the '
+      'button can be pressed again', (tester) async {
+    var tries = 0;
+    await openAddPlant(tester, (_) async {
+      tries++;
+      throw serverTimedOut();
+    });
+    await openSummary(tester);
+    await tester.tap(find.text('Confirm'));
+    await settle(tester);
+
+    expect(find.byType(AddPlantScreen), findsOneWidget);
+    expect(
+      find.text("Couldn't save. Check your connection and try again."),
+      findsOneWidget,
+    );
+    // Not stuck loading: the button shows its label again.
+    expect(find.text('Add plant'), findsOneWidget);
+    expect(tries, 1);
+    await tester.pump(const Duration(seconds: 10));
+  });
+
+  testWidgets('another failure doesn\'t blame the connection', (tester) async {
+    await openAddPlant(tester, (_) async => throw StateError('refused'));
+    await openSummary(tester);
+    await tester.tap(find.text('Confirm'));
+    await settle(tester);
+
+    expect(find.text("Couldn't add the plant. Please try again."),
+        findsOneWidget);
+    expect(find.text("Couldn't save. Check your connection and try again."),
+        findsNothing);
+    await tester.pump(const Duration(seconds: 10));
   });
 
   testWidgets('a save result without an id does not open details', (

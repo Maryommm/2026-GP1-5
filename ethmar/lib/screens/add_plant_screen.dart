@@ -6,6 +6,7 @@ import '../models/crop_recommendation.dart' show CropCategory;
 import '../models/daily_task.dart' show TaskType;
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
+import '../services/network_errors.dart';
 import '../services/plant_service.dart' show FarmFullException;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -135,14 +136,27 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     if (confirmed != true || !mounted) return;
     setState(() => _saving = true);
     try {
-      final saved = await (widget.savePlant ?? FarmStore.addPlant)(plant);
+      final saved = await (widget.savePlant ?? _saveToFarm)(plant);
       if (mounted) Navigator.of(context).pop(saved);
     } on FarmFullException {
       _saveFailed((s) => s.farmLandFull, EthmarToastType.info);
-    } catch (_) {
-      _saveFailed((s) => s.farmSaveFailed, EthmarToastType.error);
+    } catch (e) {
+      // Offline, the save fails within a few seconds (it never waits for
+      // the connection), and the form keeps what was chosen for a retry.
+      debugPrint('Could not add the plant: $e');
+      _saveFailed(
+        (s) => isNetworkError(e) ? s.farmSaveFailed : s.plantAddFailedGeneric,
+        EthmarToastType.error,
+      );
     }
   }
+
+  /// The id every try on this screen saves the plant under, so a try that
+  /// reached the server though its answer was lost isn't added twice.
+  String? _plantId;
+
+  Future<FarmPlant> _saveToFarm(FarmPlant plant) =>
+      FarmStore.addPlant(plant, id: _plantId ??= FarmStore.newPlantId());
 
   void _saveFailed(String Function(S) message, EthmarToastType type) {
     if (!mounted) return;

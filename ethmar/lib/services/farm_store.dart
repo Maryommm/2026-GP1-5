@@ -101,10 +101,15 @@ class FarmStore {
   static FarmPlant? plantById(String id) =>
       plants.value.where((p) => p.id == id).firstOrNull;
 
-  /// Saves a new plant on the first free square and returns it.
-  /// Throws a [FarmFullException] if there is no free square.
-  static Future<FarmPlant> addPlant(FarmPlant plant) =>
-      _service.addPlant(plant, lands: lands.value);
+  /// A new, unused plant id, for [addPlant].
+  static String newPlantId() => _service.newPlantId();
+
+  /// Saves a new plant on the first free square and returns it. Trying
+  /// again with the same [id] (from [newPlantId]) never adds it twice.
+  /// Throws a [FarmFullException] if there is no free square, and a
+  /// network error (see isNetworkError) when offline.
+  static Future<FarmPlant> addPlant(FarmPlant plant, {String? id}) =>
+      _service.addPlant(plant, lands: lands.value, id: id);
 
   /// Saves the Edit Plant screen's changes: only the fields the user
   /// changed, over the plant as it is saved now (see

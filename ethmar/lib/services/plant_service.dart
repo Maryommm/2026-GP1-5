@@ -74,16 +74,25 @@ class PlantService {
 
   /// Saves growth entry [entryId] of [plantId]. The date is the server's
   /// time of saving; the rules accept no other.
+  ///
+  /// Saved on the server or not at all (see [SaveOnServer.saveOnServer]):
+  /// offline it fails, and the photo already uploaded for it is deleted,
+  /// so an entry can't reach the server later pointing at a deleted photo.
   Future<void> saveGrowthEntry(
     String plantId,
     String entryId, {
     required GrowthPhoto photo,
     String? notes,
-  }) => _growth(_uid, plantId).doc(entryId).set({
-    'date': FieldValue.serverTimestamp(),
-    'notes': notes,
-    'photo': photo.toMap(),
-  });
+  }) {
+    final entry = _growth(_uid, plantId).doc(entryId);
+    return _firestore.saveOnServer<void>((transaction) async {
+      transaction.set(entry, {
+        'date': FieldValue.serverTimestamp(),
+        'notes': notes,
+        'photo': photo.toMap(),
+      });
+    });
+  }
 
   /// Builds the entries, newest first. One bad document is skipped.
   List<GrowthEntry> _readGrowth(
@@ -124,23 +133,47 @@ class PlantService {
     watch: (uid) => _stats(uid).snapshots().map(_readStats),
   );
 
+  /// A new, unused id for a plant. The Add Plant screen keeps one for all
+  /// its tries, so a try that did reach the server isn't added twice.
+  String newPlantId() => _plants(_uid).doc().id;
+
   /// Saves a new plant on the first free square of the user's [lands], and
-  /// returns it with its id, land and square.
+  /// returns it with its id, land and square. [id] is from [newPlantId];
+  /// if a plant with it is already saved (an earlier try that went through
+  /// though its answer was lost), that one is returned and nothing changes.
+  ///
+  /// The squares taken are read from the server, and the plant is saved
+  /// there or not at all (see [SaveOnServer.saveOnServer]): offline, this
+  /// fails within [serverTimeout] instead of waiting for the connection.
   /// Throws a [FarmFullException] if there is no free square.
-  Future<FarmPlant> addPlant(FarmPlant plant, {required int lands}) async {
+  Future<FarmPlant> addPlant(
+    FarmPlant plant, {
+    required int lands,
+    String? id,
+  }) async {
     final plants = _plants(_uid);
-    final current = await plants.get();
+    final doc = plants.doc(id);
+    final current = await withServerTimeout(
+      plants.get(const GetOptions(source: Source.server)),
+    );
+    for (final saved in current.docs) {
+      if (saved.id == doc.id) return FarmPlant.fromMap(saved.id, saved.data());
+    }
     final spot = firstFreeSpot(_readPlants(current.docs), lands);
     if (spot == null) throw const FarmFullException();
 
-    final doc = plants.doc();
-    final saved = plant.placed(
+    final placed = plant.placed(
       id: doc.id,
       land: spot.land,
       square: spot.square,
     );
-    await doc.set(saved.toMap());
-    return saved;
+    return _firestore.saveOnServer<FarmPlant>((transaction) async {
+      final saved = await transaction.get(doc);
+      final data = saved.data();
+      if (data != null) return FarmPlant.fromMap(doc.id, data);
+      transaction.set(doc, placed.toMap());
+      return placed;
+    });
   }
 
   /// Saves the changes made on the Edit Plant screen: in one transaction,
@@ -167,7 +200,7 @@ class PlantService {
     final uid = _uid;
     final plant = _plants(uid).doc(id);
     final stats = _stats(uid);
-    return _firestore.runTransaction<int>((transaction) async {
+    return _firestore.saveOnServer<int>((transaction) async {
       final now = DateTime.now();
       final log = _taskLog(uid, TaskLog.dateKey(now));
       final data = (await transaction.get(plant)).data();
@@ -250,7 +283,9 @@ class PlantService {
   /// True only when the server says [doc] doesn't exist.
   Future<bool> _goneOnServer(DocumentReference<Object?> doc) async {
     try {
-      return !(await doc.get(const GetOptions(source: Source.server))).exists;
+      return !(await withServerTimeout(
+        doc.get(const GetOptions(source: Source.server)),
+      )).exists;
     } catch (_) {
       return false; // Still unknown: report the failure.
     }
@@ -277,7 +312,7 @@ class PlantService {
   ) {
     final plantId = plant.id;
     final stats = _stats(uid);
-    return _firestore.runTransaction<int>((transaction) async {
+    return _firestore.saveOnServer<int>((transaction) async {
       final now = DateTime.now();
       final log = _taskLog(uid, TaskLog.dateKey(now));
       final data = (await transaction.get(plant)).data();
@@ -315,7 +350,7 @@ class PlantService {
   /// the same document stays as it is.
   Future<void> saveLands(int lands) async {
     final stats = _stats(_uid);
-    await _firestore.runTransaction<void>((transaction) async {
+    await _firestore.saveOnServer<void>((transaction) async {
       final snapshot = await transaction.get(stats);
       if (snapshot.exists) {
         transaction.update(stats, {'lands': lands});
@@ -409,7 +444,7 @@ class PlantService {
     final log = _taskLog(uid, TaskLog.dateKey(today));
     final stats = _stats(uid);
     final plant = _plants(uid).doc(plantId);
-    return _firestore.runTransaction<int>((transaction) async {
+    return _firestore.saveOnServer<int>((transaction) async {
       final logSnapshot = await transaction.get(log);
       final statsSnapshot = await transaction.get(stats);
       final plantSnapshot = await transaction.get(plant);
@@ -467,7 +502,7 @@ class PlantService {
     final uid = _uid;
     final log = _taskLog(uid, TaskLog.dateKey(day));
     final plant = _plants(uid).doc(plantId);
-    await _firestore.runTransaction<void>((transaction) async {
+    await _firestore.saveOnServer<void>((transaction) async {
       final saved = _readLog(log.id, (await transaction.get(log)).data());
       final plantSnapshot = await transaction.get(plant);
       // Done on time after all (e.g. on another phone): nothing to change.
@@ -510,7 +545,7 @@ class PlantService {
     final uid = _uid;
     final plants = _readPlants((await _plants(uid).get()).docs);
     final stats = _stats(uid);
-    return _firestore.runTransaction<int>((transaction) async {
+    return _firestore.saveOnServer<int>((transaction) async {
       final before = _readStats(await transaction.get(stats));
       final after = streakAfterMissedDays(before, plants, today);
       if (after.currentStreak == before.currentStreak) return 0;
