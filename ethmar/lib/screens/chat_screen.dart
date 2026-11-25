@@ -5,7 +5,6 @@ import '../services/user_service.dart' show currentUsername;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/backgrounds.dart';
-import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 
 /// "Ask Ethmar"
@@ -108,41 +107,93 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-/// Header of the Ask Thamoor tab (a main tab, so no back button).
+/// Header of the Ask Thamoor tab (a main tab, so no back button): the
+/// name of who you're talking to, centred, as in a chat app.
 class _ChatHeader extends StatelessWidget {
   const _ChatHeader({required this.title});
   final String title;
 
+  /// Height below the status bar, the same in both languages.
+  static const height = 74.0;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsetsDirectional.fromSTEB(
+      key: const Key('chatHeader'),
+      padding: EdgeInsets.fromLTRB(
         16,
-        MediaQuery.paddingOf(context).top + 8,
-        12,
-        12,
+        MediaQuery.paddingOf(context).top,
+        16,
+        0,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.forestTint,
+        color: AppColors.featureCard,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: AppText.title(context).copyWith(fontSize: 22),
-            ),
+      child: SizedBox(
+        height: height,
+        child: Center(
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: AppText.title(context).copyWith(fontSize: 22),
           ),
-          const SizedBox(width: 8),
-          const EthmarCharacter(name: 'ethmar_buddy_waving', height: 96),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// One message. Ethmar's sit at the start.
+/// Thamoor's picture beside his messages: a round crop of the waving
+/// character around his face (hat brim, eyes and smile), like a chat
+/// profile picture.
+class _ThamoorAvatar extends StatelessWidget {
+  const _ThamoorAvatar();
+
+  static const size = 38.0;
+
+  // ethmar_buddy_waving.png is 454 x 614. The circle shows a 290 x 290
+  // square of it centred on (228, 240): the face under the hat.
+  static const _imageWidth = 454.0;
+  static const _imageHeight = 614.0;
+  static const _shown = 290.0;
+  static const _centreX = 228.0;
+  static const _centreY = 240.0;
+
+  @override
+  Widget build(BuildContext context) {
+    const k = size / _shown;
+    return ExcludeSemantics(
+      child: ClipOval(
+        key: const Key('thamoorAvatar'),
+        child: Container(
+          width: size,
+          height: size,
+          color: AppColors.surface,
+          child: Stack(
+            children: [
+              Positioned(
+                left: size / 2 - _centreX * k,
+                top: size / 2 - _centreY * k,
+                width: _imageWidth * k,
+                height: _imageHeight * k,
+                child: Image.asset(
+                  'assets/images/ethmar_buddy_waving.png',
+                  fit: BoxFit.fill, // Same aspect ratio: not stretched.
+                  filterQuality: FilterQuality.medium,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One message. Thamoor's sit at the start, after his picture; the user's
+/// at the end.
 class _Bubble extends StatelessWidget {
   const _Bubble({required this.text, required this.fromUser});
   final String text;
@@ -150,43 +201,56 @@ class _Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bubble = ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width * 0.75,
+      ),
+      child: _face(context),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: fromUser
+          ? Align(alignment: AlignmentDirectional.centerEnd, child: bubble)
+          // The picture sits by the bubble's bottom corner, as in chat
+          // apps; the Row puts it on the start side in both languages.
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const _ThamoorAvatar(),
+                const SizedBox(width: 8),
+                Flexible(child: bubble),
+              ],
+            ),
+    );
+  }
+
+  Widget _face(BuildContext context) {
     const r = Radius.circular(20);
     const tail = Radius.circular(6);
-    return Align(
-      alignment: fromUser
-          ? AlignmentDirectional.centerEnd
-          : AlignmentDirectional.centerStart,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * 0.75,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: fromUser ? AppColors.forest : AppColors.featureCard,
+        borderRadius: BorderRadiusDirectional.only(
+          topStart: r,
+          topEnd: r,
+          bottomStart: fromUser ? r : tail,
+          bottomEnd: fromUser ? tail : r,
         ),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: fromUser ? AppColors.forest : AppColors.forestTint,
-            borderRadius: BorderRadiusDirectional.only(
-              topStart: r,
-              topEnd: r,
-              bottomStart: fromUser ? r : tail,
-              bottomEnd: fromUser ? tail : r,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.forest.withValues(alpha: 0.12),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.forest.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-          child: Text(
-            text,
-            style: AppText.label(
-              context,
-              color: fromUser ? AppColors.onForest : AppColors.textPrimary,
-            ).copyWith(fontSize: 15, height: 1.4),
-          ),
-        ),
+        ],
+      ),
+      child: Text(
+        text,
+        style: AppText.label(
+          context,
+          color: fromUser ? AppColors.onForest : AppColors.textPrimary,
+        ).copyWith(fontSize: 14, height: 1.5),
       ),
     );
   }
@@ -212,54 +276,64 @@ class _InputBar extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+        // The button stays level with the field's last line when the
+        // message grows to several lines.
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
-              child: TextField(
-                controller: controller,
-                minLines: 1,
-                maxLines: 4,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSend?.call(),
-                style: AppText.body(
-                  context,
-                  color: AppColors.textPrimary,
-                ).copyWith(fontSize: 15),
-                decoration: InputDecoration(
-                  hintText: hint,
-                  hintStyle: AppText.body(context),
-                  filled: true,
-                  fillColor: AppColors.surface,
-                  contentPadding: const EdgeInsetsDirectional.fromSTEB(
-                    20,
-                    14,
-                    16,
-                    14,
-                  ),
-                  enabledBorder: const OutlineInputBorder(
-                    borderRadius: pill,
-                    borderSide: BorderSide(color: AppColors.border),
-                  ),
-                  focusedBorder: const OutlineInputBorder(
-                    borderRadius: pill,
-                    borderSide: BorderSide(color: AppColors.forest, width: 1.6),
+              // No placeholder on screen; screen readers still announce
+              // what the field is for.
+              child: Semantics(
+                label: hint,
+                child: TextField(
+                  controller: controller,
+                  minLines: 1,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => onSend?.call(),
+                  style: AppText.body(
+                    context,
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontSize: 15),
+                  decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: EdgeInsetsDirectional.fromSTEB(
+                      20,
+                      14,
+                      16,
+                      14,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: pill,
+                      borderSide: BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: pill,
+                      borderSide: BorderSide(color: AppColors.forest, width: 1.6),
+                    ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             IconButton(
               tooltip: sendLabel,
               onPressed: onSend,
               style: IconButton.styleFrom(
+                // The one-line field's height, so the two line up.
+                fixedSize: const Size(52, 52),
                 minimumSize: const Size(52, 52),
-                backgroundColor: AppColors.coralTint,
+                // The same white and border as the message field.
+                backgroundColor: AppColors.surface,
                 foregroundColor: AppColors.forest,
-                disabledBackgroundColor: AppColors.coralTint.withValues(
-                  alpha: 0.5,
+                disabledBackgroundColor: AppColors.surface,
+                disabledForegroundColor: AppColors.forest.withValues(
+                  alpha: 0.35,
                 ),
-                disabledForegroundColor: AppColors.textHint,
+                side: const BorderSide(color: AppColors.border),
               ),
               // send_rounded points the other way in Arabic.
               icon: const Icon(Icons.send_rounded),

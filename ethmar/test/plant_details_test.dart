@@ -199,7 +199,11 @@ void main() {
     ) async {
       await showTimeline(tester, const []);
 
-      expect(find.textContaining('No pictures yet'), findsOneWidget);
+      expect(
+        find.text("You haven't added any photos of your plant yet. Add a "
+            'photo to document its growth over time.'),
+        findsOneWidget,
+      );
     });
   });
 }

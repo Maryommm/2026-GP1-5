@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../models/crop_catalog.dart';
+import '../theme/app_colors.dart';
+
+/// The box behind a plant's picture on My Plants and Plant Details: white,
+/// with the thin outline of Home's category buttons, and [radius] corners.
+BoxDecoration plantPictureFrame(double radius) => BoxDecoration(
+  color: AppColors.surface,
+  borderRadius: BorderRadius.circular(radius),
+  border: Border.all(color: AppColors.earthBrown.withValues(alpha: 0.35)),
+);
 
 /// A plant's picture, or [defaultPlantImage] if it can't be loaded.
 class PlantPicture extends StatelessWidget {

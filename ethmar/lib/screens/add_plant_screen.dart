@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
 import '../models/crop_catalog.dart';
 import '../models/crop_recommendation.dart' show CropCategory;
+import '../models/daily_task.dart' show TaskType;
 import '../models/farm_plant.dart';
 import '../services/farm_store.dart';
 import '../services/plant_service.dart' show FarmFullException;
@@ -14,6 +15,7 @@ import '../widgets/care_schedule_editor.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/centered_header.dart';
 import '../widgets/entrance.dart';
+import '../widgets/care_icon.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/page_routes.dart';
@@ -741,14 +743,14 @@ class _SummaryDialog extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             _SummaryRow(
-              icon: Icons.water_drop_rounded,
+              type: TaskType.watering,
               label: s.summaryIrrigation,
               value: describe(plant.irrigation),
               set: plant.irrigation != null,
             ),
             const SizedBox(height: 10),
             _SummaryRow(
-              icon: Icons.spa_rounded,
+              type: TaskType.fertilizing,
               label: s.summaryFertilization,
               value: describe(plant.fertilization),
               set: plant.fertilization != null,
@@ -774,12 +776,12 @@ class _SummaryDialog extends StatelessWidget {
 
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({
-    required this.icon,
+    required this.type,
     required this.label,
     required this.value,
     required this.set,
   });
-  final IconData icon;
+  final TaskType type;
   final String label;
   final String value;
 
@@ -798,7 +800,7 @@ class _SummaryRow extends StatelessWidget {
               color: AppColors.featureCard,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 18, color: AppColors.forest),
+            child: CareTypeIcon(type, size: 18, color: AppColors.forest),
           ),
           const SizedBox(width: 12),
           Expanded(

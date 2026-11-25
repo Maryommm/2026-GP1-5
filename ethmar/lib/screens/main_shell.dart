@@ -28,11 +28,27 @@ enum _Tab { home, dailyTasks, farm, chat }
 ///   so they cover the bar; Back returns here with the same tab selected.
 /// - System Back on any other tab goes to Home; on Home it leaves the app
 ///   as before.
-/// - The bar hides while the keyboard is open (e.g. typing to Thamoor).
+/// - The bar hides while an on-screen keyboard is open (e.g. typing to
+///   Thamoor), and only then: not for a field's focus alone, nor for the
+///   thin toolbar shown with a physical keyboard (see [isKeyboardOpen]).
 /// - Tapping a care reminder opens Daily Tasks (as a tab, or above Home),
 ///   closing any screen pushed above this shell.
 /// - The streak is checked for missed days when this opens, whenever the
 ///   app comes back to the front, and at midnight if it stays open.
+/// Whether an on-screen keyboard takes [bottomInset] (the keyboard's
+/// `MediaQuery.viewInsets.bottom`) of the screen, so the bar can hide.
+///
+/// Only a real keyboard counts. With a physical keyboard attached (e.g.
+/// the computer's, on the emulator), Gboard shows just a thin toolbar,
+/// about 24 high, which still reports an inset; hiding the bar for it
+/// would make it vanish with no keyboard to type on. Phone keyboards are
+/// well over 150 high.
+bool isKeyboardOpen(double bottomInset) => bottomInset >= keyboardMinHeight;
+
+/// The smallest bottom inset counted as an open keyboard (see
+/// [isKeyboardOpen]).
+const keyboardMinHeight = 100.0;
+
 class MainShell extends StatefulWidget {
   const MainShell({super.key, this.username = ''});
   final String username;
@@ -193,7 +209,7 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     // Read here, above this shell's Scaffold, so the keyboard height hasn't
     // been removed yet.
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final keyboardOpen = isKeyboardOpen(MediaQuery.viewInsetsOf(context).bottom);
     final style = useClassicLayout ? null : navBarStyle;
     final pills = style == NavBarStyle.pills;
     final showButton = style == NavBarStyle.centerButton && !keyboardOpen;

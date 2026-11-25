@@ -150,8 +150,7 @@ class _LeafScanScreenState extends State<LeafScanScreen>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               EthmarCenteredHeader(
-                title: s.scanTitle,
-                subtitle: s.scanAccent,
+                title: s.homeCardDiagnosis,
               ),
               Expanded(
                 child: Padding(

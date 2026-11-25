@@ -79,7 +79,7 @@ class AppStrings {
     'errLogout': "We couldn't log you out. Please try again",
     'homeFriend': 'friend',
     'logOut': 'Log Out',
-    'cropTitle': 'Crops Picked For You',
+    'cropTitle': 'Crop Recommendations',
     'cropAccent': "Based on your area's climate this month",
     'cropCatHerb': 'Herb',
     'cropCatLegume': 'Legume',
@@ -219,7 +219,6 @@ class AppStrings {
     'streakMissedMessage':
         "Your streak was reset because some tasks from previous days weren't done. Finish all of today's tasks to start a new streak.",
     'homeAddPlant': 'Add Plant',
-    'homeNearMe': 'Near me',
     'navHome': 'Home',
     'navDailyTasks': 'Daily Tasks',
     // Daily Tasks screen
@@ -366,8 +365,6 @@ class AppStrings {
     'weatherRainy': 'Rainy',
     'weatherWindy': 'Windy',
     'weatherCold': 'Cold',
-    'scanTitle': 'Scan a leaf',
-    'scanAccent': 'show me the sick leaf up close',
     'scanTipsTitle': 'For the best results',
     'scanTipLight': 'Good light',
     'scanTipOneLeaf': 'One leaf',
@@ -383,12 +380,11 @@ class AppStrings {
         'The leaf edges are drying out. This usually comes from strong sun or not enough water.',
     'scanAnother': 'Scan another leaf',
     'backToHome': 'Back to Home',
-    'chatTitle': 'Ethmar is always here to help',
-    'chatGreeting': 'Hi {name}, tell me what you need.',
+    'chatTitle': 'Thamoor',
+    'chatGreeting': 'Hi {name}, how can I help you?',
     'chatHint': 'Ask Ethmar…',
     'chatSend': 'Send',
     'close': 'Close',
-    'mapAccent': 'nurseries & farm stores around you',
     'mapFilterAll': 'All',
     'mapFilterNurseries': 'Nurseries',
     'mapFilterStores': 'Farm stores',
@@ -478,12 +474,14 @@ class AppStrings {
     'filter': 'Filter',
     'filterByCategory': 'Filter by category',
     'clearFilter': 'Clear filter',
-    'filterNoMatch': 'No matching plants',
+    'filterNoMatch': 'No Plants in This Category',
     'filterNoMatchBody':
-        'None of your plants are in {category}. Try another category or clear the filter.',
+        'You can select another category to view your plants.',
     'select': 'Select',
     'selectPlants': 'Select plants',
     'selectedCount': '{n} selected',
+    'plantCount': 'Plants: {n}',
+    'selectPlantsHint': 'Tap plants to select them',
     'selectAll': 'Select all',
     'deselectAll': 'Deselect all',
     'deleteSelected': 'Delete ({n})',
@@ -500,7 +498,10 @@ class AppStrings {
     'daysSincePlanting': 'Days since planting',
     'stagesTitle': 'My Plant’s Journey',
     'stagesEmpty':
-        'No pictures yet. Upload one now and then to see how your plant grows.',
+        "You haven't added any photos of your plant yet. Add a photo to document its growth over time.",
+    // Plant Details: the crop card and an unset schedule row.
+    'plantCropLabel': 'Crop',
+    'scheduleNotSet': 'Not set',
     'uploadPicture': 'Upload a picture',
     'notesTitle': 'Add a note?',
     'notesLabel': 'Notes (optional)',
@@ -516,6 +517,20 @@ class AppStrings {
     'scheduleMissed': 'Missed: {when}',
     'today': 'Today',
     'tomorrow': 'Tomorrow',
+    // My Plants cards: when each plant's care is next due.
+    'careNextWatering': 'Next watering: {when}',
+    'careNextFertilizing': 'Next fertilizing: {when}',
+    'careMissedWatering': 'Watering missed: {when}',
+    'careMissedFertilizing': 'Fertilizing missed: {when}',
+    'careNone': 'No care tasks scheduled',
+    'careToday': 'Today',
+    'careTomorrow': 'Tomorrow',
+    'careInTwoDays': 'In 2 days',
+    'careInDaysFew': 'In {n} days',
+    'careInDaysMany': 'In {n} days',
+    'careYesterday': 'Yesterday',
+    'careTwoDaysAgo': '2 days ago',
+    'careDaysAgoFew': '{n} days ago',
     'editPlantTitle': 'Edit plant',
     'plantUpdated': 'Plant updated',
     'deletePlant': 'Delete plant',
@@ -530,7 +545,6 @@ class AppStrings {
         "Couldn't save changes. Check your internet connection and try again.",
     'editSaveFailedGeneric': "Couldn't save changes. Please try again.",
     'leaderboardTitle': 'Leaderboard',
-    'leaderboardAccent': "who's growing the most?",
     'rankFirst': "You're #1! Your farm is the biggest of all.",
     'rankTopTen': "You're #{rank} and in the top 10! Keep growing.",
     'rankKeepGoing':
@@ -617,7 +631,7 @@ class AppStrings {
     'errLogout': 'تعذّر تسجيل الخروج. حاول مرة أخرى',
     'homeFriend': 'يا صديقي',
     'logOut': 'تسجيل الخروج',
-    'cropTitle': "توصياتنا لك",
+    'cropTitle': 'توصيات المحاصيل',
     'cropAccent': 'بناءً على مناخ منطقتك خلال هذا الشهر',
     'cropCatHerb': 'الأعشاب',
     'cropCatLegume': 'البقوليات',
@@ -746,7 +760,6 @@ class AppStrings {
     'streakMissedMessage':
         'انقطعت سلسلتك لأن بعض مهام الأيام السابقة لم تُنجز. أكمل جميع مهام اليوم لتبدأ سلسلة جديدة.',
     'homeAddPlant': 'أضف نبتة',
-    'homeNearMe': 'قريب مني',
     'navHome': 'الرئيسية',
     'navDailyTasks': 'المهام اليومية',
     // Daily Tasks screen
@@ -796,10 +809,10 @@ class AppStrings {
     'monthLong12': 'ديسمبر',
     'navVirtualFarm': 'مزرعتي',
     'homeCardRecommended': 'توصيات المحاصيل',
-    'homeCardNearMe': 'خدمات زراعية',
+    'homeCardNearMe': 'الخدمات الزراعية',
     'homeCardLeaderboard': 'لوحة الصدارة',
     'homeCardAddPlant': 'ازرع نبتة',
-    'homeCardDiagnosis': 'تشخيص نبتة',
+    'homeCardDiagnosis': 'تشخيص النبات',
     'navAskThamoor': 'اسأل ثمور',
     'homeExplore': 'خدمات إثمار',
     'homeDiagnosisHint': 'اكتشف أمراض نبتتك من خلال تصوير أوراقها',
@@ -886,8 +899,6 @@ class AppStrings {
     'weatherRainy': 'ممطر',
     'weatherWindy': 'عاصف',
     'weatherCold': 'بارد',
-    'scanTitle': 'افحص ورقة',
-    'scanAccent': 'قرّب لي الورقة المريضة',
     'scanTipsTitle': 'لأفضل نتيجة',
     'scanTipLight': 'إضاءة جيدة',
     'scanTipOneLeaf': 'ورقة وحدة',
@@ -903,12 +914,11 @@ class AppStrings {
         'أطراف الورقة بدأت تجف. غالبًا السبب شمس قوية أو ري قليل.',
     'scanAnother': 'افحص ورقة ثانية',
     'backToHome': 'رجوع للرئيسية',
-    'chatTitle': 'إثمار دايم موجود يساعدك',
-    'chatGreeting': 'أهلًا {name}، قول لي وش تحتاج.',
+    'chatTitle': 'ثمور',
+    'chatGreeting': 'مرحبًا {name}، كيف أقدر أساعدك؟',
     'chatHint': 'اسأل إثمار…',
     'chatSend': 'إرسال',
     'close': 'إغلاق',
-    'mapAccent': 'مشاتل ومتاجر زراعية حولك',
     'mapFilterAll': 'الكل',
     'mapFilterNurseries': 'مشاتل',
     'mapFilterStores': 'متاجر زراعية',
@@ -997,12 +1007,14 @@ class AppStrings {
     'filter': 'تصفية',
     'filterByCategory': 'تصفية حسب الفئة',
     'clearFilter': 'إزالة التصفية',
-    'filterNoMatch': 'ما فيه نباتات مطابقة',
+    'filterNoMatch': 'لا توجد نباتات من هذه الفئة',
     'filterNoMatchBody':
-        'ما عندك نباتات من فئة {category}. جرّب فئة ثانية أو أزل التصفية.',
+        'يمكنك اختيار فئة أخرى لعرضها',
     'select': 'تحديد',
     'selectPlants': 'تحديد النباتات',
     'selectedCount': 'المحدد: {n}',
+    'plantCount': 'عدد النباتات: {n}',
+    'selectPlantsHint': 'اضغط على النباتات لتحديدها',
     'selectAll': 'تحديد الكل',
     'deselectAll': 'إلغاء تحديد الكل',
     'deleteSelected': 'حذف ({n})',
@@ -1018,7 +1030,10 @@ class AppStrings {
     'plantDayOne': 'يوم واحد',
     'daysSincePlanting': 'أيام منذ الزراعة',
     'stagesTitle': ' رحلة نبتتي',
-    'stagesEmpty': 'ما فيه صور للحين. ارفع صورة كل فترة عشان تشوف نبتتك وهي تكبر.',
+    'stagesEmpty':
+        'لم تُضف صورًا لنبتتك بعد. أضف صورة لتوثيق نموها مع مرور الوقت.',
+    'plantCropLabel': 'المحصول',
+    'scheduleNotSet': 'لم يُحدَّد',
     'uploadPicture': 'ارفع صورة',
     'notesTitle': 'تضيف ملاحظة؟',
     'notesLabel': 'ملاحظات (اختياري)',
@@ -1033,6 +1048,20 @@ class AppStrings {
     'scheduleMissed': 'فائتة: {when}',
     'today': 'اليوم',
     'tomorrow': 'بكرة',
+    'careNextWatering': 'الري القادم: {when}',
+    'careNextFertilizing': 'التسميد القادم: {when}',
+    'careMissedWatering': 'ري فائت: {when}',
+    'careMissedFertilizing': 'تسميد فائت: {when}',
+    'careNone': 'لا توجد مواعيد عناية محددة',
+    'careToday': 'اليوم',
+    'careTomorrow': 'غدًا',
+    'careInTwoDays': 'بعد يومين',
+    // 3 to 10, then 11 and more (Arabic counted nouns).
+    'careInDaysFew': 'بعد {n} أيام',
+    'careInDaysMany': 'بعد {n} يومًا',
+    'careYesterday': 'أمس',
+    'careTwoDaysAgo': 'قبل يومين',
+    'careDaysAgoFew': 'قبل {n} أيام',
     'editPlantTitle': 'تعديل النبتة',
     'plantUpdated': 'تم تحديث النبتة',
     'deletePlant': 'حذف النبتة',
@@ -1046,8 +1075,7 @@ class AppStrings {
     'editSaveFailed':
         'تعذّر حفظ التغييرات. تحقق من اتصالك بالإنترنت وحاول مرة أخرى.',
     'editSaveFailedGeneric': 'تعذّر حفظ التغييرات. حاول مرة أخرى.',
-    'leaderboardTitle': 'المتصدرون',
-    'leaderboardAccent': 'مين يزرع أكثر؟',
+    'leaderboardTitle': 'لوحة الصدارة',
     'rankFirst': 'أنت الأول! مزرعتك هي الأكبر.',
     'rankTopTen': 'ترتيبك #{rank} وأنت من أفضل ١٠! كمّل زراعة.',
     'rankKeepGoing': 'ترتيبك #{rank} وعندك {plants}. كمّل عشان توصل لأفضل ١٠!',
@@ -1283,7 +1311,6 @@ class S {
         _ => t('streakActiveTitleMany').replaceAll('{n}', '$n'),
       };
   String get homeAddPlant => t('homeAddPlant');
-  String get homeNearMe => t('homeNearMe');
   String get navHome => t('navHome');
   String get navDailyTasks => t('navDailyTasks');
   String get dailyProgress => t('dailyProgress');
@@ -1408,8 +1435,6 @@ class S {
   String get weatherRainy => t('weatherRainy');
   String get weatherWindy => t('weatherWindy');
   String get weatherCold => t('weatherCold');
-  String get scanTitle => t('scanTitle');
-  String get scanAccent => t('scanAccent');
   String get scanTipsTitle => t('scanTipsTitle');
   String get scanTipLight => t('scanTipLight');
   String get scanTipOneLeaf => t('scanTipOneLeaf');
@@ -1432,7 +1457,6 @@ class S {
   String get chatHint => t('chatHint');
   String get chatSend => t('chatSend');
   String get close => t('close');
-  String get mapAccent => t('mapAccent');
   String get mapFilterAll => t('mapFilterAll');
   String get mapFilterNurseries => t('mapFilterNurseries');
   String get mapFilterStores => t('mapFilterStores');
@@ -1527,11 +1551,12 @@ class S {
   String get filterByCategory => t('filterByCategory');
   String get clearFilter => t('clearFilter');
   String get filterNoMatch => t('filterNoMatch');
-  String filterNoMatchBody(String category) =>
-      t('filterNoMatchBody').replaceAll('{category}', category);
+  String get filterNoMatchBody => t('filterNoMatchBody');
   String get select => t('select');
   String get selectPlants => t('selectPlants');
   String selectedCount(int n) => t('selectedCount').replaceAll('{n}', '$n');
+  String plantCount(int n) => t('plantCount').replaceAll('{n}', '$n');
+  String get selectPlantsHint => t('selectPlantsHint');
   String get selectAll => t('selectAll');
   String get deselectAll => t('deselectAll');
   String deleteSelected(int n) => t('deleteSelected').replaceAll('{n}', '$n');
@@ -1550,6 +1575,8 @@ class S {
   String get daysSincePlanting => t('daysSincePlanting');
   String get stagesTitle => t('stagesTitle');
   String get stagesEmpty => t('stagesEmpty');
+  String get plantCropLabel => t('plantCropLabel');
+  String get scheduleNotSet => t('scheduleNotSet');
   String get uploadPicture => t('uploadPicture');
   String get notesTitle => t('notesTitle');
   String get notesLabel => t('notesLabel');
@@ -1569,6 +1596,32 @@ class S {
       t('scheduleMissed').replaceAll('{when}', when);
   String get today => t('today');
   String get tomorrow => t('tomorrow');
+  String careNextWatering(String when) =>
+      t('careNextWatering').replaceAll('{when}', when);
+  String careNextFertilizing(String when) =>
+      t('careNextFertilizing').replaceAll('{when}', when);
+  String careMissedWatering(String when) =>
+      t('careMissedWatering').replaceAll('{when}', when);
+  String careMissedFertilizing(String when) =>
+      t('careMissedFertilizing').replaceAll('{when}', when);
+  String get careNone => t('careNone');
+
+  /// "Today", "Tomorrow", "In 2 days", "In 5 days" for [days] ahead.
+  String careInDays(int days) => switch (days) {
+    <= 0 => t('careToday'),
+    1 => t('careTomorrow'),
+    2 => t('careInTwoDays'),
+    <= 10 => t('careInDaysFew').replaceAll('{n}', '$days'),
+    _ => t('careInDaysMany').replaceAll('{n}', '$days'),
+  };
+
+  /// "Yesterday", "2 days ago", "3 days ago" for [days] back (a missed
+  /// task stays for three days).
+  String careDaysAgo(int days) => switch (days) {
+    <= 1 => t('careYesterday'),
+    2 => t('careTwoDaysAgo'),
+    _ => t('careDaysAgoFew').replaceAll('{n}', '$days'),
+  };
   String get editPlantTitle => t('editPlantTitle');
   String get plantUpdated => t('plantUpdated');
   String get deletePlant => t('deletePlant');
@@ -1581,7 +1634,6 @@ class S {
   String get editSaveFailed => t('editSaveFailed');
   String get editSaveFailedGeneric => t('editSaveFailedGeneric');
   String get leaderboardTitle => t('leaderboardTitle');
-  String get leaderboardAccent => t('leaderboardAccent');
 
   /// The line under the header, depending on where the user ranks.
   String rankMessage(int rank, int plants) => rank == 1

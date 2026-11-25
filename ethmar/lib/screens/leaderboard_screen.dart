@@ -37,7 +37,6 @@ class LeaderboardScreen extends StatelessWidget {
           children: [
             EthmarCenteredHeader(
               title: s.leaderboardTitle,
-              subtitle: s.leaderboardAccent,
               trailing: const EthmarCharacter(
                 name: 'ethmar_buddy_jumping',
                 height: 64,

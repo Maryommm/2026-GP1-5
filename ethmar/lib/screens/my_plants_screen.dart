@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/crop_recommendation.dart' show CropCategory;
 import '../models/farm_plant.dart';
+import '../models/task_log.dart';
 import '../services/farm_store.dart';
 import '../services/network_errors.dart';
+import '../services/recent_task_logs.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
@@ -15,6 +19,7 @@ import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/page_routes.dart';
+import '../widgets/plant_care_due.dart';
 import '../widgets/plant_picture.dart';
 import 'add_plant_screen.dart';
 import 'plant_details_screen.dart';
@@ -46,6 +51,38 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
   /// [_ticked]), so a plant hidden by the filter or deleted elsewhere is
   /// never deleted by mistake.
   final _selected = <String>{};
+
+  /// Today's and the missed days' task logs, as Daily Tasks and Plant
+  /// Details use them, so each card's next care dates match theirs.
+  final _logs = RecentTaskLogs();
+  late final AppLifecycleListener _lifecycle;
+  Timer? _clock;
+
+  @override
+  void initState() {
+    super.initState();
+    _logs.addListener(_refresh);
+    _lifecycle = AppLifecycleListener(onResume: _onClock);
+    // "Today" and "Tomorrow" move on at midnight while the page is open.
+    _clock = Timer.periodic(const Duration(minutes: 1), (_) => _onClock());
+  }
+
+  @override
+  void dispose() {
+    _logs.dispose();
+    _lifecycle.dispose();
+    _clock?.cancel();
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  void _onClock() {
+    _logs.checkDay();
+    _refresh();
+  }
 
   void _setFilter(CropCategory? category) => setState(() => _filter = category);
 
@@ -140,7 +177,9 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
                   // Just the title and Back; the actions are in the
                   // toolbar below.
                   EthmarCenteredHeader(title: s.myPlants),
-                  // Nothing to filter or select on an empty farm.
+                  // Nothing to filter or select on an empty farm. A little
+                  // below the header, where the first card used to start.
+                  if (plants.isNotEmpty) const SizedBox(height: 16),
                   if (plants.isNotEmpty)
                     selecting
                         ? _SelectionBar(
@@ -180,18 +219,51 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
                         ),
                       ),
                     ),
+                  // How many plants the list shows (all of them, or the
+                  // filter's). In select mode only the ticked count shows,
+                  // and this line goes, with its space.
+                  // In select mode, what to do instead.
+                  if (selecting)
+                    Padding(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        20,
+                        12,
+                        20,
+                        0,
+                      ),
+                      child: Text(
+                        s.selectPlantsHint,
+                        key: const Key('selectPlantsHint'),
+                        style: AppText.small(context)
+                            .copyWith(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  if (plants.isNotEmpty && !selecting)
+                    Padding(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        20,
+                        12,
+                        20,
+                        0,
+                      ),
+                      child: Text(
+                        s.plantCount(newestFirst.length),
+                        key: const Key('plantCount'),
+                        style: AppText.small(
+                          context,
+                          color: AppColors.textPrimary,
+                        ).copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   Expanded(
                     child: plants.isEmpty
                         ? const _NoPlants()
                         : newestFirst.isEmpty
-                        ? _NoMatch(
-                            category: filter!,
-                            onClear: () => _setFilter(null),
-                          )
+                        ? const _NoMatch()
                         : ListView.separated(
                             padding: EdgeInsets.fromLTRB(
                               16,
-                              16,
+                              10,
                               16,
                               // The delete bar below takes the safe area.
                               16 +
@@ -210,6 +282,8 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
                                 ),
                                 child: _PlantCard(
                                   plant: plant,
+                                  logs: _logs.logs,
+                                  now: DateTime.now(),
                                   selected: selecting
                                       ? _selected.contains(plant.id)
                                       : null,
@@ -271,8 +345,12 @@ class _Toolbar extends StatelessWidget {
     final s = S.of(context);
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      // On one line at the end side; on a very narrow screen with large
+      // text the second button moves to a line of its own.
+      child: Wrap(
+        alignment: WrapAlignment.end,
+        spacing: 8,
+        runSpacing: 8,
         children: [
           _ToolbarButton(
             key: const Key('plantsFilter'),
@@ -280,7 +358,6 @@ class _Toolbar extends StatelessWidget {
             label: s.filter,
             onPressed: onFilter,
           ),
-          const SizedBox(width: 8),
           _ToolbarButton(
             key: const Key('selectPlants'),
             icon: Icons.check_box_outlined,
@@ -315,41 +392,52 @@ class _SelectionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final toggleAll = onToggleAll;
+    // On the page's own background, like the toolbar it replaces.
     return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 0),
-      child: Container(
-        padding: const EdgeInsetsDirectional.fromSTEB(14, 6, 6, 6),
-        decoration: BoxDecoration(
-          color: AppColors.forestTint,
-          borderRadius: BorderRadius.circular(26),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                s.selectedCount(count),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppText.label(context, color: AppColors.forest)
-                    .copyWith(fontWeight: FontWeight.w700),
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 16, 0),
+      // The count takes the start side, the buttons the rest; when the
+      // buttons don't fit on one line (narrow phones, large text) Cancel
+      // Selection moves under the other one instead of running off the
+      // screen.
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              s.selectedCount(count),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.label(context, color: AppColors.forest)
+                  .copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (toggleAll != null)
+                    _ToolbarButton(
+                      key: const Key('toggleAllPlants'),
+                      label: allTicked ? s.deselectAll : s.selectAll,
+                      onPressed: toggleAll,
+                    ),
+                  // Leaves select mode; nothing is deleted.
+                  _ToolbarButton(
+                    key: const Key('cancelSelecting'),
+                    icon: Icons.close_rounded,
+                    label: s.cancel,
+                    onPressed: onCancel,
+                  ),
+                ],
               ),
             ),
-            if (toggleAll != null) ...[
-              _ToolbarButton(
-                key: const Key('toggleAllPlants'),
-                label: allTicked ? s.deselectAll : s.selectAll,
-                onPressed: toggleAll,
-              ),
-              const SizedBox(width: 6),
-            ],
-            _ToolbarButton(
-              key: const Key('cancelSelecting'),
-              icon: Icons.close_rounded,
-              label: s.cancel,
-              onPressed: onCancel,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -389,11 +477,12 @@ class _ToolbarButton extends StatelessWidget {
             // An easy tap target, still compact.
             constraints: const BoxConstraints(minHeight: 44),
             child: Padding(
+              // A little room above and below for a label that wraps.
               padding: EdgeInsetsDirectional.fromSTEB(
                 glyph == null ? 14 : 12,
-                0,
+                4,
                 14,
-                0,
+                4,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -402,11 +491,17 @@ class _ToolbarButton extends StatelessWidget {
                     Icon(glyph, size: 18, color: AppColors.forest),
                     const SizedBox(width: 6),
                   ],
-                  Text(
-                    label,
-                    maxLines: 1,
-                    style: AppText.label(context, color: AppColors.forest)
-                        .copyWith(fontSize: 13.5, fontWeight: FontWeight.w600),
+                  // Wraps onto a second line, rather than overflowing,
+                  // when there isn't room (narrow phones, large text).
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: AppText.label(context, color: AppColors.forest)
+                          .copyWith(fontSize: 13.5, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ],
               ),
@@ -485,37 +580,55 @@ class _DeletePlantsDialog extends StatelessWidget {
 /// In select mode ([selected] isn't null) a box at the start shows whether
 /// it's ticked, and tapping the card ticks or unticks it.
 class _PlantCard extends StatelessWidget {
-  const _PlantCard({required this.plant, required this.onTap, this.selected});
+  const _PlantCard({
+    required this.plant,
+    required this.onTap,
+    required this.logs,
+    required this.now,
+    this.selected,
+  });
   final FarmPlant plant;
   final VoidCallback onTap;
   final bool? selected;
 
+  /// Recent task logs and the time, for the next care dates.
+  final Map<String, TaskLog> logs;
+  final DateTime now;
+
   @override
   Widget build(BuildContext context) {
-    final s = S.of(context);
     final crop = plant.crop;
-    final cat = plant.category;
-    final irrigation = plant.irrigation;
     final ticked = selected;
     return Semantics(
       checked: ticked,
+      // Select mode: a card waiting to be ticked has a slightly stronger
+      // outline; a ticked one (to be deleted) a soft red, with a red
+      // border and a little lift. Outside select mode, as always.
       child: Material(
-        color: ticked == true ? AppColors.forestTint : AppColors.surface,
+        color: ticked == true ? AppColors.errorTint : AppColors.surface,
+        elevation: ticked == true ? 3 : 0,
+        shadowColor: AppColors.error.withValues(alpha: 0.35),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: ticked == true
-              ? const BorderSide(color: AppColors.forest, width: 1.6)
-              : const BorderSide(color: AppColors.border),
+          side: switch (ticked) {
+            true => const BorderSide(color: AppColors.error, width: 1.6),
+            false => BorderSide(
+              color: AppColors.earthBrown.withValues(alpha: 0.45),
+              width: 1.2,
+            ),
+            null => const BorderSide(color: AppColors.border),
+          },
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
+          // The whole card ticks or unticks it in select mode.
           onTap: onTap,
           child: Padding(
             padding: EdgeInsetsDirectional.fromSTEB(
               ticked == null ? 12 : 4,
-              12,
+              10,
               8,
-              12,
+              10,
             ),
             child: Row(
               children: [
@@ -524,7 +637,7 @@ class _PlantCard extends StatelessWidget {
                     key: Key('selectPlant_${plant.id}'),
                     value: ticked,
                     onChanged: (_) => onTap(),
-                    activeColor: AppColors.forest,
+                    activeColor: AppColors.error,
                     side: const BorderSide(
                       color: AppColors.textSecondary,
                       width: 1.6,
@@ -534,51 +647,32 @@ class _PlantCard extends StatelessWidget {
                     ),
                   ),
                 Container(
-                  width: 76,
-                  height: 76,
+                  key: Key('plantPictureFrame_${plant.id}'),
+                  // The card grows with its text; the picture sets its
+                  // smallest height.
+                  width: 68,
+                  height: 68,
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: cat.tint,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  decoration: plantPictureFrame(16),
                   child: PlantPicture(crop.image, cacheWidth: 220),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Long names wrap onto a second line.
                       Text(
                         plant.name,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: AppText.label(
                           context,
                         ).copyWith(fontSize: 17, fontWeight: FontWeight.w700),
                       ),
-                      Text(
-                        '${crop.name.of(context)} · ${cat.label.of(context)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.small(context),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          _InfoChip(
-                            icon: Icons.calendar_today_rounded,
-                            text: s.plantAge(plant.daysSincePlanting),
-                          ),
-                          _InfoChip(
-                            icon: Icons.water_drop_rounded,
-                            text: irrigation == null
-                                ? s.summaryNotSet
-                                : irrigation.repeat.label(s),
-                          ),
-                        ],
-                      ),
+                      const SizedBox(height: 6),
+                      PlantCareDue(plant: plant, logs: logs, now: now),
                     ],
                   ),
                 ),
@@ -592,37 +686,6 @@ class _PlantCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.icon, required this.text});
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsetsDirectional.fromSTEB(8, 4, 10, 4),
-      decoration: BoxDecoration(
-        color: AppColors.forestTint,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: AppColors.forest),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: AppText.small(
-              context,
-              color: AppColors.textPrimary,
-            ).copyWith(fontSize: 12, fontWeight: FontWeight.w500),
-          ),
-        ],
       ),
     );
   }
@@ -655,6 +718,8 @@ class _FilterSheet extends StatelessWidget {
         selected: isSelected,
         selectedTileColor: AppColors.forestTint,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        contentPadding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 0),
+        horizontalTitleGap: 12,
         leading: SizedBox(
           width: 32,
           height: 32,
@@ -668,14 +733,34 @@ class _FilterSheet extends StatelessWidget {
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
+        // The counts line up in one column: the tick always has its
+        // place, empty when not selected. A zero is lighter.
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('$count', style: AppText.small(context)),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              const Icon(Icons.check_rounded, color: AppColors.forest),
-            ],
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 22),
+              child: Text(
+                '$count',
+                key: Key('filterCount_${category?.name ?? 'all'}'),
+                textAlign: TextAlign.end,
+                style: AppText.small(
+                  context,
+                  color: count == 0
+                      ? AppColors.textHint
+                      : AppColors.textSecondary,
+                ).copyWith(
+                  fontWeight: count == 0 ? FontWeight.w400 : FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 24,
+              child: isSelected
+                  ? const Icon(Icons.check_rounded, color: AppColors.forest)
+                  : null,
+            ),
           ],
         ),
         onTap: () => pick(category),
@@ -773,20 +858,24 @@ class _ActiveFilter extends StatelessWidget {
 
 /// No plant in the chosen category: says so, with a way back to all plants.
 class _NoMatch extends StatelessWidget {
-  const _NoMatch({required this.category, required this.onClear});
-  final CropCategory category;
-  final VoidCallback onClear;
+  const _NoMatch();
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return Center(
+    // In the space under the toolbar, the filter chip (whose X clears the
+    // filter) and the count: centred across, and a little above the
+    // middle, which looks centred (the exact middle looks low). Scrolls if
+    // the text is very large.
+    return Align(
+      key: const Key('filterNoMatch'),
+      alignment: const Alignment(0, -0.3),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const EthmarCharacter(name: 'ethmar_buddy_seedling', height: 140),
+            const EthmarCharacter(name: 'ethmar_buddy_surprised', height: 140),
             const SizedBox(height: 20),
             Text(
               s.filterNoMatch,
@@ -795,12 +884,10 @@ class _NoMatch extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              s.filterNoMatchBody(categoryLabel(category, context)),
+              s.filterNoMatchBody,
               textAlign: TextAlign.center,
               style: AppText.body(context),
             ),
-            const SizedBox(height: 24),
-            EthmarButton(label: s.clearFilter, onPressed: onClear),
           ],
         ),
       ),

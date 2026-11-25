@@ -322,7 +322,7 @@ class _MapHeader extends StatelessWidget {
     // over the map moving underneath.
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.forestTint,
+        color: AppColors.featureCard,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
@@ -333,8 +333,7 @@ class _MapHeader extends StatelessWidget {
         ],
       ),
       child: EthmarCenteredHeader(
-        title: s.homeNearMe,
-        subtitle: s.mapAccent,
+        title: s.homeCardNearMe,
         trailing: const EthmarCharacter(
           name: 'ethmar_buddy_crate',
           height: 76,

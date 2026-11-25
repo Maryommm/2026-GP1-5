@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
+import '../models/daily_task.dart' show TaskType;
 import '../models/farm_plant.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'care_icon.dart';
 
 /// A schedule while it's being edited; [on] is false until the user turns
 /// the reminder on.
@@ -57,7 +59,7 @@ class CareScheduleCard extends StatelessWidget {
         children: [
           _ScheduleSection(
             title: s.schedIrrigation,
-            icon: Icons.water_drop_rounded,
+            type: TaskType.watering,
             draft: irrigation,
             onChanged: onChanged,
           ),
@@ -67,7 +69,7 @@ class CareScheduleCard extends StatelessWidget {
           ),
           _ScheduleSection(
             title: s.schedFertilization,
-            icon: Icons.spa_rounded,
+            type: TaskType.fertilizing,
             draft: fertilization,
             onChanged: onChanged,
           ),
@@ -82,12 +84,12 @@ class CareScheduleCard extends StatelessWidget {
 class _ScheduleSection extends StatelessWidget {
   const _ScheduleSection({
     required this.title,
-    required this.icon,
+    required this.type,
     required this.draft,
     required this.onChanged,
   });
   final String title;
-  final IconData icon;
+  final TaskType type;
   final ScheduleDraft draft;
   final VoidCallback onChanged;
 
@@ -128,7 +130,7 @@ class _ScheduleSection extends StatelessWidget {
                   color: AppColors.featureCard,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 18, color: AppColors.forest),
+                child: CareTypeIcon(type, size: 18, color: AppColors.forest),
               ),
               const SizedBox(width: 12),
               Expanded(

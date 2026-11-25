@@ -82,7 +82,7 @@ void main() {
     await choose(tester, none);
 
     expectShown(const []);
-    expect(find.text('No matching plants'), findsOneWidget);
+    expect(find.text('No Plants in This Category'), findsOneWidget);
   });
 
   testWidgets('clearing the filter shows all my plants again', (tester) async {
@@ -94,9 +94,9 @@ void main() {
     await settle(tester);
     expectShown(namesIn(null));
 
-    // From the no-match message.
+    // From the chip's X when nothing matches (the message has no button).
     await choose(tester, none);
-    await tester.tap(find.text('Clear filter'));
+    await tester.tap(find.byKey(const Key('clearPlantsFilter')));
     await settle(tester);
     expectShown(namesIn(null));
 

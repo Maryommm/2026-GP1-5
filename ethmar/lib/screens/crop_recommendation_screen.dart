@@ -1068,7 +1068,11 @@ class _CompactHeader extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               s.cropAccent,
-                              style: AppText.accent(context, size: 17),
+                              style: AppText.accent(
+                                context,
+                                size: 17,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ],
                         ),

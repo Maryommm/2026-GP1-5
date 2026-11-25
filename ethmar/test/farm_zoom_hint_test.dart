@@ -239,7 +239,7 @@ void main() {
       expect(en.farmTitle, 'My Farm');
       expect(ar.farmTitle, 'مزرعتي');
       expect(en.homeCardDiagnosis, 'Plant Diagnosis');
-      expect(ar.homeCardDiagnosis, 'تشخيص نبتة');
+      expect(ar.homeCardDiagnosis, 'تشخيص النبات');
       expect(en.farmPinchHint, 'Pinch to Zoom');
       expect(ar.farmPinchHint, 'كبّر وصغّر بإصبعين');
     });

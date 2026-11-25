@@ -16,7 +16,7 @@ import '../widgets/backgrounds.dart';
 import '../widgets/centered_header.dart';
 import '../widgets/character.dart';
 import '../widgets/entrance.dart';
-import '../widgets/ethmar_logo.dart' show parseSvgPath;
+import '../widgets/care_icon.dart';
 
 /// Today's care tasks: the date, a progress card, and one card per task,
 /// then the missed tasks of the last [missedTaskDays] days.
@@ -438,16 +438,13 @@ class _TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     // Blue for watering, warm yellow for fertilizing.
-    final (icon, typeLabel, iconColor, iconBackground) = switch (task.type) {
+    final (typeLabel, iconColor, iconBackground) = switch (task.type) {
       TaskType.watering => (
-          Icons.water_drop_rounded,
           s.taskWatering,
           AppColors.info,
           AppColors.infoTint,
         ),
       TaskType.fertilizing => (
-          // Drawn as a fertilizer sack below; Material has no such icon.
-          null,
           s.taskFertilizing,
           AppColors.sunDark,
           AppColors.sunTint,
@@ -509,9 +506,7 @@ class _TaskCard extends StatelessWidget {
               color: iconFill,
               shape: BoxShape.circle,
             ),
-            child: icon == null
-                ? _FertilizerSack(size: 22, color: iconTint)
-                : Icon(icon, size: 22, color: iconTint),
+            child: CareTypeIcon(task.type, size: 22, color: iconTint),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -567,55 +562,6 @@ class _TaskCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A fertilizer sack: a tied top over a round bag with a leaf on the front.
-class _FertilizerSack extends StatelessWidget {
-  const _FertilizerSack({required this.size, required this.color});
-  final double size;
-  final Color color;
-
-  // Drawn on a 24 × 24 grid, like Material icons.
-  static final _path = parseSvgPath(
-    // Tied top.
-    'M9 6L8 2.8L10.5 4.1L12 2.4L13.5 4.1L16 2.8L15 6Z'
-    // Tie band.
-    'M8.6 6.3H15.4A0.7 0.7 0 0 1 15.4 7.7H8.6A0.7 0.7 0 0 1 8.6 6.3Z'
-    // Bag.
-    'M7.2 8.2C4.6 10.3 4 14 4.5 18C4.8 20.4 6.5 21.6 8.6 21.6H15.4'
-    'C17.5 21.6 19.2 20.4 19.5 18C20 14 19.4 10.3 16.8 8.2Z'
-    // A slanted leaf cut out of the bag, with its middle vein (a leaf, not
-    // a drop, so it isn't mistaken for watering).
-    'M9.2 18.4C9.2 14.6 11.4 12.4 15.2 12.1C15.2 15.9 13 18.2 9.2 18.4Z'
-    'M9.7 17.7L13.6 13.5L14 13.9L10.1 18.1Z',
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: size,
-      child: CustomPaint(painter: _FertilizerSackPainter(_path, color)),
-    );
-  }
-}
-
-class _FertilizerSackPainter extends CustomPainter {
-  const _FertilizerSackPainter(this.path, this.color);
-  final Path path;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.scale(size.width / 24, size.height / 24);
-    // evenOdd leaves the leaf hollow on the bag.
-    canvas.drawPath(
-      path..fillType = PathFillType.evenOdd,
-      Paint()..color = color,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_FertilizerSackPainter old) => old.color != color;
 }
 
 /// Above the missed tasks: the streak was reset because tasks of earlier days

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +19,8 @@ import '../widgets/auth_header.dart' show EthmarToastType, showEthmarToast;
 import '../widgets/backgrounds.dart';
 import '../widgets/camera_access.dart';
 import '../widgets/entrance.dart';
+import '../widgets/care_icon.dart';
+import '../widgets/category_chip.dart' show categoryLabel;
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 import '../widgets/centered_header.dart';
@@ -235,18 +238,12 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
               return const SizedBox.shrink();
             }
             final crop = plant.crop;
-            final irrigation = plant.irrigation;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                EthmarCenteredHeader(
-                  title: plant.name,
-                  subtitle: crop.name.of(context),
-                  trailing: _DeleteButton(
-                    deleting: _deleting,
-                    onPressed: () => _requestDelete(plant),
-                  ),
-                ),
+                // Just the user's name for the plant; what it is shows in
+                // the crop card below.
+                EthmarCenteredHeader(title: plant.name),
                 Expanded(
                   child: ListView(
                     padding: EdgeInsets.fromLTRB(
@@ -257,35 +254,61 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                     ),
                     children: [
                       Entrance(
-                        child: Container(
-                          height: 170,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: plant.category.tint,
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                          child: PlantPicture(crop.image, cacheWidth: 400),
+                        // Delete sits in the picture card's top corner on
+                        // the end side (top left in Arabic, top right in
+                        // English), clear of the centred picture.
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              key: const Key('plantPictureFrame'),
+                              height: 170,
+                              padding: const EdgeInsets.all(14),
+                              decoration: plantPictureFrame(28),
+                              child: Center(
+                                child: PlantPicture(
+                                  crop.image,
+                                  cacheWidth: 400,
+                                ),
+                              ),
+                            ),
+                            _onCorner(
+                              radius: 28,
+                              child: _DeleteButton(
+                                deleting: _deleting,
+                                onPressed: () => _requestDelete(plant),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _StatCard(
-                              label: s.daysSincePlanting,
-                              value: s.plantAge(plant.daysSincePlanting),
+                      // Both cards as tall as the taller one.
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: _StatCard(
+                                label: s.daysSincePlanting,
+                                value: s.plantAge(plant.daysSincePlanting),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatCard(
-                              label: s.summaryIrrigation,
-                              value: irrigation == null
-                                  ? s.summaryNotSet
-                                  : irrigation.repeat.label(s),
+                            const SizedBox(width: 12),
+                            // What the plant is, from the crop catalog (the
+                            // user's own name is the page title): the
+                            // crop's name and the plant's category.
+                            Expanded(
+                              child: _StatCard(
+                                key: const Key('plantCropCard'),
+                                label: s.plantCropLabel,
+                                // One line: "Strawberry - Fruits".
+                                value: '${crop.name.of(context)} - '
+                                    '${categoryLabel(plant.category, context)}',
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
                       _Panel(
@@ -304,10 +327,17 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                       const SizedBox(height: 16),
                       _Panel(
                         title: s.careSchedule,
-                        action: _SmallButton(
-                          label: s.edit,
-                          icon: Icons.edit_rounded,
+                        // A pencil on the card's end corner (top left in
+                        // Arabic, top right in English).
+                        corner: _CornerButton(
+                          key: const Key('edit-schedule'),
+                          tooltip: s.edit,
                           onPressed: () => _edit(context),
+                          icon: const Icon(
+                            Icons.edit_rounded,
+                            size: 18,
+                            color: AppColors.forest,
+                          ),
                         ),
                         child: _ScheduleRows(plant: plant),
                       ),
@@ -327,7 +357,8 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
 // Building blocks
 // ---------------------------------------------------------------------------
 
-/// Round delete button for the header; shows a spinner while deleting.
+/// Delete, on the picture card's corner (see [_onCorner]); shows a
+/// spinner while deleting.
 class _DeleteButton extends StatelessWidget {
   const _DeleteButton({required this.deleting, required this.onPressed});
 
@@ -336,24 +367,23 @@ class _DeleteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      shape: const CircleBorder(),
-      child: IconButton(
-        key: const ValueKey('delete-plant'),
-        tooltip: S.of(context).deletePlant,
-        onPressed: deleting ? null : onPressed,
-        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-        icon: deleting
-            ? const SizedBox.square(
-                dimension: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  color: AppColors.error,
-                ),
-              )
-            : const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-      ),
+    return _CornerButton(
+      key: const ValueKey('delete-plant'),
+      tooltip: S.of(context).deletePlant,
+      onPressed: deleting ? null : onPressed,
+      icon: deleting
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color: AppColors.error,
+              ),
+            )
+          : const Icon(
+              Icons.delete_outline_rounded,
+              size: 20,
+              color: AppColors.error,
+            ),
     );
   }
 }
@@ -418,7 +448,7 @@ class _DeletePlantDialog extends StatelessWidget {
 
 /// Small white box: a label on top, the value below (from the sketch).
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value});
+  const _StatCard({super.key, required this.label, required this.value});
   final String label;
   final String value;
 
@@ -440,7 +470,7 @@ class _StatCard extends StatelessWidget {
             Text(
               value,
               style: AppText.label(context)
-                  .copyWith(fontSize: 17, fontWeight: FontWeight.w700),
+                  .copyWith(fontSize: 15, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -451,47 +481,116 @@ class _StatCard extends StatelessWidget {
 
 /// White rounded card with a title (and an optional button beside it).
 class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.child, this.action});
+  const _Panel({required this.title, required this.child, this.corner});
   final String title;
   final Widget child;
-  final Widget? action;
+
+  /// A button sitting on the card's top corner on the end side (see
+  /// [_onCorner]).
+  final Widget? corner;
+
+  static const _radius = 24.0;
 
   @override
   Widget build(BuildContext context) {
-    final a = action;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    final c = corner;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(_radius),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
+              Padding(
+                // Clear of the corner button.
+                padding: EdgeInsetsDirectional.only(end: c == null ? 0 : 20),
                 child: Text(
                   title,
                   style: AppText.label(context)
                       .copyWith(fontSize: 17, fontWeight: FontWeight.w700),
                 ),
               ),
-              ?a,
+              const SizedBox(height: 14),
+              child,
             ],
           ),
-          const SizedBox(height: 14),
-          child,
-        ],
+        ),
+        if (c != null) _onCorner(radius: _radius, child: c),
+      ],
+    );
+  }
+}
+
+/// Places a [_CornerButton] centred on the top corner, end side (top left
+/// in Arabic, top right in English), of a card with [radius] corners: on
+/// the middle of the corner's curve, so the circle sits on the border, half
+/// in and half out. Use in a [Stack] with `clipBehavior: Clip.none`.
+Widget _onCorner({required double radius, required Widget child}) {
+  // The middle of the curve, in from the bounding box's corner.
+  final inset = radius * (1 - math.sqrt1_2);
+  const half = _CornerButton.tapTarget / 2;
+  return PositionedDirectional(top: inset - half, end: inset - half, child: child);
+}
+
+/// A small white circle with a thin outline and an icon, for a card's
+/// corner (see [_onCorner]). 36 across; taps count over 48.
+class _CornerButton extends StatelessWidget {
+  const _CornerButton({
+    super.key,
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  static const size = 36.0;
+  static const tapTarget = 48.0;
+
+  final String tooltip;
+
+  /// Null while it can't be used (e.g. while deleting).
+  final VoidCallback? onPressed;
+  final Widget icon;
+
+  @override
+  Widget build(BuildContext context) {
+    // Center loosens the 48 box, so the circle stays 36 while the button's
+    // padded tap area fills the 48.
+    return SizedBox.square(
+      dimension: tapTarget,
+      child: Center(
+        child: IconButton(
+          tooltip: tooltip,
+          onPressed: onPressed,
+          padding: EdgeInsets.zero,
+          style: IconButton.styleFrom(
+            fixedSize: const Size.square(size),
+            minimumSize: const Size.square(size),
+            tapTargetSize: MaterialTapTargetSize.padded,
+            backgroundColor: AppColors.surface,
+            disabledBackgroundColor: AppColors.surface,
+            side: const BorderSide(color: AppColors.border),
+            shadowColor: AppColors.forest.withValues(alpha: 0.2),
+            elevation: 1,
+          ),
+          icon: icon,
+        ),
       ),
     );
   }
 }
 
-/// Small forest pill, like "Upload a picture" and "Edit" in the sketch.
+/// Small forest pill, like "Upload a picture" in the sketch. The pill is
+/// 36 high, but a tap anywhere in the 48-high band around it counts, so it
+/// stays easy to hit.
 class _SmallButton extends StatelessWidget {
   const _SmallButton({
+    super.key,
     required this.label,
     required this.icon,
     required this.onPressed,
@@ -504,29 +603,43 @@ class _SmallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: onPressed == null
-          ? AppColors.forest.withValues(alpha: 0.45)
-          : AppColors.forest,
-      shape: const StadiumBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        splashColor: const Color(0x22FFFFFF),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 40),
-          child: Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 16, 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 16, color: AppColors.onForest),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: AppText.button(context).copyWith(fontSize: 14),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onPressed,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Center(
+          widthFactor: 1,
+          child: Material(
+            color: onPressed == null
+                ? AppColors.forest.withValues(alpha: 0.45)
+                : AppColors.forest,
+            shape: const StadiumBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onPressed,
+              splashColor: const Color(0x22FFFFFF),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 36),
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.fromSTEB(10, 6, 14, 6),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 15, color: AppColors.onForest),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          style:
+                              AppText.button(context).copyWith(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -623,6 +736,7 @@ class _GrowthTimeline extends StatelessWidget {
         const SizedBox(height: 14),
         Center(
           child: _SmallButton(
+            key: const Key('upload-picture'),
             label: s.uploadPicture,
             icon: Icons.add_a_photo_rounded,
             onPressed: uploading ? null : onAdd,
@@ -952,14 +1066,14 @@ class _ScheduleRowsState extends State<_ScheduleRows> {
     return Column(
       children: [
         _ScheduleRow(
-          icon: Icons.water_drop_rounded,
+          type: TaskType.watering,
           task: s.summaryIrrigation,
           schedule: plant.irrigation,
           state: stateOf(TaskType.watering),
         ),
         const Divider(height: 24, color: AppColors.border),
         _ScheduleRow(
-          icon: Icons.spa_rounded,
+          type: TaskType.fertilizing,
           task: s.summaryFertilization,
           schedule: plant.fertilization,
           state: stateOf(TaskType.fertilizing),
@@ -971,12 +1085,12 @@ class _ScheduleRowsState extends State<_ScheduleRows> {
 
 class _ScheduleRow extends StatelessWidget {
   const _ScheduleRow({
-    required this.icon,
+    required this.type,
     required this.task,
     required this.schedule,
     required this.state,
   });
-  final IconData icon;
+  final TaskType type;
   final String task;
   final CareSchedule? schedule;
   final CareState? state;
@@ -1001,61 +1115,67 @@ class _ScheduleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final c = schedule;
+    final st = state;
+    // Start side: the icon, the task and how often (or "Not set"). End
+    // side: when it's next due, or since when it's missed (careState).
     return MergeSemantics(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        key: Key('schedule_${type.name}'),
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
             decoration: const BoxDecoration(
               color: AppColors.seaTint,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 18, color: AppColors.seaDeep),
+            // The sack fills more of its square than the drop does, so it
+            // is drawn a little smaller to look the same size.
+            child: CareTypeIcon(
+              type,
+              size: type == TaskType.fertilizing ? 16 : 18,
+              color: AppColors.seaDeep,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                task,
-                style: AppText.label(context)
-                    .copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  c == null ? s.summaryNotSet : c.repeat.label(s),
-                  textAlign: TextAlign.end,
-                  style:
-                      AppText.label(
-                        context,
-                        color: c == null ? AppColors.textSecondary : null,
-                      ).copyWith(
-                        fontWeight: c == null
-                            ? FontWeight.w400
-                            : FontWeight.w600,
-                      ),
+                  task,
+                  style: AppText.label(context)
+                      .copyWith(fontWeight: FontWeight.w600),
                 ),
-                if (state case final st?)
-                  Text(
-                    switch (st.missed) {
-                      final missed? =>
-                        s.scheduleMissed(_when(context, st.at(missed))),
-                      null => s.scheduleNext(_when(context, st.at(st.next))),
-                    },
-                    textAlign: TextAlign.end,
-                    style: AppText.small(context),
-                  ),
+                const SizedBox(height: 2),
+                Text(
+                  c == null ? s.scheduleNotSet : c.repeat.label(s),
+                  style: AppText.small(context),
+                ),
               ],
             ),
           ),
+          if (st != null) ...[
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                switch (st.missed) {
+                  final missed? =>
+                    s.scheduleMissed(_when(context, st.at(missed))),
+                  null => s.scheduleNext(_when(context, st.at(st.next))),
+                },
+                textAlign: TextAlign.end,
+                style: AppText.small(
+                  context,
+                  color: st.missed != null
+                      ? AppColors.error
+                      : AppColors.textPrimary,
+                ).copyWith(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
         ],
       ),
     );
