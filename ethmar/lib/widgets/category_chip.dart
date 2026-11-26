@@ -5,7 +5,8 @@ import '../models/crop_recommendation.dart' show CropCategory;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// A category's display name. Grain and "Other plants" keep their own label.
+/// A category's display name. Grain and "Other plants" have their own
+/// labels.
 String categoryLabel(CropCategory cat, BuildContext context) {
   final s = S.of(context);
   return switch (cat) {
@@ -18,7 +19,7 @@ String categoryLabel(CropCategory cat, BuildContext context) {
   };
 }
 
-/// Small transparent icon for the category buttons.
+/// The small icon for each category button.
 String categoryIcon(CropCategory cat) => switch (cat) {
   CropCategory.herb => 'assets/images/ethmar_herbs_icon.png',
   CropCategory.legume => 'assets/images/ethmar_legumes_icon.png',
@@ -28,10 +29,9 @@ String categoryIcon(CropCategory cat) => switch (cat) {
   _ => cat.iconImage,
 };
 
-/// One category button, used by the recommender and when adding a plant: its
-/// icon (if any), its name, and how many crops it has.
-/// White with a thin earthy border; the selected one gets a soft green
-/// tint and a stronger border.
+/// One category button, used by the recommender and when adding a plant.
+/// It shows the icon (if any), the name, and how many crops it has.
+/// The selected one gets a soft green colour and a stronger border.
 class CategoryChip extends StatelessWidget {
   const CategoryChip({
     super.key,

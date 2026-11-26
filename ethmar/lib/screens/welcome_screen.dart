@@ -15,9 +15,9 @@ import '../widgets/page_routes.dart';
 import 'login_screen.dart';
 import 'sign_up_screen.dart';
 
-/// Logo and language switch in the top corners, then floating leaves and
-/// the character on its seedling bed.
-/// Welcome text and the two actions sit underneath.
+/// The Welcome screen: the logo and language switch in the top corners,
+/// then floating leaves and the character on its seedling bed. The welcome
+/// text and the two buttons are underneath.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -33,14 +33,14 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Top bar: logo in the start corner, language switch in the
-              // end corner (Row flips these automatically in Arabic).
+              // Top bar: logo on the start side, language switch on the end side (Row
+              // swaps them automatically in Arabic).
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Entrance(
                     delay: const Duration(milliseconds: 200),
-                    // 110 wide -> ~48 tall, same height as the language chip.
+                    // 110 wide is about 48 tall, the same height as the language chip.
                     child: EthmarLogo(width: 110),
                   ),
                   const LanguageChip(),
@@ -82,14 +82,13 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
-/// A few loose leaves floating around, and the character
-/// standing on the seedling bed at the bottom.
-/// (English: character right of centre. Arabic mirrors this.)
+/// A few floating leaves, and the character standing on the seedling bed
+/// at the bottom (to the right of centre in English, mirrored in Arabic).
 class _Hero extends StatelessWidget {
   const _Hero();
 
-  // Floating leaves: image, position, width (px) and tilt (radians).
-  // Position runs from -1 to 1 across the hero area:
+  // Floating leaves: picture, position, width (px) and tilt (radians).
+  // Positions go from -1 to 1 across the area:
   // x: -1 = left edge, 1 = right edge. y: -1 = top, 1 = bottom.
   static const _leaves = [
     _Leaf('ethmar_leaf_light_flat', Alignment(-0.85, -0.75), 40, -0.5),
@@ -107,15 +106,15 @@ class _Hero extends StatelessWidget {
         final w = c.maxWidth;
         final h = c.maxHeight;
 
-        // ---- Placement knobs: tweak these ----
-        // Seedling bed width (the height follows the image's shape).
+        // ---- Placement values (change these to move things) ----
+        // Seedling bed width (the height follows the picture's shape).
         final bedW = w * 1.0;
         final bedH = bedW * 582 / 1986;
-        // How far up the bed the character's feet stand (share of bed height).
+        // How far up the bed the character's feet are (part of the bed height).
         final feet = bedH * 0.20;
         // Character height.
         final charH = math.min((h - feet) * 0.8, 250.0);
-        // Character left/right: 0 = middle, 1 = right edge (both languages).
+        // Character position: 0 = middle, 1 = right edge (in both languages).
         const charX = 1.0;
         // ---------------------------------------
 
@@ -149,8 +148,8 @@ class _Hero extends StatelessWidget {
               top: 0,
               bottom: feet,
               child: Align(
-                // Plain Alignment (not directional) so Arabic uses the
-                // same spot as English instead of mirroring it.
+                // Plain Alignment (not directional) so Arabic uses the same spot as
+                // English instead of mirroring it.
                 alignment: const Alignment(charX, 1),
                 child: Entrance(
                   delay: const Duration(milliseconds: 100),

@@ -13,7 +13,7 @@ import '../widgets/centered_header.dart';
 import '../widgets/ethmar_buttons.dart';
 import '../widgets/ethmar_text_field.dart';
 
-/// Edit a plant's name and care schedules, starting from what's saved.
+/// Edits a plant's name and care schedules, starting from what's saved.
 class EditPlantScreen extends StatefulWidget {
   const EditPlantScreen({super.key, required this.plantId});
   final String plantId;
@@ -29,7 +29,8 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
   late final _name = TextEditingController(text: _plant.name);
   bool _saving = false;
 
-  // Off schedules start from the same defaults as when adding a plant.
+  // Schedules that are off start from the same defaults as when adding a
+  // plant.
   late final _irrigation = ScheduleDraft.from(
     _plant.irrigation,
     Repeat.everyDay,
@@ -61,8 +62,8 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
-      // The form keeps what was typed, so saving again needs nothing
-      // retyped; saving the same changes again is safe.
+      // The form keeps what was typed, so the user can just save again. Saving
+      // the same changes twice is safe.
       debugPrint('Could not save the plant: $e');
       if (!mounted) return;
       setState(() => _saving = false);

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Wavy hand-drawn underline that "draws itself" in.
-/// The one playful mark on the Sign up and Log in screens.
+/// A wavy hand-drawn underline that animates as if it's being drawn.
+/// Used on the Sign up and Log in screens.
 class SquiggleUnderline extends StatelessWidget {
   const SquiggleUnderline({super.key, required this.progress, this.color = AppColors.earthBrown, this.width = 170});
-  final double progress; // 0..1
+  final double progress; // from 0 to 1
   final Color color;
   final double width;
   @override

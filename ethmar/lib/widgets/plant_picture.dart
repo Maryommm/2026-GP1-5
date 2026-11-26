@@ -4,7 +4,7 @@ import '../models/crop_catalog.dart';
 import '../theme/app_colors.dart';
 
 /// The box behind a plant's picture on My Plants and Plant Details: white,
-/// with the thin outline of Home's category buttons, and [radius] corners.
+/// with a thin outline and [radius] corners.
 BoxDecoration plantPictureFrame(double radius) => BoxDecoration(
   color: AppColors.surface,
   borderRadius: BorderRadius.circular(radius),

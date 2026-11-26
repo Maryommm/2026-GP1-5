@@ -6,15 +6,13 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'ethmar_buttons.dart';
 
-/// The app's page header (the Profile design): the title centred on the
-/// screen, the back button on the reading start side and optional actions
-/// on the end side (Back left / actions right in English, mirrored in
-/// Arabic). An optional hand-written [subtitle] sits centred under the
-/// title.
+/// The app's page header: the title in the middle, the back button on the
+/// start side and optional actions on the end side (back on the left in
+/// English, on the right in Arabic). An optional hand-written [subtitle]
+/// goes under the title.
 ///
-/// The title stays centred whatever is on the sides: both sides take the
-/// width of the wider one (at least [_minSideWidth]), so one back button
-/// against two action buttons doesn't push the title off centre.
+/// Both sides take the width of the wider side (at least [_minSideWidth]),
+/// so the title always stays centred.
 class EthmarCenteredHeader extends StatelessWidget {
   const EthmarCenteredHeader({
     super.key,
@@ -26,12 +24,12 @@ class EthmarCenteredHeader extends StatelessWidget {
     this.leading,
   });
 
-  /// A button on the reading start side (right in Arabic, left in English)
-  /// in place of the back button, for main tabs that have no back.
+  /// A button on the start side (right in Arabic, left in English) instead
+  /// of the back button, for main tabs that have no back.
   final Widget? leading;
   final String title;
 
-  /// The title's colour over a dark page; the usual text colour otherwise.
+  /// The title colour on a dark page. Uses the normal text colour otherwise.
   final Color? titleColor;
 
   /// A short hand-written line under the title (e.g. "who's growing the
@@ -41,11 +39,11 @@ class EthmarCenteredHeader extends StatelessWidget {
   /// Actions on the end side: a button, or a row of them.
   final Widget? trailing;
 
-  /// False on the main tabs, where there is nothing to go back to. The
-  /// slot keeps its width, so the title stays centred.
+  /// False on the main tabs, where there is nothing to go back to. The space
+  /// stays, so the title stays centred.
   final bool showBack;
 
-  /// Each side is at least this wide, so short titles sit in the same place
+  /// Each side is at least this wide, so short titles are in the same place
   /// on every screen.
   static const _minSideWidth = 64.0;
 
@@ -68,8 +66,8 @@ class EthmarCenteredHeader extends StatelessWidget {
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Long titles (e.g. "تعديل الملف الشخصي") shrink a little on
-            // narrow phones instead of being cut off.
+            // Long titles (e.g. "تعديل الملف الشخصي") shrink a little on narrow phones
+            // instead of being cut off.
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
@@ -90,7 +88,7 @@ class EthmarCenteredHeader extends StatelessWidget {
               ),
           ],
         ),
-        // Very wide actions shrink rather than squeeze the title.
+        // Very wide actions shrink instead of squeezing the title.
         end: end == null
             ? null
             : FittedBox(fit: BoxFit.scaleDown, child: end),
@@ -101,10 +99,10 @@ class EthmarCenteredHeader extends StatelessWidget {
 
 enum _Slot { start, title, end }
 
-/// Lays out [start], [title] and [end] in a row with [title] centred on the
-/// whole row: both sides are as wide as the wider of the two (at least
+/// Lays out [start], [title] and [end] in a row with [title] centred on
+/// the whole row. Both sides are as wide as the wider one (at least
 /// [minSideWidth], at most a third of the row), and the title gets the
-/// width left between them. [start] is on the reading start side.
+/// space in between.
 class _CenteredRow extends SlottedMultiChildRenderObjectWidget<_Slot, RenderBox> {
   const _CenteredRow({
     required this.minSideWidth,
@@ -175,13 +173,13 @@ class _RenderCenteredRow extends RenderBox
   RenderBox? get _end => childForSlot(_Slot.end);
 
   /// Sizes the children with [layoutChild] and returns the row's size, the
-  /// side width, and each child's size.
+  /// side width and each child's size.
   ({Size size, double side, Size start, Size title, Size end}) _measure(
     BoxConstraints constraints,
     ChildLayouter layoutChild,
   ) {
     final width = constraints.maxWidth;
-    // At most a third each, so the title always keeps a third of the row.
+    // Each side gets at most a third, so the title always keeps a third.
     final sideLimit = BoxConstraints(maxWidth: width / 3);
     final startBox = _start;
     final endBox = _end;
@@ -233,8 +231,8 @@ class _RenderCenteredRow extends RenderBox
       if (box != null) (box.parentData! as BoxParentData).offset = offset;
     }
 
-    // Start at the reading start edge, end at the other edge, title in the
-    // middle of the whole row.
+    // Start on the start edge, end on the other edge, and the title in the
+    // middle of the row.
     place(
       _start,
       Offset(ltr ? 0 : width - m.start.width, middle(m.start)),

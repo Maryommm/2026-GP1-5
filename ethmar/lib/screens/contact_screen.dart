@@ -19,8 +19,8 @@ class ContactScreen extends StatelessWidget {
   static const xHandle = '@EthmarApp';
   static const xUrl = 'https://x.com/EthmarApp';
 
-  // Open [uri] outside the app. If nothing can open it, copy [fallback]
-  // so the user can still reach us, and say so.
+  // Opens [uri] outside the app. If nothing can open it, copies [fallback]
+  // so the user can still reach us, and tells them.
   static Future<void> _open(
     BuildContext context,
     Uri uri, {
@@ -29,7 +29,8 @@ class ContactScreen extends StatelessWidget {
   }) async {
     var opened = false;
     try {
-      // The X app opens x.com links when installed, otherwise the browser.
+      // The X app opens x.com links if it's installed, otherwise the browser
+      // does.
       opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
       opened = false;
@@ -100,7 +101,7 @@ class ContactScreen extends StatelessWidget {
   }
 }
 
-/// The X (formerly Twitter) logo, drawn from X's official mark path.
+/// The X (formerly Twitter) logo, drawn from X's official logo path.
 class _XLogo extends StatelessWidget {
   const _XLogo({required this.size});
   final double size;
@@ -134,7 +135,7 @@ class _XLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.scale(size.width / 1200, size.height / 1227);
-    // evenOdd keeps the inner stroke of the X hollow, as in the logo.
+    // evenOdd keeps the inside of the X hollow, like in the logo.
     canvas.drawPath(
       path..fillType = PathFillType.evenOdd,
       Paint()..color = AppColors.textPrimary,
@@ -145,7 +146,7 @@ class _XLogoPainter extends CustomPainter {
   bool shouldRepaint(_XLogoPainter old) => false;
 }
 
-// A tappable white card: icon, title and the address/handle.
+// A white card you can tap: icon, title and the email or handle.
 class _ContactCard extends StatelessWidget {
   const _ContactCard({
     required this.icon,
@@ -193,7 +194,7 @@ class _ContactCard extends StatelessWidget {
                             .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 2),
-                      // Addresses always read left-to-right.
+                      // Addresses are always shown left to right.
                       Text(
                         detail,
                         maxLines: 1,

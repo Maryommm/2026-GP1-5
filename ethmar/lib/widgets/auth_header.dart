@@ -44,8 +44,8 @@ class AuthHeader extends StatelessWidget {
           Padding(
             padding: const EdgeInsetsDirectional.only(start: 12),
             child: Row(
-              // A one-line title (no accent) sits level with the middle of
-              // the character; a title with an accent keeps its baseline.
+              // A title without an accent is centred with the character; a title with an
+              // accent keeps its baseline.
               crossAxisAlignment: accent == null
                   ? CrossAxisAlignment.center
                   : CrossAxisAlignment.end,
@@ -156,7 +156,7 @@ void showEthmarToast(
         ),
         content: Row(
           children: [
-            // White circle, same 24px as the old icon, so the size stays.
+            // White circle behind the icon.
             Container(
               width: 24,
               height: 24,

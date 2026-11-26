@@ -8,11 +8,11 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'ethmar_buttons.dart';
 
-/// Label above a plain white rounded field, with friendly error text below.
+/// A label above a white rounded field, with error text below it.
 ///
-/// Errors don't show while the user is typing: the field checks itself
-/// two seconds after they stop. An empty field only shows its error when
-/// the screen checks the whole form (e.g. the "Log in" button).
+/// Errors don't show while the user is typing: the field checks itself two
+/// seconds after they stop. An empty field only shows its error when the
+/// screen checks the whole form (e.g. when "Log in" is pressed).
 class EthmarTextField extends StatefulWidget {
   const EthmarTextField({
     super.key,
@@ -46,14 +46,14 @@ class EthmarTextField extends StatefulWidget {
   final bool forceLtr;
   final ValueChanged<String>? onSubmitted;
 
-  /// Lets a screen validate just this field (e.g. the "Verify email" link).
+  /// Lets a screen check just this field (e.g. for the "Verify email" link).
   final GlobalKey<FormFieldState<String>>? fieldKey;
 
   /// Rules applied while typing, e.g. a length limit.
   final List<TextInputFormatter>? inputFormatters;
 
-  /// Small status icon at the end of the field, e.g. "checking" or "ok".
-  /// Password fields always show their show/hide toggle instead.
+  /// A small status icon at the end of the field, e.g. "checking" or "ok".
+  /// Password fields show their show/hide button instead.
   final Widget? suffixIcon;
 
   @override
@@ -67,7 +67,7 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
   static const _checkDelay = Duration(seconds: 2);
   Timer? _checkTimer;
 
-  // Lets this field check itself when the screen didn't pass a [fieldKey].
+  // Lets this field check itself when the screen didn't give a [fieldKey].
   final _ownKey = GlobalKey<FormFieldState<String>>();
   GlobalKey<FormFieldState<String>> get _key => widget.fieldKey ?? _ownKey;
 
@@ -83,16 +83,16 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
 
   // Wraps the screen's validator:
   // - While typing (_hiding), show no error.
-  // - Two seconds after typing (_liveCheck), show errors, except "empty".
-  // - Any other time it's the screen checking the form (a button), so run
-  //   the full check, empty field included.
+  // - Two seconds after typing stops (_liveCheck), show errors except "empty".
+  // - Otherwise the screen is checking the form (a button was pressed), so
+  //   run the full check, including an empty field.
   String? _validate(String? value) {
     final validator = widget.validator;
     if (validator == null || _hiding) return null;
     if (_liveCheck) {
       return (value ?? '').trim().isEmpty ? null : validator(value);
     }
-    // The button's result stays on screen until the user types again.
+    // The result stays on screen until the user types again.
     _checkTimer?.cancel();
     return validator(value);
   }
@@ -144,8 +144,7 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
           decoration: InputDecoration(
             hintText: widget.hint,
             hintTextDirection: widget.forceLtr ? TextDirection.ltr : null,
-            // textSecondary keeps the hint readable (AA) while staying
-            // lighter than the forest-coloured typed value.
+            // textSecondary keeps the hint easy to read but lighter than the typed text.
             hintStyle: AppText.body(context, color: AppColors.textSecondary),
             filled: true,
             fillColor: AppColors.surface,
@@ -162,7 +161,7 @@ class _EthmarTextFieldState extends State<EthmarTextField> {
                   )
                 : widget.suffixIcon,
             errorStyle: AppText.small(context, color: AppColors.error),
-            // Room for a heading and a few bullet points.
+            // Room for a title and a few bullet points.
             errorMaxLines: 6,
             disabledBorder: _border(AppColors.border),
             enabledBorder: _border(AppColors.border),

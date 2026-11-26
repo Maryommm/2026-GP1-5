@@ -3,39 +3,39 @@ import 'dart:math' as math;
 /// A place on Earth, in degrees (north and east are positive).
 typedef SkyPlace = ({double latitude, double longitude});
 
-/// Whether the sky is in day or night.
+/// Whether it is day or night.
 enum SkyPhase { day, night }
 
-/// The sky at some moment: its [phase], and when that phase ends.
+/// The sky at a moment: its [phase], and when that phase ends.
 class SkyState {
   const SkyState(this.phase, this.nextChange);
   final SkyPhase phase;
 
   /// When the phase changes next (local time): the next sunrise or sunset,
-  /// or midnight when the sun neither rises nor sets that day.
+  /// or midnight if the sun doesn't rise or set that day.
   final DateTime nextChange;
 
   @override
   String toString() => 'SkyState($phase until $nextChange)';
 }
 
-/// Wall-clock times on the phone: the phone's own time zone, or a fixed
-/// offset from UTC (for tests, so they don't depend on the computer's).
+/// The clock time on the phone: the phone's own time zone, or a fixed
+/// offset from UTC (for tests, so they don't depend on the computer).
 class _Wall {
   const _Wall(this.offset);
 
-  /// Null: the phone's time zone (with its daylight saving changes).
+  /// Null means the phone's time zone (with daylight saving).
   final Duration? offset;
 
-  /// The calendar day [t] falls on, on this clock.
+  /// The calendar day of [t] on this clock.
   ({int year, int month, int day}) dayOf(DateTime t) {
     final offset = this.offset;
     final wall = offset == null ? t.toLocal() : t.toUtc().add(offset);
     return (year: wall.year, month: wall.month, day: wall.day);
   }
 
-  /// The moment this clock shows [hour]:00 on that day (day may overflow,
-  /// e.g. 32 January is 1 February), as a local DateTime.
+  /// The moment this clock shows [hour]:00 on that day, as a local DateTime.
+  /// The day can overflow (for example 32 January is 1 February).
   DateTime at(int year, int month, int day, [int hour = 0]) {
     final offset = this.offset;
     if (offset == null) return DateTime(year, month, day, hour);
@@ -43,9 +43,9 @@ class _Wall {
   }
 }
 
-/// Sunrise and sunset on one day at one place, as local times.
-/// Near the poles the sun may stay up ([alwaysUp]) or down ([alwaysDown])
-/// all day; then [sunrise] and [sunset] are null.
+/// Sunrise and sunset on one day at one place, in local time.
+/// Near the poles the sun can stay up ([alwaysUp]) or down ([alwaysDown])
+/// all day. Then [sunrise] and [sunset] are null.
 class SunTimes {
   const SunTimes._(this.sunrise, this.sunset, {required this.alwaysUp})
     : alwaysDown = !alwaysUp && sunrise == null;
@@ -55,14 +55,12 @@ class SunTimes {
   final bool alwaysUp;
   final bool alwaysDown;
 
-  /// Sunrise and sunset on the calendar [date] at [place], worked out on
-  /// the phone (the NOAA "sunrise equation"; within a minute or two of
-  /// published times): the sun's day whose noon is nearest that date's
-  /// noon on the phone's clock. [utcOffset] fixes the clock's time zone
-  /// (tests); by default it's the phone's.
+  /// Sunrise and sunset on [date] at [place], calculated on the phone with
+  /// the NOAA "sunrise equation" (within a minute or two of official times).
+  /// [utcOffset] sets the time zone for tests; by default it's the phone's.
   ///
-  /// When the phone's time zone is far from [place] (a traveller, or an
-  /// emulator), that sun's day may start or end on another calendar day.
+  /// If the phone's time zone is far from [place] (for example a traveller
+  /// or an emulator), the sun's day may start or end on another calendar day.
   static SunTimes on(DateTime date, SkyPlace place, {Duration? utcOffset}) =>
       _on(date.year, date.month, date.day, place, _Wall(utcOffset));
 
@@ -72,7 +70,7 @@ class SunTimes {
     // Noon of that day on the phone's clock, as a Julian date.
     final noon = w.at(year, month, day, 12).toUtc();
     final jd = noon.millisecondsSinceEpoch / _msPerDay + _unixEpochJd;
-    // The solar noon nearest that noon.
+    // The solar noon closest to that noon.
     final n = (jd - _j2000 + lng / 360).round();
     final meanNoon = n - lng / 360;
 
@@ -87,7 +85,7 @@ class SunTimes {
         _j2000 + meanNoon + 0.0053 * math.sin(mr) - 0.0069 * math.sin(2 * lambda);
     final sinDecl = math.sin(lambda) * math.sin(_rad(23.4397));
     final cosDecl = math.cos(math.asin(sinDecl));
-    // −0.833°: the sun's edge, with the air bending its light.
+    // −0.833° is the sun's top edge, including the bending of light by the air.
     final cosHour =
         (math.sin(_rad(-0.833)) - math.sin(_rad(lat)) * sinDecl) /
         (math.cos(_rad(lat)) * cosDecl);
@@ -114,19 +112,17 @@ class SunTimes {
   ).toLocal();
 }
 
-/// The hours used when the place isn't known: day from 06:00 to 18:00 on
-/// the phone's clock.
+/// The hours used when the place isn't known: day is from 06:00 to 18:00.
 const fallbackSunriseHour = 6;
 const fallbackSunsetHour = 18;
 
 /// The sky at [now].
 ///
-/// With a [place]: day from its sunrise until its sunset, night otherwise.
-/// Without one (or if the sun's times can't be worked out): day from
-/// 06:00 to 18:00 on the phone's clock.
+/// With a [place]: day from sunrise to sunset, night otherwise.
+/// Without one (or if the times can't be calculated): day from 06:00 to
+/// 18:00 on the phone's clock.
 ///
-/// [utcOffset] fixes the phone's time zone (tests); by default it's the
-/// phone's own.
+/// [utcOffset] sets the time zone for tests; by default it's the phone's.
 SkyState skyAt(DateTime now, {SkyPlace? place, Duration? utcOffset}) {
   final w = _Wall(utcOffset);
   if (place != null && place.latitude.isFinite && place.longitude.isFinite) {
@@ -137,11 +133,10 @@ SkyState skyAt(DateTime now, {SkyPlace? place, Duration? utcOffset}) {
 }
 
 /// The phase comes from the last sunrise or sunset at or before [now], and
-/// it ends at the first one after it. Yesterday's, today's and tomorrow's
-/// are all looked at (on the phone's calendar), because far from the
-/// phone's time zone the sun's day crosses the phone's midnight: in
-/// California, on a phone set to Riyadh time, the sun is up from about
-/// 18:00 until about 04:00 the next day.
+/// ends at the next one. Yesterday, today and tomorrow are all checked,
+/// because far from the phone's time zone the sun's day can cross midnight.
+/// For example, in California on a phone set to Riyadh time, the sun is up
+/// from about 18:00 until about 04:00 the next day.
 SkyState? _skyAtPlace(DateTime now, SkyPlace place, _Wall w) {
   final today = w.dayOf(now);
   final midnight = w.at(today.year, today.month, today.day + 1);
@@ -166,19 +161,19 @@ SkyState? _skyAtPlace(DateTime now, SkyPlace place, _Wall w) {
 
   (DateTime, SkyPhase)? last, next;
   for (final e in events) {
-    // At the very moment of sunrise it's day; at sunset, night.
+    // At the exact moment of sunrise it's day; at sunset it's night.
     if (e.$1.isAfter(now)) {
       next = e;
       break;
     }
     last = e;
   }
-  // The phase that's on now: the last event's; with none (the sun was up
-  // or down all yesterday), the opposite of the next one's.
+  // The current phase is the last event's phase. If there was none (the sun
+  // was up or down all day yesterday), it's the opposite of the next one.
   final phase =
       last?.$2 ??
       (next!.$2 == SkyPhase.day ? SkyPhase.night : SkyPhase.day);
-  // No change in sight (polar days ahead): look again at midnight.
+  // No change coming (polar days): check again at midnight.
   return SkyState(phase, next?.$1 ?? midnight);
 }
 

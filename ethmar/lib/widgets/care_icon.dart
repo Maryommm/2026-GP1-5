@@ -4,8 +4,7 @@ import '../models/daily_task.dart' show TaskType;
 import 'ethmar_logo.dart' show parseSvgPath;
 
 /// The icon of a care task, the same everywhere in the app: a water drop
-/// for watering, the fertilizer sack ([FertilizerIcon]) for fertilizing.
-/// [size] and [color] are each place's own.
+/// for watering and a fertilizer bag ([FertilizerIcon]) for fertilizing.
 class CareTypeIcon extends StatelessWidget {
   const CareTypeIcon(this.type, {super.key, this.size = 24, this.color});
 
@@ -26,9 +25,8 @@ class CareTypeIcon extends StatelessWidget {
   };
 }
 
-/// A fertilizer sack: a tied top over a round bag with a leaf on the front
-/// (Material has no such icon). The fertilizing icon throughout the app;
-/// use [CareTypeIcon] to pick it by task type.
+/// A fertilizer bag icon with a leaf on the front (Material doesn't have
+/// one). Use [CareTypeIcon] to pick the icon by task type.
 class FertilizerIcon extends StatelessWidget {
   const FertilizerIcon({super.key, this.size = 24, this.color});
   final double size;
@@ -45,8 +43,8 @@ class FertilizerIcon extends StatelessWidget {
     // Bag.
     'M7.2 8.2C4.6 10.3 4 14 4.5 18C4.8 20.4 6.5 21.6 8.6 21.6H15.4'
     'C17.5 21.6 19.2 20.4 19.5 18C20 14 19.4 10.3 16.8 8.2Z'
-    // A slanted leaf cut out of the bag, with its middle vein (a leaf, not
-    // a drop, so it isn't mistaken for watering).
+    // A leaf cut out of the bag, with its middle vein. It's a leaf and not a
+    // drop so it isn't confused with watering.
     'M9.2 18.4C9.2 14.6 11.4 12.4 15.2 12.1C15.2 15.9 13 18.2 9.2 18.4Z'
     'M9.7 17.7L13.6 13.5L14 13.9L10.1 18.1Z',
   );
@@ -69,7 +67,7 @@ class _FertilizerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.scale(size.width / 24, size.height / 24);
-    // evenOdd leaves the leaf hollow on the bag.
+    // evenOdd makes the leaf a hole in the bag.
     canvas.drawPath(
       path..fillType = PathFillType.evenOdd,
       Paint()..color = color,

@@ -7,8 +7,9 @@ import '../theme/app_theme.dart';
 import '../widgets/backgrounds.dart';
 import '../widgets/entrance.dart';
 
-/// "Ask Ethmar"
-/// UI only for now: messages stay on this screen and the bot doesn't reply.
+/// The "Ask Thamoor" chat screen.
+/// For now it is UI only: messages stay on this screen and the bot doesn't
+/// reply.
 /// TODO(chatbot): in the next sprints.
 
 class ChatScreen extends StatefulWidget {
@@ -29,7 +30,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // the send button turns on and off with the text.
+    // The send button turns on and off depending on the text.
     _input.addListener(() => setState(() {}));
   }
 
@@ -45,7 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty) return;
     setState(() => _sent.add(text));
     _input.clear();
-    // Scroll to the new message once it's laid out.
+    // Scroll to the new message after it's drawn.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
       final end = _scroll.position.maxScrollExtent;
@@ -107,13 +108,13 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-/// Header of the Ask Thamoor tab (a main tab, so no back button): the
-/// name of who you're talking to, centred, as in a chat app.
+/// The header of the Ask Thamoor tab (a main tab, so no back button): the
+/// name of who you're talking to, centred like in a chat app.
 class _ChatHeader extends StatelessWidget {
   const _ChatHeader({required this.title});
   final String title;
 
-  /// Height below the status bar, the same in both languages.
+  /// Height below the status bar (the same in both languages).
   static const height = 74.0;
 
   @override
@@ -145,16 +146,15 @@ class _ChatHeader extends StatelessWidget {
   }
 }
 
-/// Thamoor's picture beside his messages: a round crop of the waving
-/// character around his face (hat brim, eyes and smile), like a chat
-/// profile picture.
+/// Thamoor's picture next to his messages: a round crop of his face from
+/// the waving character, like a chat profile picture.
 class _ThamoorAvatar extends StatelessWidget {
   const _ThamoorAvatar();
 
   static const size = 38.0;
 
   // ethmar_buddy_waving.png is 454 x 614. The circle shows a 290 x 290
-  // square of it centred on (228, 240): the face under the hat.
+  // square of it centred on (228, 240), which is the face under the hat.
   static const _imageWidth = 454.0;
   static const _imageHeight = 614.0;
   static const _shown = 290.0;
@@ -180,7 +180,7 @@ class _ThamoorAvatar extends StatelessWidget {
                 height: _imageHeight * k,
                 child: Image.asset(
                   'assets/images/ethmar_buddy_waving.png',
-                  fit: BoxFit.fill, // Same aspect ratio: not stretched.
+                  fit: BoxFit.fill, // Same aspect ratio, so it isn't stretched.
                   filterQuality: FilterQuality.medium,
                 ),
               ),
@@ -192,8 +192,8 @@ class _ThamoorAvatar extends StatelessWidget {
   }
 }
 
-/// One message. Thamoor's sit at the start, after his picture; the user's
-/// at the end.
+/// One message. Thamoor's messages are on the start side next to his
+/// picture; the user's are on the end side.
 class _Bubble extends StatelessWidget {
   const _Bubble({required this.text, required this.fromUser});
   final String text;
@@ -211,8 +211,8 @@ class _Bubble extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: fromUser
           ? Align(alignment: AlignmentDirectional.centerEnd, child: bubble)
-          // The picture sits by the bubble's bottom corner, as in chat
-          // apps; the Row puts it on the start side in both languages.
+          // The picture is at the bubble's bottom corner, like in chat apps. The Row
+          // puts it on the start side in both languages.
           : Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -256,7 +256,7 @@ class _Bubble extends StatelessWidget {
   }
 }
 
-/// text field and send button.
+/// The message text field and the send button.
 class _InputBar extends StatelessWidget {
   const _InputBar({
     required this.controller,
@@ -276,14 +276,14 @@ class _InputBar extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-        // The button stays level with the field's last line when the
-        // message grows to several lines.
+        // The button stays level with the field's last line when the message has
+        // several lines.
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
-              // No placeholder on screen; screen readers still announce
-              // what the field is for.
+              // No hint text on screen, but screen readers still say what the field is
+              // for.
               child: Semantics(
                 label: hint,
                 child: TextField(
@@ -323,7 +323,7 @@ class _InputBar extends StatelessWidget {
               tooltip: sendLabel,
               onPressed: onSend,
               style: IconButton.styleFrom(
-                // The one-line field's height, so the two line up.
+                // The same height as a one-line field, so they line up.
                 fixedSize: const Size(52, 52),
                 minimumSize: const Size(52, 52),
                 // The same white and border as the message field.

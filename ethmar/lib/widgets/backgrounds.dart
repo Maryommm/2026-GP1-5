@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Soft cream background image used behind every screen except Home.
-/// Stays fixed behind [child] while it scrolls. A screen can pass its own
-/// [image] (Profile does); everyone else gets the shared inner background.
+/// The soft cream background image used behind every screen except Home.
+/// It stays fixed while [child] scrolls. A screen can pass its own [image]
+/// (Profile does); the others use the shared background.
 class LeafPrintBackground extends StatelessWidget {
   const LeafPrintBackground({
     super.key,
@@ -15,9 +15,9 @@ class LeafPrintBackground extends StatelessWidget {
   final Widget child;
   final String image;
 
-  /// Moves the image down by this fraction of the screen height, so its
-  /// top illustration sits a little lower. The space above it is the same
-  /// sand colour, and the image's top edge fades into it.
+  /// Moves the image down by this fraction of the screen height. The space
+  /// above it is filled with the same sand colour, and the image's top edge
+  /// fades into it.
   final double shiftDown;
 
   static const asset = 'assets/images/ethmar_inner_background.png';
@@ -44,8 +44,7 @@ class LeafPrintBackground extends StatelessWidget {
                       final offset = constraints.maxHeight * shiftDown;
                       return Padding(
                         padding: EdgeInsets.only(top: offset),
-                        // Soft top edge, so the corner leaves don't end in a
-                        // hard line.
+                        // Fade the top edge so the leaves in the corners don't end in a hard line.
                         child: ShaderMask(
                           blendMode: BlendMode.dstIn,
                           shaderCallback: (rect) => LinearGradient(

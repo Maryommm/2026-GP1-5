@@ -1,14 +1,13 @@
-/// SAMPLE DATA for the team: made-up plants for trying screens, seeding a
-/// test account and writing tests. The app doesn't use it on its own; real
-/// plants come from `users/{uid}/plants`.
+/// Sample plants used in tests and for trying out screens.
+/// The app itself does not use this file; real plants are loaded from
+/// `users/{uid}/plants`.
 ///
-/// What's covered:
+/// What the samples cover:
 ///   - both schedules on:   Tomato, Mint, Strawberry
-///   - one schedule off:    Basil (no fertilization), Date palm (no fertilization)
+///   - one schedule off:    Basil and Date palm (no fertilizing)
 ///   - both schedules off:  Lemon tree
-///   - two lands:           land 0 (squares 0-3) and land 1 (squares 0-1),
-///                          so [sampleStats] has 2 lands
-///   - journey entries:      Tomato (2, one with a photo) and Mint (1)
+///   - two lands:           land 0 (squares 0-3) and land 1 (squares 0-1)
+///   - journey entries:     Tomato (2, one with a photo) and Mint (1)
 library;
 
 import 'package:flutter/material.dart';
@@ -26,7 +25,7 @@ const sampleStats = FarmStats(
   lands: 2,
 );
 
-/// Six sample plants. The ids are made up and only need to be unique.
+/// Six sample plants. The ids are made up; they just need to be unique.
 final samplePlants = <FarmPlant>[
   FarmPlant(
     id: 'sample-tomato',
@@ -52,8 +51,7 @@ final samplePlants = <FarmPlant>[
         id: 'sample-tomato-2',
         date: DateTime(2026, 10, 5, 17, 45),
         notes: 'Flowers are opening.',
-        // A made-up Cloudinary picture, in the folder real ones use
-        // (see JourneyPhoto.publicIdFor).
+        // A fake Cloudinary photo, saved in the same folder real photos use.
         photo: const JourneyPhoto(
           publicId: 'ethmar/plant-journey/sample-uid/sample-tomato/sample-tomato-2',
           version: 1,

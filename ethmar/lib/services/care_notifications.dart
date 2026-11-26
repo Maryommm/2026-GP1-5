@@ -16,7 +16,7 @@ import '../models/task_log.dart';
 import 'farm_store.dart';
 import 'recent_task_logs.dart';
 
-/// One notification to schedule: when, with which id and text.
+/// One notification to schedule: its time, id and text.
 class PlannedReminder {
   const PlannedReminder({
     required this.id,
@@ -31,37 +31,38 @@ class PlannedReminder {
   final String body;
 
   /// Saved with the notification, so the next sync can tell whether a
-  /// pending notification is already up to date.
+  /// scheduled notification is already up to date.
   String get payload => at.toIso8601String();
 }
 
-/// How many days ahead every task's alarms are scheduled. Android can only
-/// repeat a notification every day or every week, and schedules here can
-/// repeat every 2 to 6, 14, 21 or 30 days, so the alarms are scheduled one by one
-/// and topped up on every sync. If the app isn't opened, reminders keep
-/// coming for this many days.
+/// How many days ahead the reminders are scheduled. Android can only repeat
+/// a notification daily or weekly, but our schedules can repeat every 2-6,
+/// 14, 21 or 30 days. So each reminder is scheduled one by one and topped
+/// up on every sync. If the app isn't opened, reminders keep coming for
+/// this many days.
 const reminderHorizonDays = 30;
 
-/// Tasks that repeat rarely still get at least this many alarms, even past
-/// [reminderHorizonDays] (a monthly task would otherwise get only one).
+/// Tasks that repeat rarely still get at least this many reminders, even
+/// after [reminderHorizonDays] (otherwise a monthly task would get only one).
 const minRemindersPerTask = 4;
 
-/// How far ahead to look: enough for [minRemindersPerTask] monthly alarms.
+/// How far ahead to look: enough for [minRemindersPerTask] monthly reminders.
 const reminderLookAheadDays = 120;
 
-/// The most alarms one task can get (one a day over the horizon), and so
-/// the number of id slots each task needs.
+/// The most reminders one task can have (one a day), which is also the
+/// number of ids each task needs.
 const maxRemindersPerTask = 100;
 
-/// Android allows an app about 500 alarms; stay well below that.
+/// Android allows an app about 500 alarms, so we stay well below that.
 const maxReminders = 400;
 
-/// A notification id that stays the same for a plant, a task type and a
-/// slot (0 = the next alarm, 1 = the one after...), across app restarts.
+/// A notification id that is always the same for a plant, a task type and
+/// a slot (0 = the next reminder, 1 = the one after, ...), even after the
+/// app restarts.
 ///
-/// Scheduling a notification with an id that is already pending replaces
-/// it, so syncing again never makes duplicates. String.hashCode isn't used:
-/// Dart doesn't promise it stays the same between runs. This is FNV-1a.
+/// Scheduling with an id that already exists replaces it, so syncing again
+/// never creates duplicates. We use the FNV-1a hash because
+/// String.hashCode can change between runs.
 int reminderId(String plantId, TaskType type, int slot) {
   assert(slot >= 0 && slot < maxRemindersPerTask);
   var hash = 0x811c9dc5;
@@ -69,24 +70,21 @@ int reminderId(String plantId, TaskType type, int slot) {
     hash ^= unit;
     hash = (hash * 0x01000193) & 0xffffffff;
   }
-  // At most 499,999,999: a positive 32-bit int, as Android needs.
+  // At most 499,999,999, so it is a positive 32-bit int as Android needs.
   return (hash % 5000000) * maxRemindersPerTask + slot;
 }
 
-/// The notifications to schedule for [plants] after [now]: for every
-/// plant's watering and fertilizing, the tasks careState expects from now
-/// on, every alarm in the next [reminderHorizonDays] days, and at least the
-/// next [minRemindersPerTask] of each; at most [maxReminders] in all, the
-/// soonest first. [s] gives the text in the app's language.
+/// The notifications to schedule for [plants] after [now]. For each
+/// plant's watering and fertilizing, it plans every reminder in the next
+/// [reminderHorizonDays] days (and at least [minRemindersPerTask] of each),
+/// with at most [maxReminders] in total, soonest first. [s] gives the text
+/// in the app's language.
 ///
-/// The tasks are planned as if none is done before it comes, so a missed
-/// task gets no second reminder, and no reminder comes for a task that a
-/// missed one takes the place of. Doing a task changes the plant, and the
-/// reminders are planned again from its new next task.
+/// Tasks are planned as if none of them gets done. When a task is done the
+/// plant changes, and the reminders are planned again.
 ///
-/// [logs] (task logs by date key, see careState) and [done] (one day's log)
-/// tell which tasks are already ticked: a task done today gets no reminder
-/// today, and someone who watered early isn't told to water again.
+/// [logs] and [done] tell which tasks are already ticked, so a task done
+/// today gets no reminder today.
 List<PlannedReminder> planReminders(
   List<FarmPlant> plants,
   DateTime now,
@@ -115,7 +113,7 @@ List<PlannedReminder> planReminders(
       }
       final wanted = slot < minRemindersPerTask || !at.isAfter(horizon);
       if (!wanted || slot >= maxRemindersPerTask) break;
-      // A different message each day, the same one on every sync.
+      // A different message each day, but the same one on every sync.
       final variant = _dayNumber(at) % S.reminderVariants;
       final watering = state.type == TaskType.watering;
       planned.add(PlannedReminder(
@@ -137,25 +135,25 @@ List<PlannedReminder> planReminders(
       : planned;
 }
 
-/// Days since 1 January 1970 for the date of [t], to pick the day's message.
+/// Number of days since 1 January 1970 for [t], used to pick the day's
+/// message.
 int _dayNumber(DateTime t) =>
     DateTime.utc(t.year, t.month, t.day).millisecondsSinceEpoch ~/
     Duration.millisecondsPerDay;
 
-/// Care reminders: a notification at the alarm time of every watering and
-/// fertilizing task, shown by Android even when the app is closed or the
+/// Care reminders: a notification at the time of every watering and
+/// fertilizing task. Android shows it even when the app is closed or the
 /// phone is offline.
 ///
-/// - [init] runs once at startup. From then on the reminders follow
-///   [FarmStore.plants]: editing a plant schedules its alarms again,
+/// - [init] runs once at startup. After that the reminders follow
+///   [FarmStore.plants]: editing a plant reschedules its reminders,
 ///   deleting it cancels them, and signing out cancels all of them.
-/// - They also follow the recent task logs: ticking a task (on time or
-///   late) cancels its reminder for today and plans the next ones from the
-///   day it was done; un-ticking it brings the old ones back.
-/// - [askPermissions] asks for the notification and exact-alarm
-///   permissions; the main shell calls it once the user is signed in.
-/// - Tapping a notification sets [openDailyTasks]; the main shell listens
-///   and opens the Daily Tasks tab.
+/// - Ticking a task cancels its reminder for today and plans the next ones.
+///   Un-ticking brings the old ones back.
+/// - [askPermissions] asks for the notification permissions. The main
+///   shell calls it after the user signs in.
+/// - Tapping a notification sets [openDailyTasks], and the main shell opens
+///   the Daily Tasks tab.
 class CareNotifications {
   CareNotifications._();
 
@@ -165,8 +163,8 @@ class CareNotifications {
       _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
 
-  /// True while a tapped notification is waiting for the Daily Tasks tab.
-  /// The main shell sets it back to false once it has opened the tab.
+  /// True when a notification was tapped and the Daily Tasks tab should open.
+  /// The main shell sets it back to false after opening the tab.
   static final openDailyTasks = ValueNotifier<bool>(false);
 
   static const _channelId = 'care_reminders';
@@ -176,16 +174,16 @@ class CareNotifications {
   static bool _syncing = false;
   static bool _syncAgain = false;
 
-  // Kept for the life of the app.
+  // Kept for as long as the app runs.
   // ignore: unused_field
   static AppLifecycleListener? _lifecycle;
 
-  /// The task logs of today and the missed days, kept current, so ticking
-  /// a task (on time or late) plans its reminders again at once.
+  /// The task logs of today and the missed days. Kept up to date so ticking a
+  /// task plans its reminders again right away.
   static RecentTaskLogs? _logs;
 
-  /// Follows the recent task logs. Called again on resume, so a new day
-  /// switches to the new day's logs.
+  /// Listens to the recent task logs. Called again when the app resumes, so
+  /// a new day switches to that day's logs.
   static void _watchToday() {
     final logs = _logs;
     if (logs != null) {
@@ -207,7 +205,7 @@ class CareNotifications {
         ),
         onDidReceiveNotificationResponse: (_) => openDailyTasks.value = true,
       );
-      // The app was closed and the tap started it.
+      // The app was closed and tapping the notification opened it.
       final launch = await _plugin.getNotificationAppLaunchDetails();
       if (launch?.didNotificationLaunchApp ?? false) {
         openDailyTasks.value = true;
@@ -218,8 +216,8 @@ class CareNotifications {
     }
     FarmStore.plants.addListener(sync);
     appLocale.addListener(sync);
-    // Top up the alarms and pick up a changed permission when the user
-    // comes back to the app.
+    // When the user comes back to the app, top up the reminders and check if a
+    // permission changed.
     _lifecycle = AppLifecycleListener(
       onResume: () {
         _watchToday();
@@ -231,8 +229,8 @@ class CareNotifications {
   }
 
   /// Asks for the notification permission (Android 13+ shows a dialog).
-  /// The exact-alarm permission is asked for later, by [sync], once the
-  /// user really has a reminder (see [_askExactAlarmsOnce]).
+  /// The exact-alarm permission is asked later by [sync], once the user has
+  /// a reminder (see [_askExactAlarmsOnce]).
   static Future<void> askPermissions() async {
     final android = _android;
     if (!_started || android == null) return;
@@ -244,11 +242,10 @@ class CareNotifications {
     await sync();
   }
 
-  /// Exact alarms (Android 12+) make a reminder ring within the minute
-  /// instead of whenever Android batches it (up to an hour late). Android
-  /// 14+ turns them off by default and only lets the user allow them on a
-  /// settings page, so that page is opened once, while the app is on
-  /// screen. Returns whether exact alarms are allowed now.
+  /// Exact alarms (Android 12+) make a reminder ring on time instead of up to
+  /// an hour late. Android 14+ turns them off by default and the user can
+  /// only allow them in settings, so we open that settings page once.
+  /// Returns whether exact alarms are allowed now.
   static Future<bool> _askExactAlarmsOnce() async {
     final android = _android;
     if (android == null) return true;
@@ -263,9 +260,9 @@ class CareNotifications {
     return await android.canScheduleExactNotifications() ?? false;
   }
 
-  /// Makes Android's pending notifications match the plants: cancels the
-  /// ones no longer wanted and schedules the missing or changed ones.
-  /// Calls that arrive while a sync runs are merged into one more sync.
+  /// Makes the scheduled notifications match the plants: cancels the ones
+  /// that aren't needed and schedules the missing or changed ones. If sync is
+  /// called while it's already running, it runs once more after.
   static Future<void> sync() async {
     if (!_started) return;
     if (_syncing) {
@@ -297,11 +294,11 @@ class CareNotifications {
     );
     final wanted = {for (final r in plan) r.id: r};
 
-    // Without the exact-alarm permission Android may deliver late, but the
-    // reminder still comes.
+    // Without the exact-alarm permission the reminder may come late, but it
+    // still comes.
     final exact = plan.isEmpty || await _askExactAlarmsOnce();
-    // The payload also records exact or not, so reminders scheduled before
-    // the permission was given are scheduled again as exact ones.
+    // The payload also saves whether it was exact, so reminders scheduled
+    // before the permission was given are rescheduled as exact.
     String payloadOf(PlannedReminder r) => '${r.payload}|${exact ? 'exact' : 'inexact'}';
 
     final pending = await _plugin.pendingNotificationRequests();
@@ -329,8 +326,7 @@ class CareNotifications {
       if (upToDate.contains(r.id)) continue;
       await _plugin.zonedSchedule(
         id: r.id,
-        // The alarm is set for this exact moment; the phone's time zone
-        // was already applied when the local time was built.
+        // The time zone was already applied when the local time was built.
         scheduledDate: tz.TZDateTime.from(r.at, tz.UTC),
         notificationDetails: details,
         androidScheduleMode: exact

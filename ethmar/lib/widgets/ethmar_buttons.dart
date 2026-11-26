@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// Shared corner radius for buttons and text fields.
+/// The corner radius shared by buttons and text fields.
 const kControlRadius = BorderRadius.all(Radius.circular(16));
 
-/// Big friendly button with soft rounded corners and a gentle "press" squish.
+/// The main app button, with rounded corners and a small "press" effect.
 ///
-/// * Primary: solid forest, flat.
-/// * [outlined]: a quieter tinted button (no hard border), for secondary actions.
+/// * Primary: solid forest green.
+/// * [outlined]: a lighter tinted button for less important actions.
 class EthmarButton extends StatefulWidget {
   const EthmarButton({
     super.key,
@@ -28,7 +28,7 @@ class EthmarButton extends StatefulWidget {
   final bool showArrow;
   final bool loading;
 
-  /// Optional overrides, e.g. for buttons sitting on a dark card.
+  /// Optional colours, e.g. for buttons on a dark card.
   final Color? color;
   final Color? textColor;
 
@@ -63,7 +63,7 @@ class _EthmarButtonState extends State<EthmarButton> {
               ),
               if (widget.showArrow) ...[
                 const SizedBox(width: 8),
-                // arrow_forward flips automatically in Arabic (RTL).
+                // arrow_forward flips by itself in Arabic (RTL).
                 Icon(Icons.arrow_forward_rounded, size: 20, color: fg),
               ],
             ],
@@ -108,7 +108,7 @@ class _EthmarButtonState extends State<EthmarButton> {
 }
 
 /// Small text link, e.g. "Log in" / "Forgot password?".
-/// Always at least 48px tall so it's easy to tap.
+/// It is always at least 48px tall so it's easy to tap.
 class EthmarLink extends StatelessWidget {
   const EthmarLink({super.key, required this.label, required this.onTap});
   final String label;
@@ -142,14 +142,14 @@ class EthmarLink extends StatelessWidget {
   }
 }
 
-/// The one Back button used across the app: a white 48px circle with a
-/// forest arrow. The arrow flips in Arabic, and [Navigator.maybePop] keeps
-/// each screen's own back handling (PopScope) working.
+/// The Back button used across the app: a white 48px circle with a green
+/// arrow. The arrow flips in Arabic. It uses [Navigator.maybePop] so each
+/// screen's own back handling (PopScope) still works.
 class EthmarBackButton extends StatelessWidget {
   const EthmarBackButton({super.key, required this.tooltip, this.onPressed});
   final String tooltip;
 
-  /// What a tap does; closes the screen when null.
+  /// What a tap does. Closes the screen when null.
   final VoidCallback? onPressed;
 
   @override

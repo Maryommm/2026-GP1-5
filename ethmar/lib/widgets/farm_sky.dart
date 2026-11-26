@@ -5,15 +5,14 @@ import 'package:flutter/material.dart';
 import '../services/sun_times.dart';
 import '../theme/app_colors.dart';
 
-/// Virtual Farm's backdrop: a soft sky over rolling hills, by day or by
-/// night. The same landscape in both, so night looks like the day scene
-/// after sunset. Drawn to fill the screen; it doesn't move with the farm,
-/// and it's only repainted when its size or phase changes.
+/// The Virtual Farm background: a soft sky over hills, by day or by night.
+/// Night uses the same landscape so it looks like the day scene after
+/// sunset. It fills the screen, doesn't move with the farm, and is only
+/// repainted when its size or phase changes.
 ///
-/// Until [ready] (the real phase is known, see SkyClock.settled) nothing
-/// is drawn, so the page's own cream shows for those few milliseconds
-/// instead of the wrong scene. The first scene then appears as it is; only
-/// later changes (sunrise, sunset) fade.
+/// Until [ready] (when the real phase is known, see SkyClock.settled),
+/// nothing is drawn, so the wrong scene never flashes. After that, only
+/// later changes (sunrise, sunset) fade in.
 class FarmSky extends StatelessWidget {
   const FarmSky({super.key, required this.phase, this.ready = true});
   final SkyPhase phase;
@@ -25,7 +24,7 @@ class FarmSky extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!ready) return const SizedBox.expand();
     final night = phase == SkyPhase.night;
-    // The day scene stays underneath; the night one fades in over it.
+    // The day scene stays underneath and the night scene fades in on top.
     return RepaintBoundary(
       child: Stack(
         fit: StackFit.expand,
@@ -45,7 +44,7 @@ class FarmSky extends StatelessWidget {
   }
 }
 
-/// The colours of one version of the scene.
+/// The colours of one version of the scene (day or night).
 class _SkyColors {
   const _SkyColors({
     required this.sky,
@@ -56,7 +55,7 @@ class _SkyColors {
     this.moonAndStars = false,
   });
 
-  /// Top to bottom.
+  /// From top to bottom.
   final List<Color> sky;
   final Color farHill;
   final Color nearHill;
@@ -106,7 +105,7 @@ class _SkyPainter extends CustomPainter {
         ).createShader(all),
     );
 
-    // Sizes follow the shorter side, so tablets and phones look alike.
+    // Sizes are based on the shorter side, so tablets and phones look the same.
     final unit = math.min(w, h * 0.6);
 
     if (colors.moonAndStars) _stars(canvas, size, unit);
@@ -185,7 +184,7 @@ class _SkyPainter extends CustomPainter {
       ..addOval(
         Rect.fromCircle(center: at + Offset(r * 1.8, -r * 0.3), radius: r * 0.9),
       );
-    // One shape, so overlaps aren't darker.
+    // Drawn as one shape, so overlapping parts aren't darker.
     path.fillType = PathFillType.nonZero;
     canvas.drawPath(path, paint);
   }
@@ -213,7 +212,7 @@ class _SkyPainter extends CustomPainter {
     canvas.drawPath(crescent, Paint()..color = const Color(0xFFF5E6B8));
   }
 
-  /// A few small, faint stars in the upper sky; the same ones every time.
+  /// A few small, faint stars in the upper sky (the same ones every time).
   void _stars(Canvas canvas, Size size, double unit) {
     final rand = math.Random(11);
     final paint = Paint();

@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Shows the Ethmar character from `assets/images/<name>.png`.
+/// Shows an Ethmar character from `assets/images/<name>.png`.
 ///
-/// Until the real illustration is added, a friendly placeholder
-/// "plant buddy" is drawn instead, so the app always runs.
-/// It also bobs gently, like it's breathing.
+/// If the picture can't be loaded, a simple drawn "plant buddy" is shown
+/// instead. The character also moves up and down gently, like it's
+/// breathing.
 class EthmarCharacter extends StatefulWidget {
   const EthmarCharacter({super.key, required this.name, this.height = 220, this.bob = true});
 
-  /// File name without extension, e.g. 'character_welcome'.
+  /// File name without the extension, e.g. 'ethmar_buddy_waving'.
   final String name;
   final double height;
   final bool bob;
@@ -63,7 +63,7 @@ class _EthmarCharacterState extends State<EthmarCharacter>
   }
 }
 
-/// Placeholder mascot: a smiling terracotta pot with a sprout.
+/// The fallback character: a smiling pot with a sprout.
 class _PlantBuddyPainter extends CustomPainter {
   const _PlantBuddyPainter();
 

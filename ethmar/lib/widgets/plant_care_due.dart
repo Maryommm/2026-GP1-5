@@ -9,11 +9,9 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'care_icon.dart';
 
-/// What a plant's watering or fertilizing line says, from [state] (see
-/// careState, the one place that decides when tasks are due), on the date
-/// of [now]: "Next watering: Tomorrow", or, while a missed task can still
-/// be done, "Watering missed: Yesterday". A missed task is never shown as
-/// done or as a later one.
+/// The text for a plant's watering or fertilizing line, from [state] (see
+/// careState) on the date of [now]: for example "Next watering: Tomorrow",
+/// or "Watering missed: Yesterday" while a missed task can still be done.
 String careDueText(S s, CareState state, DateTime now) {
   final watering = state.type == TaskType.watering;
   final today = _dayNumber(now);
@@ -25,16 +23,16 @@ String careDueText(S s, CareState state, DateTime now) {
   return watering ? s.careNextWatering(when) : s.careNextFertilizing(when);
 }
 
-/// Calendar days (UTC dates), so a daylight-saving change can't make a day
-/// 23 or 25 hours long.
+/// Calendar day number (from UTC dates), so daylight saving can't make a
+/// day 23 or 25 hours long.
 int _dayNumber(DateTime t) =>
     DateTime.utc(t.year, t.month, t.day).millisecondsSinceEpoch ~/
     Duration.millisecondsPerDay;
 
-/// Under a plant's name: its next watering, then its next fertilizing, each
-/// with its icon, for the schedules that are on; "No care tasks scheduled"
-/// when neither is. [logs] are the recent task logs (see RecentTaskLogs),
-/// so a task ticked today counts straight away.
+/// Shown under a plant's name: its next watering, then its next
+/// fertilizing, each with its icon (only for schedules that are on).
+/// Shows "No care tasks scheduled" when both are off. [logs] are the recent
+/// task logs, so a task ticked today counts right away.
 class PlantCareDue extends StatelessWidget {
   const PlantCareDue({
     super.key,

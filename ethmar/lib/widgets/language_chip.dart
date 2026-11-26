@@ -5,7 +5,7 @@ import '../l10n/locale_controller.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// Quiet text button that switches between عربي and English.
+/// A small text button that switches between عربي and English.
 class LanguageChip extends StatelessWidget {
   const LanguageChip({super.key});
 

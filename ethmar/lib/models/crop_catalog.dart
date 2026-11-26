@@ -1,7 +1,7 @@
 import 'crop_recommendation.dart' show BiText, CropCategory;
 
-/// A crop the user can add to their farm, with its picture in `assets/ethmar_crops/`.
-/// ممكن تنشال بعدين اذا بنخليه ياخذ من الداتا بيس 
+/// A crop the user can add to their farm. Its picture is in
+/// `assets/ethmar_crops/`.
 class CatalogCrop {
   const CatalogCrop(this.id, this.name, this.category);
 
@@ -12,9 +12,9 @@ class CatalogCrop {
 
   String get image => 'assets/ethmar_crops/$id.png';
 
-  /// Whether the English or Arabic name contains [query], ignoring case,
-  /// Arabic diacritics, letter variants (أ/ا, ة/ه, ى/ي) and a leading "ال".
-  /// An empty query matches every crop.
+  /// Whether the English or Arabic name contains [query]. The search ignores
+  /// case, Arabic diacritics, letter variants (أ/ا, ة/ه, ى/ي) and a leading
+  /// "ال". An empty query matches every crop.
   bool matches(String query) {
     final q = _searchForm(query);
     if (q.isEmpty) return true;
@@ -25,7 +25,7 @@ class CatalogCrop {
 final _arabicMarks = RegExp('[ً-ْٰـ]');
 final _spaces = RegExp(r'\s+');
 
-/// [text] reduced to the form crop names are compared in.
+/// Simplifies [text] so crop names can be compared in search.
 String _searchForm(String text) => text
     .toLowerCase()
     .replaceAll(_arabicMarks, '')
@@ -40,8 +40,7 @@ String _searchForm(String text) => text
 /// Shown when a plant's own picture can't be loaded.
 const defaultPlantImage = 'assets/images/ethmar_sprout_pair.png';
 
-/// The crop to choose when the user's plant isn't in the catalog. Its picture
-/// goes in `assets/ethmar_crops/unknown.png`.
+/// The crop to choose when the user's plant is not in the catalog.
 const unknownCropId = 'unknown';
 
 /// Every crop that can be added, grouped by category.
@@ -159,11 +158,11 @@ const cropCatalog = [
   CatalogCrop('quinoa', BiText('Quinoa', 'كينوا'), CropCategory.grain),
   CatalogCrop('flax', BiText('Flax', 'كتان'), CropCategory.grain),
   CatalogCrop('safflower', BiText('Safflower', 'عصفر'), CropCategory.grain),
-  // Not in the list (first, so it's easy to find): the user picks its category when adding it (see
-  // FarmPlant.category). [CropCategory.other] is only its default.
+  // "Unknown plant" is first so it's easy to find. The user picks its
+  // category when adding it; [CropCategory.other] is only the default.
   CatalogCrop(unknownCropId, BiText('Unknown plant', 'نبتة غير معروفة'), CropCategory.other),
-  // Other plants: not grown to eat, but popular with beginners. Sugarcane
-  // is eaten, but fits no other category.
+  // Other plants: mostly grown for looks, but popular with beginners.
+  // Sugarcane is eaten but doesn't fit any other category.
   CatalogCrop('sugarcane', BiText('Sugarcane', 'قصب السكر'), CropCategory.other),
   CatalogCrop('aloe_vera', BiText('Aloe vera', 'ألوفيرا'), CropCategory.other),
   CatalogCrop('jasmine', BiText('Jasmine', 'ياسمين'), CropCategory.other),

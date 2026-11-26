@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'logo_paths.dart';
 
-/// The Ethmar logo, parsed from the original SVG paths.
+/// The Ethmar logo, read from the original SVG paths.
 ///
-/// Everything is converted into "logo space": the SVG's 600 x 450 viewBox,
-/// with y pointing down (like the screen).
+/// Everything uses "logo space": the SVG's 600 x 450 viewBox, with y
+/// pointing down (like the screen).
 class EthmarLogoData {
   EthmarLogoData._();
 
@@ -33,11 +33,11 @@ class EthmarLogoData {
 
   static List<Path> get all => _paths;
 
-  /// Area of logo space that contains the logo (with a little air).
+  /// The part of logo space that holds the logo (with a little margin).
   static const Rect bounds = Rect.fromLTRB(96, 146, 496, 322);
 }
 
-/// Scales logo space into a widget of any size, centred.
+/// Scales logo space to fit a widget of any size, centred.
 void applyLogoFit(Canvas canvas, Size size, {Rect content = EthmarLogoData.bounds}) {
   final scale = (size.width / content.width) < (size.height / content.height)
       ? size.width / content.width
@@ -49,7 +49,7 @@ void applyLogoFit(Canvas canvas, Size size, {Rect content = EthmarLogoData.bound
   canvas.translate(-content.left, -content.top);
 }
 
-/// Static logo (used in headers).
+/// The static logo (used in headers).
 class EthmarLogo extends StatelessWidget {
   const EthmarLogo({super.key, this.width = 120, this.color = AppColors.forest});
 
@@ -92,8 +92,8 @@ class _StaticLogoPainter extends CustomPainter {
   bool shouldRepaint(_StaticLogoPainter old) => old.color != color;
 }
 
-/// Minimal SVG path-data parser (M, L, H, V, C, S, Q, Z – absolute & relative).
-/// Enough for the Ethmar logo, no extra package needed.
+/// A small SVG path parser (M, L, H, V, C, S, Q, Z, absolute and relative).
+/// It's enough for the Ethmar logo, so no extra package is needed.
 Path parseSvgPath(String d) {
   final path = Path();
   final tokens = RegExp(r'[MmLlHhVvCcSsQqZz]|-?\d*\.?\d+(?:[eE][-+]?\d+)?')
@@ -201,7 +201,7 @@ Path parseSvgPath(String d) {
         y = startY;
         lastCx = x;
         lastCy = y;
-        // Guard against malformed data (numbers straight after Z).
+        // Protect against bad data (numbers right after Z).
         if (i < tokens.length && !isCmd(tokens[i])) cmd = 'l';
         break;
       }

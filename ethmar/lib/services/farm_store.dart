@@ -12,13 +12,12 @@ import '../models/task_log.dart';
 import 'journey_photo_service.dart';
 import 'plant_service.dart';
 
-/// Deletes the plants [ids] one after another with [deleteOne], and
-/// returns the error of each one that couldn't be deleted.
+/// Deletes the plants [ids] one by one with [deleteOne], and returns the
+/// error for each one that couldn't be deleted.
 ///
-/// [deleteOne] gets the ids already deleted, so the streak counts only
-/// deletes that succeeded: while a plant with a task still to do isn't
-/// confirmed gone, today can't be completed by deleting the others. A
-/// failure doesn't stop the rest. No delete is tried twice.
+/// [deleteOne] gets the ids that were already deleted, so the streak only
+/// counts deletes that worked. If one fails, the rest still run. No delete
+/// is tried twice.
 Future<Map<String, Object>> deletePlantsInTurn(
   List<String> ids,
   Future<void> Function(String id, Set<String> deleted) deleteOne,
@@ -41,7 +40,7 @@ Future<Map<String, Object>> deletePlantsInTurn(
 /// Firestore, ready for the screens to read and listen to.
 ///
 /// Changes go through the methods below and are saved by [PlantService].
-/// [plants] and [lands] then update by themselves, from the live streams.
+/// [plants] and [lands] then update automatically from the live streams.
 class FarmStore {
   FarmStore._();
 
@@ -51,14 +50,14 @@ class FarmStore {
 
   static final lands = ValueNotifier<int>(1);
 
-  /// Sorted by land, then square.
+  /// Sorted by land, then by square.
   static final plants = ValueNotifier<List<FarmPlant>>(const []);
 
-  /// True once the signed-in user's plants have arrived. Until then an empty
-  /// [plants] doesn't mean the farm is empty.
+  /// True once the user's plants have loaded. Until then, an empty [plants]
+  /// list doesn't mean the farm is empty.
   static final plantsLoaded = ValueNotifier<bool>(false);
 
-  /// The streak and lands, as saved (Home shows the streak).
+  /// The saved streak and lands (Home shows the streak).
   static final stats = ValueNotifier<FarmStats>(const FarmStats());
 
   static final _service = PlantService();
@@ -70,8 +69,8 @@ class FarmStore {
 
   static bool _started = false;
 
-  /// Starts following the user's farm. Call once, after Firebase is ready.
-  /// It follows sign-in and sign-out by itself.
+  /// Starts listening to the user's farm. Call once, after Firebase is ready.
+  /// It handles sign-in and sign-out by itself.
   static void start() {
     if (_started) return;
     _started = true;
@@ -87,7 +86,7 @@ class FarmStore {
     }, onError: (Object e) => debugPrint('Could not load the lands: $e'));
   }
 
-  /// Lands go first: the farm needs a land under every plant it draws.
+  /// Lands are updated first, because every plant needs a land under it.
   static void _publish() {
     lands.value = landsToShow(_savedLands, _savedPlants);
     plants.value = _savedPlants;
@@ -97,59 +96,56 @@ class FarmStore {
   static bool get landsFull =>
       plants.value.length >= lands.value * squaresPerLand;
 
-  /// The plant with this id, or null if it's gone (e.g. just deleted).
+  /// The plant with this id, or null if it's gone (for example just deleted).
   static FarmPlant? plantById(String id) =>
       plants.value.where((p) => p.id == id).firstOrNull;
 
-  /// A new, unused plant id, for [addPlant].
+  /// A new, unused plant id for [addPlant].
   static String newPlantId() => _service.newPlantId();
 
-  /// Saves a new plant on the first free square and returns it. Trying
-  /// again with the same [id] (from [newPlantId]) never adds it twice.
-  /// Throws a [FarmFullException] if there is no free square, and a
-  /// network error (see isNetworkError) when offline.
+  /// Saves a new plant on the first free square and returns it. Trying again
+  /// with the same [id] (from [newPlantId]) never adds it twice.
+  /// Throws a [FarmFullException] if there is no free square, and a network
+  /// error (see isNetworkError) when offline.
   static Future<FarmPlant> addPlant(FarmPlant plant, {String? id}) =>
       _service.addPlant(plant, lands: lands.value, id: id);
 
-  /// Saves the Edit Plant screen's changes: only the fields the user
-  /// changed, over the plant as it is saved now (see
-  /// [PlantService.editPlant]). It keeps its square. The streak follows
-  /// today's tasks after the change (see streakAfterScheduleChange).
+  /// Saves the changes from the Edit Plant screen. Only the fields the user
+  /// changed are written (see [PlantService.editPlant]). The plant keeps its
+  /// square, and the streak is updated for today's tasks.
   static Future<void> editPlant(PlantEdit edit) async {
     final fake = editForTests;
     if (fake != null) return fake(edit);
     _reportLost(await _service.editPlant(edit, plants: _savedPlants));
   }
 
-  /// Replaces [editPlant] in widget tests, which have no Firebase.
+  /// Replaces [editPlant] in widget tests (they have no Firebase).
   @visibleForTesting
   static Future<void> Function(PlantEdit edit)? editForTests;
 
-  /// Deletes running now, by plant id, so asking again joins the one
-  /// already running instead of starting a second.
+  /// Deletes that are running now, by plant id. Asking again waits for the
+  /// running one instead of starting a second one.
   static final _deletesRunning = <String, Future<void>>{};
 
   /// Deletes a plant, its journey entries and their photos. If it had
-  /// today's last unfinished task, today is completed for the streak (see
-  /// PlantService.deletePlant). Throws if it couldn't be deleted; the
-  /// plant then stays.
+  /// today's last unfinished task, today counts as completed for the streak.
+  /// Throws if it couldn't be deleted, and the plant stays.
   static Future<void> deletePlant(String plantId) async {
     final failed = await deletePlants([plantId]);
     if (failed[plantId] case final error?) throw error;
   }
 
-  /// Deletes the plants [ids] one after another (see [deletePlantsInTurn])
-  /// and returns the error of each one that couldn't be deleted; those
-  /// stay on the farm. Each delete counts only the ones already deleted as
-  /// gone, so a failed one can never complete today for the streak.
+  /// Deletes the plants [ids] one by one (see [deletePlantsInTurn]) and
+  /// returns the error for each one that couldn't be deleted. Those plants
+  /// stay on the farm.
   static Future<Map<String, Object>> deletePlants(List<String> ids) =>
       deletePlantsInTurn(ids, _deleteOne);
 
   static Future<void> _deleteOne(String id, Set<String> deleted) {
     final running = _deletesRunning[id];
     if (running != null) return running;
-    // A block: remove() returns this same future, which whenComplete
-    // would otherwise wait for.
+    // Uses a block body: remove() returns this same future, and whenComplete
+    // would wait for it.
     final delete = _deleteNow(id, deleted).whenComplete(() {
       _deletesRunning.remove(id);
     });
@@ -167,7 +163,7 @@ class FarmStore {
           if (p.id != id && !deleted.contains(p.id)) p,
       ],
     ));
-    // The plant is gone; a photo left behind only takes space.
+    // The plant is gone. A leftover photo only takes space, so we don't wait.
     unawaited(
       _photos
           .deletePlantPhotos(id)
@@ -175,23 +171,23 @@ class FarmStore {
     );
   }
 
-  /// Replaces [deletePlant]'s Firestore work in widget tests, which have
-  /// no Firebase.
+  /// Replaces [deletePlant]'s Firestore work in widget tests (they have no
+  /// Firebase).
   @visibleForTesting
   static Future<void> Function(String plantId)? deleteForTests;
 
-  /// Live journey timeline of [plantId], newest first.
+  /// The live journey timeline of [plantId], newest first.
   static Stream<List<JourneyEntry>> watchJourney(String plantId) =>
       (journeyForTests ?? _service.watchJourney)(plantId);
 
-  /// Replaces [watchJourney] in widget tests, which have no Firebase.
+  /// Replaces [watchJourney] in widget tests (they have no Firebase).
   @visibleForTesting
   static Stream<List<JourneyEntry>> Function(String plantId)? journeyForTests;
 
   /// Adds [image] to [plantId]'s journey timeline, with optional [notes].
-  /// The photo is uploaded first; if the entry then can't be saved, the
-  /// photo is deleted again. Throws a [JourneyPhotoException] if the upload
-  /// fails, or Firestore's error if saving does.
+  /// The photo is uploaded first. If the entry can't be saved after that,
+  /// the photo is deleted. Throws a [JourneyPhotoException] if the upload
+  /// fails, or Firestore's error if saving fails.
   static Future<void> addJourneyEntry(
     String plantId,
     XFile image, {
@@ -220,17 +216,17 @@ class FarmStore {
     }
   }
 
-  /// Live task log of the day [date] ("yyyy-mm-dd", see [TaskLog.dateKey]).
+  /// The live task log for [date] ("yyyy-mm-dd", see [TaskLog.dateKey]).
   static Stream<TaskLog> watchTaskLog(String date) =>
       (taskLogForTests ?? _service.watchTaskLog)(date);
 
-  /// Replaces [watchTaskLog] in widget tests, which have no Firebase.
+  /// Replaces [watchTaskLog] in widget tests (they have no Firebase).
   @visibleForTesting
   static Stream<TaskLog> Function(String date)? taskLogForTests;
 
-  /// Marks a task of [today] done or not done, and updates the streak and
+  /// Marks a task of [today] as done or not done, and updates the streak and
   /// the plant's next task (see PlantService.setTaskDone).
-  /// [todayTaskIds] are the ids of every task due today.
+  /// [todayTaskIds] are the ids of all tasks due today.
   static Future<void> setTaskDone({
     required DateTime today,
     required String plantId,
@@ -252,9 +248,8 @@ class FarmStore {
     ));
   }
 
-  /// Marks a missed task of the past day [day] done late today, or not.
-  /// The plant's next task then counts from today; the streak doesn't
-  /// change.
+  /// Marks a missed task from [day] as done late today (or not done). The
+  /// plant's next task then counts from today. The streak doesn't change.
   static Future<void> setLateTaskDone({
     required DateTime day,
     required String plantId,
@@ -274,8 +269,8 @@ class FarmStore {
     );
   }
 
-  /// Replaces [setTaskDone] and [setLateTaskDone] in widget tests, which
-  /// have no Firebase.
+  /// Replaces [setTaskDone] and [setLateTaskDone] in widget tests (they have
+  /// no Firebase).
   @visibleForTesting
   static Future<void> Function(String taskId,
       {required bool done, required bool late})? taskForTests;
@@ -284,15 +279,15 @@ class FarmStore {
   static Future<void> checkStreak() async =>
       _reportLost(await _service.checkStreak(DateTime.now()));
 
-  /// The streak just lost because a day was missed, until Home has told
-  /// the user (it then sets it back to 0).
+  /// The streak that was just lost because a day was missed. Home shows a
+  /// message and then sets it back to 0.
   static final streakLost = ValueNotifier<int>(0);
 
   static void _reportLost(int streak) {
     if (streak > 0) streakLost.value = streak;
   }
 
-  /// Saves one more land, up to [maxLands].
+  /// Adds one more land, up to [maxLands].
   static Future<void> addLand() async {
     if (lands.value < maxLands) await _service.saveLands(lands.value + 1);
   }

@@ -111,7 +111,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           child: SingleChildScrollView(
         child: Column(
           children: [
-            // Password reset screen header.
+            // Header of the reset password screen.
             AuthHeader(
               title: s.resetTitle,
               character: 'ethmar_buddy_thinking',

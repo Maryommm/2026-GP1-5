@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Remember the username chosen at sign up until its profile is saved, so the
-// app can finish the profile itself if it closes during email verification.
+// Saves the username chosen at sign up until the profile is created, so the
+// app can finish the profile if it closes during email verification.
 class PendingUsernameStore {
   PendingUsernameStore._();
 
@@ -12,7 +12,7 @@ class PendingUsernameStore {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_key(uid), username);
     } catch (_) {
-      // Sign up still works; only the restart recovery is lost.
+      // Sign up still works; only the recovery after a restart is lost.
     }
   }
 
@@ -30,7 +30,7 @@ class PendingUsernameStore {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_key(uid));
     } catch (_) {
-      // A leftover name is harmless: it is only used while no profile exists.
+      // A leftover name is harmless because it's only used when no profile exists.
     }
   }
 }

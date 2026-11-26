@@ -4,20 +4,18 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// How many approved Home slogans there are (homeSlogan1..3 in app_strings).
+/// How many Home slogans there are (homeSlogan1..3 in app_strings).
 const sloganCount = 3;
 
-/// Today's slogan index, shared by Home (like `currentUsername`), so
-/// rebuilding Home or switching language never picks a new one.
-/// Null until the first lookup finishes.
+/// Today's slogan index, shared across the app so rebuilding Home or
+/// switching language doesn't pick a new one. Null until it is loaded.
 final ValueNotifier<int?> dailySloganIndex = ValueNotifier(null);
 
-/// Picks one Home slogan per local calendar day and keeps it on the device.
+/// Picks one Home slogan per day and saves it on the device.
 ///
-/// * Same day: the stored slogan is reused, even after the app restarts.
-/// * New day: a random slogan is picked, never the one shown last time.
-/// * Only the index is stored, so the slogan shows in whichever language
-///   the app is using.
+/// * Same day: the saved slogan is used again, even after a restart.
+/// * New day: a random slogan is picked, never the same as last time.
+/// * Only the index is saved, so the slogan shows in the current language.
 class DailySloganService {
   DailySloganService({
     DateTime Function()? clock,
@@ -34,20 +32,21 @@ class DailySloganService {
   final Random _random;
   final ValueNotifier<int?> _notifier;
 
-  /// Local date of the index we already have, so most checks need no read.
+  /// The date of the index we already have, so most checks don't need to
+  /// read storage.
   String? _date;
 
-  /// The lookup in progress, if any. Every caller shares it, so the midnight
-  /// timer, app resume and Home opening can never pick or save twice.
+  /// The lookup that is running now, if any. All callers share it so the
+  /// slogan is never picked or saved twice.
   Future<int>? _pending;
 
-  /// Local calendar date as "YYYY-MM-DD".
+  /// The local date as "YYYY-MM-DD".
   static String localDate(DateTime time) =>
       '${time.year.toString().padLeft(4, '0')}-'
       '${time.month.toString().padLeft(2, '0')}-'
       '${time.day.toString().padLeft(2, '0')}';
 
-  /// Makes sure [dailySloganIndex] holds today's slogan and returns it.
+  /// Makes sure [dailySloganIndex] has today's slogan and returns it.
   Future<int> refresh() {
     final today = localDate(_clock());
     final current = _notifier.value;
@@ -82,5 +81,5 @@ class DailySloganService {
   }
 }
 
-/// The one service the app uses, so its memory of today is shared.
+/// The single service the app uses, so everyone shares today's slogan.
 final dailySloganService = DailySloganService();

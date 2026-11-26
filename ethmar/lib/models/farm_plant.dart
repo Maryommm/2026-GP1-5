@@ -3,27 +3,25 @@
 /// Plant: `users/{uid}/plants/{plantId}`
 ///   - cropId         String     a [cropCatalog] id, e.g. "tomato" (also
 ///                               picks the picture)
-///   - name           String     the user's name for it (at most 30 chars)
-///   - category       String     [CropCategory.name], e.g. "vegetable":
-///                               the crop's own, or for an unknown plant
-///                               the one the user picked
+///   - name           String     the user's name for it (max 30 characters)
+///   - category       String     [CropCategory.name], e.g. "vegetable".
+///                               The crop's own category, or the one the
+///                               user picked for an unknown plant
 ///   - land           int        which land it's on (0 = the first land)
 ///   - square         int        its square on that land, 0-24
 ///   - irrigation     map|null   {everyDays: int, time: "HH:mm",
 ///                               since: "yyyy-mm-dd",
 ///                               lastDone: {date, due},
-///                               previousDone: {date, due}}; null when
-///                               switched off. since (optional) is the
-///                               start day: no task is due before it, and
-///                               with nothing done since, the first one is
-///                               due that day (see savedOver and
-///                               markedUndone). lastDone
-///                               (optional) is the latest time the task
-///                               was done: date is the day it was really
-///                               done, due the day it was for. The next
-///                               task is due everyDays after that date.
-///                               previousDone is the one before, so
-///                               un-ticking lastDone can bring it back
+///                               previousDone: {date, due}}
+///                               null when turned off.
+///                               since: the start day, no task is due
+///                               before it.
+///                               lastDone: the last time the task was
+///                               done. date is the day it was actually
+///                               done, due is the day it was for. The next
+///                               task is due everyDays after date.
+///                               previousDone: the time before lastDone,
+///                               so un-ticking can bring it back.
 ///   - fertilization  map|null   same as irrigation
 ///   - plantedAt      Timestamp
 ///   - createdAt      Timestamp
@@ -34,7 +32,7 @@
 ///   - notes  String|null
 ///   - photo  map        {publicId, version, format, width, height, bytes},
 ///                       the same shape as `users/{uid}/media/profile`.
-///                       The picture is on Cloudinary at
+///                       The picture is saved on Cloudinary at
 ///                       `ethmar/plant-journey/{uid}/{plantId}/{entryId}`.
 library;
 
@@ -64,8 +62,8 @@ enum Repeat {
   /// Days between reminders (a month counts as 30). Saved as `everyDays`.
   final int days;
 
-  /// The choice for a saved `everyDays`. Only 1-7, 14, 21 and 30 exist
-  /// (the same list as in firestore.rules).
+  /// Finds the option for a saved `everyDays`. Only 1-7, 14, 21 and 30 are
+  /// allowed (the same list as in firestore.rules).
   static Repeat fromDays(int days) => Repeat.values.firstWhere(
     (r) => r.days == days,
     orElse: () => throw FormatException('No repeat every $days days.'),
@@ -85,9 +83,9 @@ enum Repeat {
   };
 }
 
-/// One time a care task was done: the day it was really done ([date]) and
-/// the day it was for ([due]). The same day when done on time; [date] is
-/// later when a missed task was done late.
+/// One time a care task was done: the day it was actually done ([date])
+/// and the day it was for ([due]). They are the same day when done on
+/// time; [date] is later when a missed task was done late.
 ///
 /// Saved as `{date: "yyyy-mm-dd", due: "yyyy-mm-dd"}`.
 class CareDone {
@@ -100,7 +98,8 @@ class CareDone {
 
   bool get late => date.isAfter(due);
 
-  /// Later than [other]: done on a later day, or for a later day.
+  /// True if this is newer than [other] (done on a later day, or for a
+  /// later day).
   bool isAfter(CareDone? other) =>
       other == null ||
       date.isAfter(other.date) ||
@@ -118,8 +117,8 @@ class CareDone {
 
   Map<String, String> toMap() => {'date': dateKey(date), 'due': dateKey(due)};
 
-  /// Null when missing. A broken value also gives null, so one bad field
-  /// can't hide the whole plant; the schedule then counts from [since].
+  /// Returns null when missing or broken, so one bad field can't hide the
+  /// whole plant. The schedule then counts from [since].
   static CareDone? fromMap(Object? data) {
     if (data is! Map) return null;
     final date = data['date'], due = data['due'];
@@ -134,7 +133,7 @@ class CareDone {
     }
   }
 
-  /// "yyyy-mm-dd" for the date of [day] (the same as TaskLog.dateKey).
+  /// "yyyy-mm-dd" for the date of [day] (same format as TaskLog.dateKey).
   static String dateKey(DateTime day) =>
       '${day.year}-${CareSchedule._twoDigits(day.month)}-'
       '${CareSchedule._twoDigits(day.day)}';
@@ -142,12 +141,12 @@ class CareDone {
 
 /// A reminder to water or fertilize: how often, and at what time.
 ///
-/// Saved as `{everyDays: 7, time: "08:00"}` (24-hour time), with [since],
+/// Saved as `{everyDays: 7, time: "08:00"}` (24-hour time), plus [since],
 /// [lastDone] and [previousDone] when known.
 ///
-/// When tasks are due is worked out in care_task.dart (see careState):
-/// the first one on [since], then every [Repeat.days] days after the day
-/// the task was last done ([lastDone]).
+/// The due dates are calculated in care_task.dart (see careState): the
+/// first task is on [since], then every [Repeat.days] days after the last
+/// time it was done ([lastDone]).
 class CareSchedule {
   const CareSchedule(
     this.repeat,
@@ -159,45 +158,34 @@ class CareSchedule {
   final Repeat repeat;
   final TimeOfDay time;
 
-  /// The schedule's start day (no time): no task is due before it, so a
-  /// schedule added today has no missed tasks from yesterday. With nothing
-  /// done since, its first task is due that day. Set when the schedule is
-  /// added, when its repeat changes, and when an un-tick leaves no earlier
-  /// done day (see [savedOver] and [markedUndone]). Null for schedules saved
-  /// before this was kept; those count from the planting day, starting on
-  /// the day the plant was last saved (see careState).
+  /// The schedule's start day (without time). No task is due before it, so a
+  /// schedule added today has no missed tasks from yesterday. It is set when
+  /// the schedule is added, when its repeat changes, and when an un-tick
+  /// leaves no earlier done day (see [savedOver] and [markedUndone]).
+  /// Old schedules don't have it; they count from the planting day instead
+  /// (see careState).
   final DateTime? since;
 
-  /// The latest time this task was done, on time or late. The next task is
-  /// due [Repeat.days] days after the day it was done. Null until it's
-  /// first done (and for schedules saved before this was kept).
+  /// The last time this task was done, on time or late. The next task is due
+  /// [Repeat.days] days after it. Null until it is done for the first time.
   final CareDone? lastDone;
 
   /// The time it was done before [lastDone], so un-ticking [lastDone] can
-  /// put it back.
+  /// bring it back.
   final CareDone? previousDone;
 
-  /// Same repeat and time; [since] and the done days aren't compared.
-  bool sameAs(CareSchedule? other) =>
-      other != null && other.repeat == repeat && other.time == time;
-
-  /// This schedule as the user saves it in place of [previous] on [today]:
-  /// - New (switched on): its first task is due [today], as for a plant
-  ///   added today.
-  /// - Same repeat (only the time changed, or nothing): kept as it was,
-  ///   with its start day and done days, so its tasks stay on the same days
-  ///   (a missed task stays missed) and only move to the new time.
-  /// - New repeat, done before: the next task is due [Repeat.days] (the new
-  ///   repeat) days after the day it was last done ([lastDone] is kept), or
-  ///   [today] if that day has already passed. Nothing is due before
-  ///   [today] ([since]), so an older missed task is replaced by it.
-  /// - New repeat, never done: it starts again on [today], as a new one.
+  /// Returns this schedule as it should be saved in place of [previous] on
+  /// [today]:
+  /// - New schedule (just turned on): the first task is due [today].
+  /// - Same repeat (only the time changed, or nothing): kept as it was, so
+  ///   the tasks stay on the same days and only the time moves.
+  /// - New repeat, done before: the next task is due [Repeat.days] days
+  ///   after it was last done, or [today] if that day has already passed.
+  /// - New repeat, never done: starts again on [today].
   ///
-  /// A schedule saved before start days were kept has none: it repeats
-  /// from [plantedAt], starting on [lastSaved], the plant's last save
-  /// before this one. When its repeat stays, its first task from that day
-  /// is written down now as its start day, so this save (e.g. only a new
-  /// name or time) doesn't move it.
+  /// Old schedules saved without a start day repeat from [plantedAt],
+  /// starting on [lastSaved]. If the repeat doesn't change, that first day
+  /// is saved now as the start day so this save doesn't move the tasks.
   CareSchedule savedOver(
     CareSchedule? previous,
     DateTime today, {
@@ -225,9 +213,9 @@ class CareSchedule {
     );
   }
 
-  /// The first of [start], [start] + [every] days, [start] + 2 × [every]...
-  /// that is on or after the date of [from]. Calendar days, so a
-  /// daylight-saving change can't shift it.
+  /// The first day of [start], [start] + [every], [start] + 2 × [every]...
+  /// that is on or after [from]. Uses calendar days, so daylight saving
+  /// can't shift it.
   static DateTime firstDayFrom(DateTime start, int every, DateTime from) {
     final s = _day(start), f = _day(from);
     final gap = DateTime.utc(f.year, f.month, f.day)
@@ -238,7 +226,7 @@ class CareSchedule {
     return DateTime(s.year, s.month, s.day + steps * every);
   }
 
-  /// The same schedule with other done days.
+  /// The same schedule with different done days.
   CareSchedule withDone({CareDone? last, CareDone? previous}) => CareSchedule(
     repeat,
     time,
@@ -247,10 +235,10 @@ class CareSchedule {
     previousDone: previous,
   );
 
-  /// After the task due on [done]'s due day is ticked: it becomes
-  /// [lastDone], so the next task counts from the day it was done, and the
-  /// old [lastDone] is kept as [previousDone] for un-ticking. Ticking the
-  /// same task again changes nothing. A tick older than [lastDone] (e.g.
+  /// Called after the task due on [done]'s day is ticked. It becomes
+  /// [lastDone], so the next task counts from that day, and the old
+  /// [lastDone] moves to [previousDone] (used for un-ticking). Ticking the
+  /// same task again does nothing. A tick older than [lastDone] (for example
   /// from another phone) doesn't move the schedule back.
   CareSchedule markedDone(CareDone done) {
     final last = lastDone;
@@ -260,15 +248,13 @@ class CareSchedule {
     return withDone(last: done, previous: last);
   }
 
-  /// After the task due on [due] is un-ticked: if it was [lastDone], the
-  /// time before ([previousDone]) counts again, as if it had never been
-  /// ticked; if it was [previousDone], that is forgotten.
+  /// Called after the task due on [due] is un-ticked. If it was [lastDone],
+  /// [previousDone] counts again, as if it was never ticked. If it was
+  /// [previousDone], that one is removed.
   ///
-  /// Only two done days are kept, so when there is no [previousDone] to go
-  /// back to (never done before, or already used by an earlier un-tick),
-  /// the un-ticked task's day becomes the start day ([since]): that task
-  /// is the one to do again (due, or missed if its day has passed), and
-  /// the schedule carries on from it. Nothing is made up as done.
+  /// Only two done days are saved. When there is no [previousDone] to go
+  /// back to, the un-ticked task's day becomes the start day ([since]), so
+  /// that task has to be done again and the schedule continues from there.
   CareSchedule markedUndone(DateTime due) {
     final day = _day(due);
     if (lastDone?.due == day) {
@@ -295,8 +281,8 @@ class CareSchedule {
     if (previousDone case final done?) 'previousDone': done.toMap(),
   };
 
-  /// Null when the schedule is switched off (saved as null).
-  /// Throws a [FormatException] if the saved values aren't valid.
+  /// Returns null when the schedule is turned off (saved as null).
+  /// Throws a [FormatException] if the saved values are not valid.
   static CareSchedule? fromMap(Object? data) {
     if (data == null) return null;
     if (data is! Map) throw FormatException('Invalid care schedule: $data');
@@ -315,7 +301,7 @@ class CareSchedule {
     );
   }
 
-  /// "yyyy-mm-dd" to a local date.
+  /// Converts "yyyy-mm-dd" to a local date.
   static DateTime _parseDate(String text) {
     final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(text);
     if (match == null) {
@@ -330,7 +316,7 @@ class CareSchedule {
 
   static String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
-  /// "HH:mm" (24-hour) to a [TimeOfDay].
+  /// Converts "HH:mm" (24-hour) to a [TimeOfDay].
   static TimeOfDay _parseTime(String text) {
     final match = RegExp(r'^(\d{2}):(\d{2})$').firstMatch(text);
     final hour = int.tryParse(match?.group(1) ?? '');
@@ -342,8 +328,8 @@ class CareSchedule {
   }
 }
 
-/// A picture on the journey timeline, uploaded to Cloudinary. Same fields
-/// as the profile picture's metadata (`users/{uid}/media/profile`).
+/// A photo on the journey timeline, uploaded to Cloudinary. It has the
+/// same fields as the profile picture (`users/{uid}/media/profile`).
 class JourneyPhoto {
   const JourneyPhoto({
     required this.publicId,
@@ -361,16 +347,16 @@ class JourneyPhoto {
   final int height;
   final int bytes;
 
-  /// Ethmar's Cloudinary account (the same as the profile pictures').
+  /// Ethmar's Cloudinary account (the same one used for profile pictures).
   static const cloudName = 'k7otdsln';
 
-  /// Where it's saved on Cloudinary, for [uid]'s entry [entryId] of plant
-  /// [plantId]. Firestore's rules allow no other.
+  /// Where the photo is saved on Cloudinary for user [uid], plant [plantId]
+  /// and entry [entryId]. Firestore's rules only allow this path.
   static String publicIdFor(String uid, String plantId, String entryId) =>
       'ethmar/plant-journey/$uid/$plantId/$entryId';
 
-  /// The address to show it from. The version makes a replaced picture a
-  /// new address, so an old copy is never shown from a cache.
+  /// The photo's web address. The version is part of the address, so a
+  /// replaced photo never shows an old cached copy.
   String get url =>
       'https://res.cloudinary.com/$cloudName/image/upload/v$version/$publicId.$format';
 
@@ -383,8 +369,8 @@ class JourneyPhoto {
     'bytes': bytes,
   };
 
-  /// Null when the entry has no picture.
-  /// Throws a [FormatException] if the saved values aren't valid.
+  /// Returns null when the entry has no photo.
+  /// Throws a [FormatException] if the saved values are not valid.
   static JourneyPhoto? fromMap(Object? data) {
     if (data == null) return null;
     if (data is! Map) throw FormatException('Invalid journey photo: $data');
@@ -413,8 +399,8 @@ class JourneyPhoto {
   }
 }
 
-/// One step on a plant's journey timeline: a picture, optional notes, and
-/// when it was added.
+/// One step on a plant's journey timeline: a photo, optional notes, and
+/// the date it was added.
 class JourneyEntry {
   const JourneyEntry({required this.date, this.id, this.notes, this.photo});
 
@@ -423,12 +409,13 @@ class JourneyEntry {
   final DateTime date;
   final String? notes;
 
-  /// Every saved entry has one; null only in sample data and old entries.
+  /// Every saved entry has a photo; it is null only in sample data and old
+  /// entries.
   final JourneyPhoto? photo;
 
-  /// Which day of the plant's life it was taken: 0 on the planting day.
+  /// Which day of the plant's life the photo was taken (0 = planting day).
   int dayOf(DateTime plantedAt) {
-    // UTC calendar days, so a daylight-saving change can't lose a day.
+    // Use UTC calendar days so daylight saving can't lose a day.
     final planted = DateTime.utc(
       plantedAt.year,
       plantedAt.month,
@@ -438,15 +425,16 @@ class JourneyEntry {
     return day.difference(planted).inDays;
   }
 
-  /// The document's fields. The id isn't one of them: it's the document name.
+  /// The document's fields. The id is not included because it is the
+  /// document name.
   Map<String, Object?> toMap() => {
     'date': Timestamp.fromDate(date),
     'notes': notes,
     'photo': photo?.toMap(),
   };
 
-  /// Builds an entry from document [id] and its fields.
-  /// Throws a [FormatException] if the saved values aren't valid.
+  /// Creates an entry from document [id] and its fields.
+  /// Throws a [FormatException] if the saved values are not valid.
   factory JourneyEntry.fromMap(String id, Map<String, dynamic> data) {
     final date = data['date'];
     final notes = data['notes'];
@@ -487,22 +475,20 @@ class FarmPlant {
   /// The Firestore document id. Null until the plant is saved.
   final String? id;
 
-  /// Saved as its `cropId`, which also picks the picture.
+  /// Saved as `cropId`, which also decides the picture.
   final CatalogCrop crop;
   final String name;
 
-  /// What kind of plant it is, for the filters and labels. A catalog crop
-  /// always has its own category; an unknown plant has the one the user
-  /// chose when adding it.
+  /// The plant's category, used for filters and labels. A catalog crop has
+  /// its own category; an unknown plant uses the one the user chose.
   final CropCategory category;
 
-  /// Where it sits on the farm: land 0 is the first land, and square is
-  /// 0-24 on that land. Use `firstFreeSpot` (farm_spot.dart) to pick them
-  /// for a new plant.
+  /// Where the plant is on the farm: land 0 is the first land, and square is
+  /// 0-24 on that land. Use `firstFreeSpot` (farm_spot.dart) for a new plant.
   final int land;
   final int square;
 
-  /// Null when the user hasn't set it (they can set it later).
+  /// Null when the user hasn't set it yet (they can set it later).
   final CareSchedule? irrigation;
   final CareSchedule? fertilization;
 
@@ -514,7 +500,7 @@ class FarmPlant {
   /// document, so [fromMap] leaves it empty.
   final List<JourneyEntry> journey;
 
-  /// Whole days since planting (0 on the day it was planted).
+  /// Whole days since planting (0 on the planting day).
   int get daysSincePlanting {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -522,17 +508,16 @@ class FarmPlant {
     return today.difference(planted).inDays;
   }
 
-  /// The schedule of [type]: [irrigation] for watering, [fertilization]
-  /// for fertilizing.
+  /// The schedule for [type]: [irrigation] for watering, [fertilization] for
+  /// fertilizing.
   CareSchedule? scheduleOf(TaskType type) => switch (type) {
     TaskType.watering => irrigation,
     TaskType.fertilizing => fertilization,
   };
 
   /// The same plant with a new name and schedules (from the edit form).
-  /// Each schedule keeps or moves its tasks as [CareSchedule.savedOver]
-  /// says: a new time keeps the days, a new repeat counts from the last
-  /// time the task was done.
+  /// Each schedule is updated with [CareSchedule.savedOver]: a new time
+  /// keeps the same days, a new repeat counts from the last done time.
   FarmPlant edited({
     required String name,
     required CareSchedule? irrigation,
@@ -563,7 +548,7 @@ class FarmPlant {
     journey: journey,
   );
 
-  /// The same plant once it has a document [id] and a spot on the farm.
+  /// The same plant after it gets a document [id] and a spot on the farm.
   FarmPlant placed({
     required String id,
     required int land,
@@ -584,8 +569,8 @@ class FarmPlant {
   );
 
   /// The same plant with [entry] added to its timeline. The plant's own
-  /// document doesn't change (entries live in `journey`), so neither does
-  /// [updatedAt].
+  /// document doesn't change (entries are saved in `journey`), so
+  /// [updatedAt] stays the same.
   FarmPlant withJourneyEntry(JourneyEntry entry) => FarmPlant(
     id: id,
     crop: crop,
@@ -601,8 +586,8 @@ class FarmPlant {
     journey: [...journey, entry],
   );
 
-  /// The document's fields. Not included: the id (it's the document name)
-  /// and [journey] (its own subcollection).
+  /// The document's fields. Not included: the id (it is the document name)
+  /// and [journey] (it is a separate subcollection).
   Map<String, Object?> toMap() => {
     'cropId': crop.id,
     'name': name,
@@ -616,9 +601,9 @@ class FarmPlant {
     'updatedAt': Timestamp.fromDate(updatedAt),
   };
 
-  /// Builds a plant from document [id] and its fields, looking up `cropId`
-  /// in [cropCatalog]. [journey] starts empty; load it separately.
-  /// Throws a [FormatException] if the saved values aren't valid.
+  /// Creates a plant from document [id] and its fields, looking up `cropId`
+  /// in [cropCatalog]. [journey] starts empty and is loaded separately.
+  /// Throws a [FormatException] if the saved values are not valid.
   factory FarmPlant.fromMap(String id, Map<String, dynamic> data) {
     final cropId = data['cropId'];
     final name = data['name'];
@@ -640,8 +625,8 @@ class FarmPlant {
     if (crop == null) {
       throw FormatException('Plant $id has unknown cropId "$cropId".');
     }
-    // Only an unknown plant's saved category is used (see [category]); an
-    // old or unreadable one counts as "other".
+    // The saved category is only used for unknown plants (see [category]). An
+    // old or unreadable value counts as "other".
     final saved = data['category'];
     return FarmPlant(
       id: id,

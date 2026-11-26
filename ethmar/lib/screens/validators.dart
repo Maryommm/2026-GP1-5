@@ -9,7 +9,7 @@ enum PasswordRule {
   digit,
   special;
 
-  // "at least 8 characters", "a capital letter"...
+  // "at least 8 characters", "a capital letter", ...
   String label(S s) => switch (this) {
         PasswordRule.length => s.errPasswordLength,
         PasswordRule.upper => s.errPasswordUpper,
@@ -18,24 +18,24 @@ enum PasswordRule {
       };
 }
 
-// Check if the user's input follows the required rules.
+// Checks that the user's input follows the rules.
 class Validators {
   Validators._();
 
-  // Check the email format.
+  // The email format.
   static final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$');
 
-  // The longest username. Typing simply stops here, with no error.
+  // The longest username. Typing just stops here, with no error.
   static const usernameMaxLength = 30;
 
-  // For the username field: stop at the maximum length and ignore "/",
-  // which can't be used (the username is also a database document name).
+  // For the username field: stop at the max length and block "/", which
+  // can't be used (the username is also a database document name).
   static final usernameFormatters = <TextInputFormatter>[
     FilteringTextInputFormatter.deny('/'),
     LengthLimitingTextInputFormatter(usernameMaxLength),
   ];
 
-  // Any username is fine; it just can't be empty.
+  // Any username is fine as long as it isn't empty.
   static String? username(String? v, S s) {
     final t = v?.trim() ?? '';
 
@@ -54,15 +54,15 @@ class Validators {
     return null;
   }
 
-  // Check for a capital letter, number, and special character.
+  // Checks for a capital letter, a number and a special character.
   static final _upperRe = RegExp(r'[A-Z]');
   static final _digitRe = RegExp(r'[0-9]');
-  // Only English keyboard symbols count, so Arabic letters or other non-English
-  // characters can't stand in for a special character.
+  // Only English keyboard symbols count, so Arabic letters or other
+  // characters can't be used as the special character.
   static final _specialRe = RegExp(r'''[!"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~]''');
 
   // Whether [password] follows [rule]. The sign-up checklist and the checks
-  // below both use this, so they always agree.
+  // below both use this, so they always match.
   static bool passwordRuleMet(PasswordRule rule, String password) =>
       switch (rule) {
         PasswordRule.length => password.length >= 8,
@@ -78,8 +78,8 @@ class Validators {
   static bool isEnglishOnly(String password) =>
       _englishOnlyRe.hasMatch(password);
 
-  // Require 8 characters, a capital letter, a number, and a special character.
-  // The error lists only the rules that are still missing.
+  // Requires 8 characters, a capital letter, a number and a special
+  // character. The error only lists the rules that are still missing.
   static String? password(String? v, S s) {
     final t = v ?? '';
 
@@ -94,8 +94,8 @@ class Validators {
     return missing.isEmpty ? null : s.passwordNeeds(missing);
   }
 
-  // Sign-up, where the checklist under the field already shows which rules
-  // are missing: the error only says that some are.
+  // For sign up. The checklist under the field already shows which rules are
+  // missing, so the error only says that some are.
   static String? newPassword(String? v, S s) {
     final t = v ?? '';
     if (t.isEmpty) return s.errPasswordRequired;

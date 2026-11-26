@@ -1,14 +1,15 @@
-/// The daily streak rules, kept apart from Firestore so they can be tested.
+/// The daily streak rules. They are kept separate from Firestore so they
+/// can be tested.
 ///
-/// - The streak goes up by 1 on a day when every task of that day is done.
+/// - The streak goes up by 1 on a day when all of that day's tasks are done.
 /// - Un-ticking a task on a completed day takes that 1 back.
-/// - When the app opens, a day with tasks between the last completed day
-///   and today that wasn't completed resets the streak to 0. Days with no
+/// - When the app opens, if a day with tasks between the last completed day
+///   and today was not completed, the streak resets to 0. Days with no
 ///   tasks don't break it.
-/// - With no plants, or no plant with a watering or fertilizing schedule,
-///   there are no tasks, so the streak stays at 0.
-/// - A day only counts when its tasks are done that same day. A missed task
-///   done later (see missedTasks in daily_task.dart) adds nothing.
+/// - With no plants, or no plant with a schedule, there are no tasks, so
+///   the streak stays at 0.
+/// - A day only counts if its tasks are done on that same day. A missed
+///   task done later adds nothing.
 library;
 
 import 'care_task.dart';
@@ -17,10 +18,10 @@ import 'farm_plant.dart';
 import 'farm_stats.dart';
 import 'task_log.dart';
 
-/// The streak after the app opens on [today]: 0 if a day with tasks was
-/// missed since [FarmStats.lastCompletedDate], or if no plant has an active
-/// care schedule (including when there are no plants).
-/// [FarmStats.lastCompletedDate] is kept, so Home can show "streak lost".
+/// The streak when the app opens on [today]. It is 0 if a day with tasks
+/// was missed since [FarmStats.lastCompletedDate], or if no plant has an
+/// active schedule. [FarmStats.lastCompletedDate] is kept so Home can show
+/// "streak lost".
 FarmStats streakAfterMissedDays(
   FarmStats stats,
   List<FarmPlant> plants,
@@ -31,7 +32,7 @@ FarmStats streakAfterMissedDays(
   if (!_hasSchedules(plants) || last == null) return _withStreak(stats, 0);
 
   final day = _dateOnly(today);
-  // More than a year away: certainly missed, and not worth scanning.
+  // More than a year ago: definitely missed, no need to check each day.
   if (day.difference(last).inDays > 366) return _withStreak(stats, 0);
   for (var d = _nextDay(last); d.isBefore(day); d = _nextDay(d)) {
     if (dueTasks(plants, d).isNotEmpty) return _withStreak(stats, 0);
@@ -40,8 +41,8 @@ FarmStats streakAfterMissedDays(
 }
 
 /// True when going from [before] to [after] broke a running streak because
-/// a day with tasks was missed, so Home tells the user. Not when it went to
-/// 0 only because no plant has a schedule any more (e.g. all deleted).
+/// a day with tasks was missed, so Home can tell the user. False when it
+/// went to 0 only because no plant has a schedule anymore.
 bool streakBroken(FarmStats before, FarmStats after, List<FarmPlant> plants) =>
     before.currentStreak > 0 &&
     after.currentStreak == 0 &&
@@ -50,12 +51,13 @@ bool streakBroken(FarmStats before, FarmStats after, List<FarmPlant> plants) =>
 bool _hasSchedules(List<FarmPlant> plants) =>
     plants.any((p) => p.irrigation != null || p.fertilization != null);
 
-/// True when the streak was lost because a day with tasks, after the last
-/// completed day and before [today], wasn't completed. Daily Tasks and Home
-/// then say so. It turns false again once a new day is completed.
+/// True when the streak was lost because a day with tasks (after the last
+/// completed day and before [today]) was not completed. Daily Tasks and
+/// Home then show a message. It becomes false again once a new day is
+/// completed.
 ///
-/// False when there never was a streak (no completed day yet), or when the
-/// streak ended for another reason (e.g. no plants have a schedule).
+/// False when there never was a streak, or when the streak ended for
+/// another reason (for example no plants have a schedule).
 bool streakBrokenByMissedTasks(
   FarmStats stats,
   List<FarmPlant> plants,
@@ -64,7 +66,7 @@ bool streakBrokenByMissedTasks(
   final last = _parseDate(stats.lastCompletedDate);
   if (last == null) return false;
   final day = _dateOnly(today);
-  // Missed for over a year: the streak is gone, but this isn't news.
+  // Missed for over a year: the streak is gone, but no need to tell the user.
   if (day.difference(last).inDays > 366) return false;
   for (var d = _nextDay(last); d.isBefore(day); d = _nextDay(d)) {
     if (dueTasks(plants, d).isNotEmpty) return true;
@@ -74,9 +76,9 @@ bool streakBrokenByMissedTasks(
 
 /// The streak after a task of [today] is ticked or un-ticked.
 ///
-/// [allDone] says whether every task of today is now done. When a completed
-/// day becomes incomplete again, the +1 is taken back, and the last
-/// completed day goes back to [previousTaskDay] (see [previousTaskDay]).
+/// [allDone] says whether all of today's tasks are now done. If a
+/// completed day becomes incomplete again, the +1 is taken back and the
+/// last completed day goes back to [previousTaskDay].
 FarmStats streakAfterToggle(
   FarmStats stats, {
   required DateTime today,
@@ -103,24 +105,18 @@ FarmStats streakAfterToggle(
   );
 }
 
-/// The streak after a plant's care schedule is edited at [now]: [before]
-/// are the plants as they were, [after] as they are now, and [todayLog]
+/// The streak after a plant's schedule is edited at [now]. [before] are the
+/// plants before the edit, [after] are the plants now, and [todayLog] is
 /// today's task log.
 ///
-/// Today counts as completed only while every task of today (see
-/// tasksForDay) is done, the same as when a task is ticked
-/// ([streakAfterToggle]):
-/// - An edit that adds a task to a completed today takes today's +1 back,
-///   so an unfinished day isn't kept as completed (and breaks the streak
-///   tomorrow if it stays unfinished). Ticking the new task gives it back,
-///   once.
-/// - An edit that removes today's last unfinished task, so every task of
-///   today is done, completes the day (once, as ticking it would have).
-/// - Nothing else changes: an edit that doesn't change whether today is
-///   finished (e.g. a new time) leaves the streak as it is, earlier days
-///   keep what they had, and a missed task done late still counts for
-///   nothing. Days missed before today are checked with [before], the
-///   schedules they had.
+/// Today counts as completed only while all of today's tasks are done
+/// (same as [streakAfterToggle]):
+/// - If the edit adds a task to a completed day, today's +1 is taken back.
+///   Ticking the new task gives it back.
+/// - If the edit removes today's last unfinished task, the day becomes
+///   completed (once).
+/// - Anything else (for example only a new time) leaves the streak as it
+///   is. Earlier days are checked with [before], the old schedules.
 FarmStats streakAfterScheduleChange(
   FarmStats stats, {
   required List<FarmPlant> before,
@@ -144,19 +140,17 @@ FarmStats streakAfterScheduleChange(
   );
 }
 
-/// The streak after a plant is deleted at [now]: [before] are the plants
-/// with it, [after] without it, and [todayLog] today's task log.
+/// The streak after a plant is deleted at [now]. [before] are the plants
+/// with it, [after] without it, and [todayLog] is today's task log.
 ///
-/// The same as an edit that removes the plant's tasks from today
-/// ([streakAfterScheduleChange]): when the plant had today's last
-/// unfinished task, every task left is done, so today is completed (once).
-/// Its own tasks never count as done. Deleting can't add a task, so it
+/// This works like an edit that removes the plant's tasks from today
+/// ([streakAfterScheduleChange]): if the plant had today's last unfinished
+/// task, the day becomes completed (once). Deleting can't add a task, so it
 /// never takes today's +1 back.
 ///
-/// When no task is left today (e.g. the last plant was deleted), nothing
-/// changes: a day without tasks is never completed, and with no schedules
-/// left the streak goes back to 0 when the app next checks it
-/// ([streakAfterMissedDays]).
+/// If no tasks are left today (for example the last plant was deleted),
+/// nothing changes. The streak goes back to 0 the next time the app checks
+/// it ([streakAfterMissedDays]).
 FarmStats streakAfterPlantDeleted(
   FarmStats stats, {
   required List<FarmPlant> before,
@@ -177,10 +171,8 @@ FarmStats streakAfterPlantDeleted(
   );
 }
 
-/// The last day before [today] that had tasks, within a year, or null.
-///
-/// While a streak is running, every day with tasks was completed, so this
-/// is the completed day before today.
+/// The last day before [today] that had tasks (within a year), or null.
+/// While a streak is running, this is the completed day before today.
 DateTime? previousTaskDay(List<FarmPlant> plants, DateTime today) {
   var d = _dateOnly(today);
   for (var i = 0; i < 366; i++) {
@@ -200,7 +192,7 @@ DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
 
 DateTime _nextDay(DateTime d) => DateTime(d.year, d.month, d.day + 1);
 
-/// "yyyy-mm-dd" (see [TaskLog.dateKey]) to a local date, or null.
+/// Converts "yyyy-mm-dd" (see [TaskLog.dateKey]) to a local date, or null.
 DateTime? _parseDate(String? key) {
   if (key == null) return null;
   final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(key);

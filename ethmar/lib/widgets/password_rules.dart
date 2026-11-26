@@ -5,14 +5,14 @@ import '../screens/validators.dart' show PasswordRule, Validators;
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// The password rules as a list under the sign-up password field. Each rule
-/// starts dim with a small dot, and turns green with a tick as soon as the
-/// typed password follows it. The account can only be created once all of
+/// The password rules shown as a list under the sign-up password field.
+/// Each rule starts grey with a small dot and turns green with a tick when
+/// the password follows it. The account can only be created when all of
 /// them are green (see [Validators.newPassword]).
 class PasswordRules extends StatelessWidget {
   const PasswordRules({super.key, required this.controller});
 
-  /// The password field's controller; the list updates as the user types.
+  /// The password field's controller. The list updates as the user types.
   final TextEditingController controller;
 
   @override
@@ -55,7 +55,7 @@ class _Rule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dim until followed: secondary text, a little faded.
+    // Grey and a bit faded until the rule is met.
     final colour = met
         ? AppColors.success
         : AppColors.textSecondary.withValues(alpha: 0.75);

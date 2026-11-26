@@ -56,15 +56,8 @@ the same keys.)
 
 ## Character illustrations
 
-Put them in `assets/images/` as **PNG with a transparent background**:
-
-| File | Where it shows |
-| --- | --- |
-| `character_welcome.png` | Welcome hero |
-| `character_signup.png` | Sign up header |
-| `character_login.png` | Log in header |
-
-Until a file exists, a placeholder "plant buddy" is drawn instead (you may see
-an "Unable to load asset" note in the debug console – that's expected).
-After adding images, stop the app and run it again (hot reload doesn't pick
-up new asset files).
+The Thamoor character pictures are in `assets/images/` (`ethmar_buddy_*.png`
+and the `*_day_character.png` weather versions), as PNG files with a
+transparent background. If a picture can't be loaded, a simple drawn "plant
+buddy" is shown instead. After adding new images, stop the app and run it
+again (hot reload doesn't pick up new asset files).

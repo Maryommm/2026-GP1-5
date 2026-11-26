@@ -21,11 +21,11 @@ class UserAvatar extends StatelessWidget {
   final double size;
   final String? imageUrl;
 
-  /// A photo picked on this device but not saved yet (Edit Profile preview).
+  /// A photo picked on this device but not saved yet (shown on Edit Profile).
   final Uint8List? localImage;
 
-  /// Show the default avatar even if a photo is saved (Edit Profile, after
-  /// "Delete photo" and before Save).
+  /// Show the default avatar even if a photo is saved (on Edit Profile, after
+  /// "Delete photo" and before saving).
   final bool showDefault;
 
   @override
@@ -79,7 +79,7 @@ class UserAvatar extends StatelessWidget {
     );
   }
 
-  // The Ethmar default avatar, on the feature-card green while it loads.
+  // The Ethmar default avatar, on a light green circle while it loads.
   Widget _fallback(BuildContext context) {
     // Decode the large image at the size it is shown.
     final pixels = (size * MediaQuery.devicePixelRatioOf(context)).round();

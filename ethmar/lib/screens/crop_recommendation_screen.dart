@@ -1,11 +1,11 @@
-// ("What to plant").
+// Crop Recommendation screen ("What to plant").
 //
-// The file is in four parts:
+// This file has four parts:
 //   1. CropRecommendationScreen - loads the data and picks which view to show.
 //   2. _SetupView / _LoadingView / _ErrorView - the three questions about
-//      the user's setup, then waiting, or the error when it fails.
-//   3. _ResultsView and its pieces - the category buttons and the tickets.
-//   4. Drawing helpers - the ticket outline and the dashed line.
+//      the user's setup, the loading view, and the error view.
+//   3. _ResultsView and its parts - the category buttons and the crop cards.
+//   4. Drawing helpers - the card outline and the dashed line.
 
 import 'dart:async';
 
@@ -30,7 +30,7 @@ typedef LoadMoreCrops = Future<List<CropRecommendation>> Function(
     CropRecommendationResult first, int loaded);
 
 /// Asks about the user's setup (pot or ground, sunlight, watering), then
-/// shows three states: loading, error, and results.
+/// shows one of three states: loading, error or results.
 class CropRecommendationScreen extends StatefulWidget {
   const CropRecommendationScreen({super.key, this.load, this.loadMore});
 
@@ -46,12 +46,12 @@ class CropRecommendationScreen extends StatefulWidget {
 }
 
 class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
-  // fetches the data
+  // Gets the recommendations from the API.
   late final _service = CropRecommendationService();
   late final _load = widget.load ?? _service.recommend;
   late final LoadMoreCrops _loadMore = widget.loadMore ?? _service.nextPage;
   // Nothing is loaded until the user answers the questions, so the server
-  // uses their real setup instead of guessing it.
+  // uses their real setup instead of guessing.
   GrowingSetup? _setup;
   Future<CropRecommendationResult>? _future;
 
@@ -60,20 +60,20 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
         _future = _load(setup);
       });
 
-  // The braces matter: `() => _future = ...` would return the Future, which
-  // setState doesn't allow.
+  // The braces are needed: `() => _future = ...` would return the Future,
+  // and setState doesn't allow that.
   void _retry() => setState(() {
         _future = _load(_setup!);
       });
 
-  // Back to the first question, e.g. to pick a sunnier spot.
+  // Go back to the first question, e.g. to pick a sunnier spot.
   void _changeAnswers() => setState(() {
         _setup = null;
         _future = null;
       });
 
   // True after we send the user to the phone's settings to allow location,
-  // so we try again by ourselves when they come back to the app.
+  // so we try again automatically when they come back to the app.
   bool _sentToSettings = false;
   late final AppLifecycleListener _lifecycle;
 
@@ -100,15 +100,15 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
     CropRecommendationService.openLocationSettings(status);
   }
 
-  // The server no longer accepts the sign-in: sign out and open Login with
-  // the email filled in.
+  // The server doesn't accept the sign-in anymore: sign out and open Login
+  // with the email filled in.
   Future<void> _signInAgain() async {
     final auth = AuthService();
     final email = auth.currentSession?.email ?? '';
     try {
       await auth.signOut();
     } catch (_) {
-      // Login signs in again either way.
+      // Login signs the user in again either way.
     }
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -120,7 +120,7 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
   @override
   Widget build(BuildContext context) {
     final future = _future;
-    // The questions can't be skipped: the only way out is the back button.
+    // The questions can't be skipped; the only way out is the back button.
     if (future == null) {
       return Scaffold(
         body: LeafPrintBackground(child: _SetupView(onDone: _start)),
@@ -134,7 +134,7 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
             // Only the results use the recommender's own background.
             var showingResults = false;
             final Widget child;
-            //show the loading animation.
+            // Still loading: show the loading animation.
             if (loading) {
               child = const _LoadingView();
               // The request failed: show the error message.
@@ -150,12 +150,12 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
               child = _ErrorView(
                 onRetry: _retry,
                 empty: true,
-                // Without full sun, the sunlight is the likely reason, not
-                // the climate of the area.
+                // Without full sun, the sunlight is the likely reason, not the area's
+                // climate.
                 lowSun: _setup?.sunlight != Sunlight.full,
                 onChangeAnswers: _changeAnswers,
               );
-              // Success: show the seed packets.
+              // Success: show the crop cards.
             } else {
               child = _ResultsView(
                 result: snap.data!,
@@ -169,15 +169,15 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
               duration: const Duration(milliseconds: 350),
               child: KeyedSubtree(
                 key: ValueKey(snap.connectionState),
-                // The results use the recommender's own background, with the
-                // hills and clouds behind Thamoor. Loading, "no crops" and
-                // error messages use the shared inner background.
+                // The results use the recommender's background, with hills and clouds
+                // behind Thamoor. Loading, "no crops" and error views use the normal
+                // background.
                 child: LeafPrintBackground(
                   image: showingResults
                       ? 'assets/images/ethmar_recommender_background.png'
                       : LeafPrintBackground.asset,
-                  // Clouds and hills a little lower, leaving calmer space
-                  // behind the title.
+                  // Move the clouds and hills a little lower, to leave space behind the
+                  // title.
                   shiftDown: showingResults ? 0.04 : 0,
                   child: child,
                 ),
@@ -189,7 +189,7 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
   }
 }
 
-/// One question about the user's setup and its answers.
+/// One question about the user's setup, and its answers.
 class _Question {
   const _Question(this.text, this.options);
   final String text;
@@ -204,11 +204,11 @@ class _Answer {
 }
 
 /// Asks three questions, one per page, before anything is loaded:
-///   1. pot or ground - a pot has bought potting soil, so the server uses a
-///      neutral pH; the ground uses the soil of the user's area;
-///   2. hours of direct sun;
-///   3. how often the user will water.
-/// The back button returns to the previous question, or leaves the screen
+///   1. Pot or ground. A pot uses potting soil, so the server uses a
+///      neutral pH. The ground uses the soil of the user's area.
+///   2. Hours of direct sun.
+///   3. How often the user will water.
+/// The back button goes to the previous question, or leaves the screen
 /// from the first one.
 class _SetupView extends StatefulWidget {
   const _SetupView({required this.onDone});
@@ -336,7 +336,7 @@ class _SetupViewState extends State<_SetupView> {
   }
 }
 
-/// One answer, as a large tappable card.
+/// One answer, shown as a large card you can tap.
 class _SetupOption extends StatelessWidget {
   const _SetupOption({required this.answer, required this.onTap});
   final _Answer answer;
@@ -379,7 +379,7 @@ class _SetupOption extends StatelessWidget {
   }
 }
 
-/// Loading screen
+/// Shown while the recommendations are loading.
 class _LoadingView extends StatefulWidget {
   const _LoadingView();
 
@@ -392,7 +392,7 @@ class _LoadingViewState extends State<_LoadingView> {
   late final Timer _timer;
 
   @override
-  ///loading text
+  // Show the next loading message every 1.1 seconds.
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(milliseconds: 1100), (t) {
@@ -403,7 +403,7 @@ class _LoadingViewState extends State<_LoadingView> {
 
   @override
   void dispose() {
-    // Stop the timer when the screen closes so it doesn't keep running.
+    // Stop the timer when the screen closes.
     _timer.cancel();
     super.dispose();
   }
@@ -479,7 +479,7 @@ class _LoadingViewState extends State<_LoadingView> {
   }
 }
 
-/// Shown when loading fails, or when no crop
+/// Shown when loading fails, or when no crop suits the area.
 class _ErrorView extends StatelessWidget {
   const _ErrorView({
     required this.onRetry,
@@ -492,20 +492,20 @@ class _ErrorView extends StatelessWidget {
   });
   final VoidCallback onRetry;
 
-  /// No crops because the user's spot gets less than full sun.
+  /// True when there are no crops because the spot gets less than full sun.
   final bool lowSun;
 
-  /// Goes back to the questions about the user's setup.
+  /// Goes back to the setup questions.
   final VoidCallback? onChangeAnswers;
 
-  /// Opens the phone's settings for a LOCATION_OFF / LOCATION_BLOCKED error.
+  /// Opens the phone's settings for a LOCATION_OFF or LOCATION_BLOCKED error.
   final ValueChanged<String>? onOpenSettings;
 
   /// Sends the user to Login for an UNAUTHENTICATED error.
   final VoidCallback? onSignIn;
   final Object? error;
 
-  /// The request worked but no crop suits the area this month.
+  /// True when the request worked but no crop suits the area this month.
   final bool empty;
 
   /// The error's status, e.g. 'LOCATION_DENIED' (null for other errors).
@@ -529,14 +529,14 @@ class _ErrorView extends StatelessWidget {
   }
 
   /// The main button, plus a smaller "Try again" link when the main button
-  /// sends the user to the phone's settings.
+  /// opens the phone's settings.
   List<Widget> _actions(S s) {
     final change = onChangeAnswers;
     if (empty && lowSun && change != null) {
       return [EthmarButton(label: s.cropChangeAnswers, onPressed: change)];
     }
     final status = _status;
-    // Trying again can't help until the user signs in again.
+    // Trying again won't help until the user signs in again.
     final signIn = onSignIn;
     if (signIn != null && status == 'UNAUTHENTICATED') {
       return [EthmarButton(label: s.loginButton, onPressed: signIn)];
@@ -546,7 +546,7 @@ class _ErrorView extends StatelessWidget {
       return [EthmarButton(label: s.mapAllowLocation, onPressed: onRetry)];
     }
     // Off or blocked: only the phone's settings can change it. The screen
-    // tries again by itself when the user comes back.
+    // tries again automatically when the user comes back.
     final open = onOpenSettings;
     if (open != null &&
         (status == 'LOCATION_OFF' || status == 'LOCATION_BLOCKED')) {
@@ -562,7 +562,7 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    // Prints the real error in the debug console, for developers.
+    // Print the real error in the debug console for developers.
     if (error != null) debugPrint('crop recommendations failed: $error');
     return SafeArea(
       child: Column(
@@ -600,7 +600,7 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-// Results: one seed packet per crop.
+// Results view: one crop card per crop.
 String _weatherCharacter(GrowingConditions c) {
   if (c.rainMm > 50) return 'ethmar_rainy_day_character';
   if (c.tempLow <= 8) return 'ethmar_cold_day_character';
@@ -616,8 +616,8 @@ class _CategoryGroup {
   final crops = <CropRecommendation>[];
 }
 
-/// Groups crops by category. Categories keep the order of their first
-/// (best) crop, so the strongest suggestion's category comes first.
+/// Groups crops by category. Categories are ordered by their best crop, so
+/// the category of the top suggestion comes first.
 List<_CategoryGroup> _groupByCategory(List<CropRecommendation> crops) {
   final groups = <CropCategory, _CategoryGroup>{};
   for (final crop in crops) {
@@ -629,8 +629,8 @@ List<_CategoryGroup> _groupByCategory(List<CropRecommendation> crops) {
   return groups.values.toList();
 }
 
-/// Illustration on the ticket (drawn on a near-white background, so the
-/// ticket face is warm white for it to blend in).
+/// The illustration on the crop card. The pictures have a near-white
+/// background, so the card face is white to blend with them.
 String _categoryPhoto(CropCategory cat) => switch (cat) {
       CropCategory.herb => 'assets/images/ethmar_herbs_photo.png',
       CropCategory.legume => 'assets/images/ethmar_legumes_photo.png',
@@ -640,8 +640,8 @@ String _categoryPhoto(CropCategory cat) => switch (cat) {
       _ => cat.image,
     };
 
-/// Swipe left/right between categories; each category's tickets scroll
-/// freely up and down.
+/// Swipe left or right between categories. Each category's cards scroll up
+/// and down.
 class _ResultsView extends StatefulWidget {
   const _ResultsView({
     required this.result,
@@ -653,7 +653,7 @@ class _ResultsView extends StatefulWidget {
   final LoadMoreCrops loadMore;
   final VoidCallback onChangeAnswers;
 
-  /// Asks the server again; offered when the soil pH was only an average.
+  /// Asks the server again. Offered when the soil pH was only an average.
   final VoidCallback onRetry;
 
   @override
@@ -661,8 +661,8 @@ class _ResultsView extends StatefulWidget {
 }
 
 class _ResultsViewState extends State<_ResultsView> {
-  // Every crop loaded so far, best first. Grows by one page each time the
-  // user scrolls to the end of a list.
+  // All crops loaded so far, best first. One more page is added each time
+  // the user scrolls to the end of a list.
   late final _crops = [...widget.result.crops];
   late var _groups = _groupByCategory(_crops);
   final _categoryPages = PageController(viewportFraction: 0.88);
@@ -670,7 +670,7 @@ class _ResultsViewState extends State<_ResultsView> {
   int _category = 0;
   bool _swipedSideways = false;
 
-  // Paging. A failed page waits for "Try again" instead of retrying on
+  // Paging. If a page fails, we wait for "Try again" instead of retrying on
   // every scroll.
   late int _total = widget.result.total;
   bool _loadingMore = false;
@@ -686,10 +686,10 @@ class _ResultsViewState extends State<_ResultsView> {
       if (!mounted) return;
       setState(() {
         _loadingMore = false;
-        // An empty page means the list ended early; stop asking.
+        // An empty page means the list ended early, so stop asking.
         if (page.isEmpty) _total = _crops.length;
         _crops.addAll(page);
-        // Existing categories keep their place; new ones join at the end.
+        // Existing categories keep their place; new ones are added at the end.
         _groups = _groupByCategory(_crops);
         _chipKeys = [
           ..._chipKeys,
@@ -711,8 +711,8 @@ class _ResultsViewState extends State<_ResultsView> {
     _loadMore();
   }
 
-  /// Shown under the last ticket of every list while a page loads or
-  /// after one failed.
+  /// Shown under the last card of every list while a page loads, or after
+  /// one failed.
   Widget? _listFooter(S s) {
     if (_loadingMore) {
       return const Padding(
@@ -762,7 +762,7 @@ class _ResultsViewState extends State<_ResultsView> {
     }
   }
 
-  // Runs when the user lands on a different category page
+  // Runs when the user swipes to a different category page.
   void _onCategoryChanged(int i) {
     setState(() {
       _category = i;
@@ -789,15 +789,15 @@ class _ResultsViewState extends State<_ResultsView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _CompactHeader(conditions: conditions),
-        // In shade only a few crops can grow. Say that the light is the
-        // reason, so the user doesn't blame the climate of their area.
+        // In shade only a few crops can grow. We say that the light is the reason,
+        // so the user doesn't think it's their area's climate.
         if (widget.result.setup.sunlight == Sunlight.shade)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: _LowSunNote(onChangeAnswers: widget.onChangeAnswers),
           ),
-        // The soil of the area couldn't be fetched, so an average pH was
-        // used. Say so, and let the user ask again for a more exact result.
+        // The area's soil data couldn't be loaded, so an average pH was used. We
+        // tell the user and let them try again for a more exact result.
         if (widget.result.soilPhEstimated)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -834,8 +834,8 @@ class _ResultsViewState extends State<_ResultsView> {
             ),
           ),
         ),
-        // One-time hint about swiping between categories. Takes no space
-        // once it no longer applies.
+        // A one-time hint about swiping between categories. It takes no space once
+        // it's no longer needed.
         if (showSwipeHint)
           Padding(
             padding: EdgeInsets.fromLTRB(
@@ -851,14 +851,12 @@ class _ResultsViewState extends State<_ResultsView> {
   }
 }
 
-/// "Swipe to explore crop categories" with a left-right arrow at its start
-/// (right in Arabic), centred.
+/// "Swipe to explore crop categories" with a left-right arrow, centred.
 ///
-/// The text keeps its normal size when it fits on one line. On narrow
-/// screens it shrinks a little at a time, down to [_minFontSize], and if it
-/// still doesn't fit it wraps onto a second line. It is never cut off.
-/// Sizes are measured with the user's text scaling, so accessibility
-/// settings still apply.
+/// The text keeps its normal size if it fits on one line. On narrow
+/// screens it gets a little smaller, down to [_minFontSize], and if it
+/// still doesn't fit it wraps to a second line. It is never cut off.
+/// The user's text size setting is still respected.
 class _SwipeHint extends StatelessWidget {
   const _SwipeHint();
 
@@ -878,7 +876,8 @@ class _SwipeHint extends StatelessWidget {
       builder: (context, constraints) {
         final available = constraints.maxWidth - _iconSize - _gap;
 
-        // Largest size (from the normal one down) that fits on one line.
+        // Find the biggest size (starting from the normal one) that fits on one
+        // line.
         var style = base;
         var fitsOneLine = false;
         for (var size = base.fontSize ?? 13;
@@ -909,7 +908,7 @@ class _SwipeHint extends StatelessWidget {
             Flexible(
               child: Text(
                 text,
-                // One line when it fits; otherwise wrap, never cut.
+                // One line if it fits; otherwise wrap, but never cut.
                 maxLines: fitsOneLine ? 1 : null,
                 softWrap: true,
                 textAlign: TextAlign.center,
@@ -923,8 +922,8 @@ class _SwipeHint extends StatelessWidget {
   }
 }
 
-/// The tickets of one category, one under the other, scrolling freely.
-/// Kept alive so each category remembers where it was scrolled to.
+/// The crop cards of one category, one under the other.
+/// Kept alive so each category remembers its scroll position.
 class _CropList extends StatefulWidget {
   const _CropList({
     required this.crops,
@@ -947,8 +946,8 @@ class _CropListState extends State<_CropList>
     with AutomaticKeepAliveClientMixin {
   static const _gap = 16.0;
 
-  // Start the next page this far (in pixels) before the real end, so it is
-  // usually there before the user gets to the bottom.
+  // Start loading the next page this many pixels before the real end, so it
+  // is usually ready before the user reaches the bottom.
   static const _loadAhead = 600.0;
 
   @override
@@ -970,7 +969,7 @@ class _CropListState extends State<_CropList>
     return NotificationListener<ScrollNotification>(
       onNotification: _onScroll,
       child: ListView.separated(
-        // Lets a short list be pulled too, so the user can reach its end.
+        // Lets a short list be scrolled too, so the user can reach its end.
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(
           top: 4,
@@ -990,7 +989,8 @@ class _CropListState extends State<_CropList>
   }
 }
 
-/// Category chips under the header: shows where you are sideways, and tapping one jumps there.
+/// The category chips under the header. They show which category is open,
+/// and tapping one jumps to it.
 class _CategoryBar extends StatelessWidget {
   const _CategoryBar({
     required this.groups,
@@ -1028,12 +1028,13 @@ class _CategoryBar extends StatelessWidget {
   }
 }
 
-/// Short header
+/// The header of the results view: back button, title, Thamoor and the
+/// conditions.
 class _CompactHeader extends StatelessWidget {
   const _CompactHeader({required this.conditions});
   final GrowingConditions conditions;
 
-  // Same as EthmarCenteredHeader without an action.
+  // The same as EthmarCenteredHeader without an action.
   static const _sideWidth = 64.0;
 
   @override
@@ -1044,16 +1045,15 @@ class _CompactHeader extends StatelessWidget {
       padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top + 4),
       child: Stack(
         children: [
-          // The original layout: a row for the back button, then the
-          // subtitle beside Thamoor, then the conditions. The title's old
-          // place is kept empty, so everything below stays where it was.
+          // A row of space for the back button and title (they are drawn on top,
+          // below), then the subtitle next to Thamoor, then the conditions.
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 48),
               const SizedBox(height: 18),
-              // Subtitle on one side, Thamoor on the other (in front of
-              // the hills in the background).
+              // The subtitle on one side and Thamoor on the other (in front of the hills
+              // in the background).
               Padding(
                 padding: const EdgeInsetsDirectional.only(start: 24, end: 24),
                 child: Row(
@@ -1107,10 +1107,9 @@ class _CompactHeader extends StatelessWidget {
               ),
             ],
           ),
-          // Back button and the title on top, laid out like
-          // EthmarCenteredHeader (Profile, Edit Profile): equal slots on
-          // both sides keep the title centred on the screen. Takes no
-          // height of its own, so it doesn't push the layout above down.
+          // The back button and title on top, laid out like EthmarCenteredHeader:
+          // equal space on both sides keeps the title centred. It takes no height of
+          // its own, so it doesn't push the layout down.
           Positioned(
             top: 0,
             left: 16,
@@ -1131,8 +1130,8 @@ class _CompactHeader extends StatelessWidget {
                     constraints: const BoxConstraints(minHeight: 48),
                     child: Center(
                       child: Entrance(
-                        // Wraps onto a second line on narrow phones rather
-                        // than shrinking or being cut off.
+                        // Wraps to a second line on narrow phones instead of shrinking or being
+                        // cut off.
                         child: Text(
                           s.cropTitle,
                           textAlign: TextAlign.center,
@@ -1152,8 +1151,7 @@ class _CompactHeader extends StatelessWidget {
   }
 }
 
-/// The area, this month, and this month's average temperatures, straight
-/// on the background.
+/// The area, the month, and this month's average temperatures.
 class _ConditionsRow extends StatelessWidget {
   const _ConditionsRow({required this.conditions});
   final GrowingConditions conditions;
@@ -1241,8 +1239,8 @@ class _PacketSlot extends StatelessWidget {
   }
 }
 
-/// One crop drawn as a ticket: a zig-zag top, a warm-white face, a dashed
-/// line, then the care facts.
+/// One crop drawn as a card: a zig-zag top, a white face, a dashed line,
+/// then the care facts.
 class _SeedPacket extends StatelessWidget {
   const _SeedPacket({required this.crop});
   final CropRecommendation crop;
@@ -1252,8 +1250,8 @@ class _SeedPacket extends StatelessWidget {
     return PhysicalShape(
       clipper: const _PacketClipper(),
       clipBehavior: Clip.antiAlias,
-      // Warm white: the category illustrations have a near-white
-      // background, so they blend straight into the ticket.
+      // White, because the category pictures have a near-white background and
+      // blend into the card.
       color: AppColors.surface,
       elevation: 3,
       shadowColor: AppColors.earthBrown.withValues(alpha: 0.25),
@@ -1278,8 +1276,8 @@ class _SeedPacket extends StatelessWidget {
   }
 }
 
-/// The ticket's top: badges, crop name and reason on the start side, the
-/// category illustration on the end side (mirrors in Arabic).
+/// The top of the card: badges, crop name and reason on the start side,
+/// and the category picture on the end side (mirrored in Arabic).
 class _PacketFace extends StatelessWidget {
   const _PacketFace({required this.crop});
   final CropRecommendation crop;
@@ -1289,7 +1287,7 @@ class _PacketFace extends StatelessWidget {
     final s = S.of(context);
     return Stack(
       children: [
-        // Soft earthy band along the zig-zag edge.
+        // A soft brown band along the zig-zag edge.
         Positioned(
           left: 0,
           right: 0,
@@ -1304,8 +1302,7 @@ class _PacketFace extends StatelessWidget {
             20,
             _PacketClipper.crimp + 18,
             12,
-            // Less space under the face now that the reason text is gone,
-            // so the dashed line sits a little higher.
+            // A small gap under the face, so the dashed line sits a little higher.
             6,
           ),
           child: Row(
@@ -1315,13 +1312,11 @@ class _PacketFace extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Matches the extra gap above the name: the column is
-                    // centred, so the badges stay put and the name moves
-                    // down by that gap.
+                    // The same as the extra gap above the name. The column is centred, so the
+                    // badges stay in place and the name moves down by this gap.
                     const SizedBox(height: 6),
-                    // How well the crop matches the area, and the model's
-                    // score as a percentage. The planting months are in
-                    // the care facts ("Best time").
+                    // How well the crop matches the area, and the model's score as a
+                    // percentage. The planting months are in the care facts ("Best time").
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
@@ -1367,7 +1362,7 @@ class _PacketFace extends StatelessWidget {
   }
 }
 
-/// One care fact
+/// One care fact.
 class _Fact {
   const _Fact(this.icon, this.label, this.value, {this.ltr = false});
   final IconData icon;
@@ -1383,7 +1378,8 @@ class _CareFacts extends StatelessWidget {
   /// "40–100 days", or one number when both ends are the same.
   static String _range(int min, int max) => min == max ? '$min' : '$min–$max';
 
-  /// Height in metres: "12" for 10 or more, otherwise one decimal
+  /// Height in metres: a whole number for 10 or more, otherwise one decimal
+  /// place.
   static String _meters(double m) => m >= 10
       ? m.round().toString()
       : m.toStringAsFixed(1).replaceAll('.0', '');
@@ -1412,8 +1408,8 @@ class _CareFacts extends StatelessWidget {
         _Fact(Icons.water_drop_rounded, s.cropWaterNeed, water),
       if (bestTime.isNotEmpty)
         _Fact(Icons.calendar_month_rounded, s.cropBestTime, bestTime),
-      // A tree's growing cycle is its fruiting season, not the time until
-      // its first harvest, so trees show their size instead.
+      // For trees the growing time is the fruiting season, not the time until
+      // the first harvest, so trees show their height instead.
       if (harvest != null && crop.category != CropCategory.fruit)
         _Fact(
           Icons.agriculture_rounded,
@@ -1429,7 +1425,8 @@ class _CareFacts extends StatelessWidget {
     ];
 
 
-    // Puts two facts side by side. With only one, the right side stays empty.
+    // Puts two facts side by side. If there is only one, the other side stays
+    // empty.
     Widget pair(_Fact a, _Fact? b) => Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1457,7 +1454,7 @@ class _CareFacts extends StatelessWidget {
   }
 }
 
-/// A small pill on the packet face, e.g. "Great match".
+/// A small pill on the card face, e.g. "Great match".
 class _Badge extends StatelessWidget {
   const _Badge({
     required this.text,
@@ -1528,12 +1525,12 @@ class _NoteLine extends StatelessWidget {
   }
 }
 
-/// The crop's care tips. Shows the most serious one; when there are more,
-/// a "+2" and an arrow invite a tap that opens the rest below it.
+/// The crop's care tips. It shows the most serious one. When there are
+/// more, a "+2" and an arrow can be tapped to show the rest.
 class _TipsPill extends StatefulWidget {
   const _TipsPill({required this.tips});
 
-  /// Already in the app language, most serious first. Never empty.
+  /// Already in the app's language, most serious first. Never empty.
   final List<String> tips;
 
   @override
@@ -1625,7 +1622,7 @@ class _TipsPillState extends State<_TipsPill> {
   }
 }
 
-/// "Only a few crops grow in shade" with a link back to the questions.
+/// "Only a few crops grow in shade", with a link back to the questions.
 class _LowSunNote extends StatelessWidget {
   const _LowSunNote({required this.onChangeAnswers});
   final VoidCallback onChangeAnswers;
@@ -1648,8 +1645,8 @@ class _LowSunNote extends StatelessWidget {
   }
 }
 
-/// Shown when the server used an average soil pH because the soil of the
-/// area couldn't be fetched.
+/// Shown when the server used an average soil pH because the area's soil
+/// data couldn't be loaded.
 class _SoilEstimatedNote extends StatelessWidget {
   const _SoilEstimatedNote({required this.onRetry});
   final VoidCallback onRetry;
@@ -1721,7 +1718,7 @@ class _FactTile extends StatelessWidget {
 }
 
 
-/// Packet outline: a crimped (zig-zag) top edge and rounded bottom corners.
+/// The card outline: a zig-zag top edge and rounded bottom corners.
 class _PacketClipper extends CustomClipper<Path> {
   const _PacketClipper();
   static const crimp = 7.0;
@@ -1754,11 +1751,11 @@ class _PacketClipper extends CustomClipper<Path> {
   }
 
   @override
-  // The shape never changes
+  // The shape never changes.
   bool shouldReclip(covariant _PacketClipper oldClipper) => false;
 }
 
-/// The dashed line between the packet face and its care facts.
+/// The dashed line between the card face and its care facts.
 class _PerforationPainter extends CustomPainter {
   const _PerforationPainter(this.color);
   final Color color;

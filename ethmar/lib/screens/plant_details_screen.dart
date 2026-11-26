@@ -28,9 +28,9 @@ import '../widgets/page_routes.dart';
 import '../widgets/plant_picture.dart';
 import 'edit_plant_screen.dart';
 
-/// One plant, from the sketch: its picture, days since planting and
-/// watering, the journey timeline (pictures with notes and dates), and the
-/// care schedule with an Edit button.
+/// One plant's page: its picture, days since planting and watering, the
+/// journey timeline (photos with notes and dates), and the care schedule
+/// with an Edit button.
 ///
 /// [plantId] is the plant's Firestore document id.
 class PlantDetailsScreen extends StatefulWidget {
@@ -45,7 +45,7 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
   bool _deleting = false;
   bool _closing = false;
 
-  /// True while a journey picture is being uploaded and saved.
+  /// True while a journey photo is being uploaded and saved.
   bool _uploading = false;
 
   final _picker = ImagePicker();
@@ -72,8 +72,8 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
       await FarmStore.deletePlant(plantId);
       _closeOnce();
     } catch (e) {
-      // Not deleted (or not confirmed): the plant stays, and deleting it
-      // again is safe.
+      // Not deleted (or not confirmed): the plant stays, and deleting it again
+      // is safe.
       if (!mounted) return;
       setState(() => _deleting = false);
       final s = S.of(context);
@@ -85,10 +85,10 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
     }
   }
 
-  /// Closes this screen once the plant is gone: when its delete is
-  /// confirmed, or when it disappears from the farm (e.g. deleted on
-  /// another device). It may not be the top screen, e.g. when the plant
-  /// was deleted on another device while Edit was open.
+  /// Closes this screen once the plant is gone: when its delete is confirmed,
+  /// or when it disappears from the farm (e.g. deleted on another device).
+  /// It might not be the top screen, e.g. if the plant was deleted on another
+  /// device while Edit was open.
   void _closeOnce() {
     if (_closing || !mounted) return;
     _closing = true;
@@ -102,7 +102,7 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
   }
 
   /// "Upload a picture": camera or gallery, then optional notes, then the
-  /// picture is uploaded and added to the timeline. A picture is required;
+  /// photo is uploaded and added to the timeline. A photo is required, and
   /// the date is set when it's saved.
   Future<void> _addPicture(BuildContext context) async {
     if (_uploading) return;
@@ -181,8 +181,8 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
     }
   }
 
-  /// Opens the camera or gallery. Null when cancelled or not allowed.
-  /// The photo comes back shrunk (see [JourneyPhotoService.pickWidth]).
+  /// Opens the camera or gallery. Returns null if cancelled or not allowed.
+  /// The photo comes back smaller (see [JourneyPhotoService.pickWidth]).
   Future<XFile?> _pick(BuildContext context, ImageSource source) async {
     final s = S.of(context);
     if (source == ImageSource.camera && !await ensureCameraAccess(context)) {
@@ -232,7 +232,7 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
           valueListenable: FarmStore.plants,
           builder: (context, plants, _) {
             final plant = FarmStore.plantById(plantId);
-            // It was deleted (here or on another device): close.
+            // It was deleted (here or on another device), so close the screen.
             if (plant == null) {
               WidgetsBinding.instance.addPostFrameCallback((_) => _closeOnce());
               return const SizedBox.shrink();
@@ -241,8 +241,8 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Just the user's name for the plant; what it is shows in
-                // the crop card below.
+                // Only the user's name for the plant. What it is shows in the crop card
+                // below.
                 EthmarCenteredHeader(title: plant.name),
                 Expanded(
                   child: ListView(
@@ -254,9 +254,8 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                     ),
                     children: [
                       Entrance(
-                        // Delete sits in the picture card's top corner on
-                        // the end side (top left in Arabic, top right in
-                        // English), clear of the centred picture.
+                        // Delete is in the picture card's top corner on the end side (top left in
+                        // Arabic, top right in English), away from the centred picture.
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
@@ -283,7 +282,7 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      // Both cards as tall as the taller one.
+                      // Both cards are as tall as the taller one.
                       IntrinsicHeight(
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -295,14 +294,13 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            // What the plant is, from the crop catalog (the
-                            // user's own name is the page title): the
-                            // crop's name and the plant's category.
+                            // What the plant is, from the crop catalog (the user's own name is the
+                            // page title): the crop's name and the plant's category.
                             Expanded(
                               child: _StatCard(
                                 key: const Key('plantCropCard'),
                                 label: s.plantCropLabel,
-                                // One line: "Strawberry - Fruits".
+                                // One line, e.g. "Strawberry - Fruits".
                                 value: '${crop.name.of(context)} - '
                                     '${categoryLabel(plant.category, context)}',
                               ),
@@ -327,8 +325,8 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
                       const SizedBox(height: 16),
                       _Panel(
                         title: s.careSchedule,
-                        // A pencil on the card's end corner (top left in
-                        // Arabic, top right in English).
+                        // A pencil button on the card's end corner (top left in Arabic, top right
+                        // in English).
                         corner: _CornerButton(
                           key: const Key('edit-schedule'),
                           tooltip: s.edit,
@@ -354,11 +352,11 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Building blocks
+// Smaller widgets used on this screen
 // ---------------------------------------------------------------------------
 
-/// Delete, on the picture card's corner (see [_onCorner]); shows a
-/// spinner while deleting.
+/// The delete button on the picture card's corner (see [_onCorner]). Shows
+/// a spinner while deleting.
 class _DeleteButton extends StatelessWidget {
   const _DeleteButton({required this.deleting, required this.onPressed});
 
@@ -388,7 +386,7 @@ class _DeleteButton extends StatelessWidget {
   }
 }
 
-/// Asks before deleting; the plant's journey entries go with it.
+/// Asks before deleting. The plant's journey entries are deleted too.
 class _DeletePlantDialog extends StatelessWidget {
   const _DeletePlantDialog({required this.plantName});
 
@@ -446,7 +444,7 @@ class _DeletePlantDialog extends StatelessWidget {
   }
 }
 
-/// Small white box: a label on top, the value below (from the sketch).
+/// A small white box with a label on top and the value below.
 class _StatCard extends StatelessWidget {
   const _StatCard({super.key, required this.label, required this.value});
   final String label;
@@ -479,14 +477,13 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-/// White rounded card with a title (and an optional button beside it).
+/// A white rounded card with a title (and an optional button next to it).
 class _Panel extends StatelessWidget {
   const _Panel({required this.title, required this.child, this.corner});
   final String title;
   final Widget child;
 
-  /// A button sitting on the card's top corner on the end side (see
-  /// [_onCorner]).
+  /// A button on the card's top corner on the end side (see [_onCorner]).
   final Widget? corner;
 
   static const _radius = 24.0;
@@ -508,7 +505,7 @@ class _Panel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                // Clear of the corner button.
+                // Leave space for the corner button.
                 padding: EdgeInsetsDirectional.only(end: c == null ? 0 : 20),
                 child: Text(
                   title,
@@ -527,19 +524,19 @@ class _Panel extends StatelessWidget {
   }
 }
 
-/// Places a [_CornerButton] centred on the top corner, end side (top left
-/// in Arabic, top right in English), of a card with [radius] corners: on
-/// the middle of the corner's curve, so the circle sits on the border, half
-/// in and half out. Use in a [Stack] with `clipBehavior: Clip.none`.
+/// Places a [_CornerButton] on the top corner (end side) of a card with
+/// [radius] corners. It sits on the middle of the corner's curve, so the
+/// circle is half inside and half outside the border. Use it in a [Stack]
+/// with `clipBehavior: Clip.none`.
 Widget _onCorner({required double radius, required Widget child}) {
-  // The middle of the curve, in from the bounding box's corner.
+  // The middle of the curve, measured in from the box's corner.
   final inset = radius * (1 - math.sqrt1_2);
   const half = _CornerButton.tapTarget / 2;
   return PositionedDirectional(top: inset - half, end: inset - half, child: child);
 }
 
 /// A small white circle with a thin outline and an icon, for a card's
-/// corner (see [_onCorner]). 36 across; taps count over 48.
+/// corner (see [_onCorner]). It is 36 wide, but the tap area is 48.
 class _CornerButton extends StatelessWidget {
   const _CornerButton({
     super.key,
@@ -559,8 +556,7 @@ class _CornerButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Center loosens the 48 box, so the circle stays 36 while the button's
-    // padded tap area fills the 48.
+    // Center lets the circle stay 36 while the tap area fills the 48 box.
     return SizedBox.square(
       dimension: tapTarget,
       child: Center(
@@ -585,9 +581,8 @@ class _CornerButton extends StatelessWidget {
   }
 }
 
-/// Small forest pill, like "Upload a picture" in the sketch. The pill is
-/// 36 high, but a tap anywhere in the 48-high band around it counts, so it
-/// stays easy to hit.
+/// A small green pill button, like "Upload a picture". The pill is 36 high,
+/// but the tap area is 48 high so it's easy to hit.
 class _SmallButton extends StatelessWidget {
   const _SmallButton({
     super.key,
@@ -598,7 +593,7 @@ class _SmallButton extends StatelessWidget {
   final String label;
   final IconData icon;
 
-  /// Null greys it out (e.g. while a picture uploads).
+  /// Null makes it grey and disabled (e.g. while a photo uploads).
   final VoidCallback? onPressed;
 
   @override
@@ -648,9 +643,9 @@ class _SmallButton extends StatelessWidget {
   }
 }
 
-/// The journey timeline: newest at the top, a dot and line down the side,
-/// then the "Upload a picture" button. Each entry shows its picture, which
-/// day of the plant's life it's from, its notes and its date.
+/// The journey timeline: newest at the top, with a dot and line down the
+/// side, then the "Upload a picture" button. Each entry shows its photo,
+/// which day of the plant's life it's from, its notes and its date.
 class _JourneyTimeline extends StatelessWidget {
   const _JourneyTimeline({
     required this.entries,
@@ -661,10 +656,10 @@ class _JourneyTimeline extends StatelessWidget {
   });
   final List<JourneyEntry> entries;
 
-  /// True until the entries first arrive.
+  /// True until the entries load for the first time.
   final bool loading;
 
-  /// True while a new picture is being uploaded: it shows on top.
+  /// True while a new photo is uploading (it shows at the top).
   final bool uploading;
   final DateTime plantedAt;
   final VoidCallback onAdd;
@@ -790,7 +785,7 @@ class _JourneyTimeline extends StatelessWidget {
     ];
   }
 
-  /// The picture full screen, to zoom in, with its notes underneath.
+  /// Shows the photo full screen (with zoom) and its notes underneath.
   void _showPhoto(BuildContext context, JourneyEntry entry) {
     final photo = entry.photo!;
     showDialog<void>(
@@ -807,7 +802,7 @@ class _JourneyTimeline extends StatelessWidget {
   }
 }
 
-/// The dot and line beside each timeline entry.
+/// The dot and line next to each timeline entry.
 class _TimelineRail extends StatelessWidget {
   const _TimelineRail({required this.first, required this.last});
   final bool first;
@@ -844,9 +839,9 @@ class _TimelineRail extends StatelessWidget {
   }
 }
 
-/// A picture on the timeline: the sketch's dotted square, with the photo
-/// inside once there is one ([photo] from Cloudinary, or [preview] bytes
-/// just picked). [busy] shows a spinner while it uploads.
+/// A photo on the timeline: a dotted square, with the photo inside once
+/// there is one ([photo] from Cloudinary, or [preview] bytes just picked).
+/// [busy] shows a spinner while it uploads.
 class _PhotoFrame extends StatelessWidget {
   const _PhotoFrame({
     this.photo,
@@ -909,7 +904,7 @@ class _PhotoFrame extends StatelessWidget {
     );
     final tap = onTap;
     return CustomPaint(
-      // The dotted outline only while there's no picture inside.
+      // The dotted outline is only shown while there's no photo inside.
       foregroundPainter: p == null && bytes == null
           ? const _DottedFrame()
           : null,
@@ -923,7 +918,7 @@ class _PhotoFrame extends StatelessWidget {
   }
 }
 
-/// A journey picture full screen: pinch to zoom, X (or back) to close.
+/// A journey photo full screen: pinch to zoom, X (or back) to close.
 class _PhotoViewer extends StatelessWidget {
   const _PhotoViewer({required this.photo, required this.caption});
   final JourneyPhoto photo;
@@ -1012,9 +1007,9 @@ class _DottedFrame extends CustomPainter {
   bool shouldRepaint(covariant _DottedFrame oldDelegate) => false;
 }
 
-/// The care schedule rows: task on one side, how often and when it's next
-/// due on the other. "Next" is the same task Daily Tasks shows (see
-/// careState): today's while it isn't done, a missed one while it can
+/// The care schedule rows: the task on one side, how often and when it's
+/// next due on the other. "Next" is the same task Daily Tasks shows (see
+/// careState): today's task if it isn't done, a missed one while it can
 /// still be done, otherwise the next one.
 class _ScheduleRows extends StatefulWidget {
   const _ScheduleRows({required this.plant});
@@ -1025,7 +1020,7 @@ class _ScheduleRows extends StatefulWidget {
 }
 
 class _ScheduleRowsState extends State<_ScheduleRows> {
-  /// Today's and the missed days' task logs, as Daily Tasks uses them.
+  /// Today's and the missed days' task logs (same as Daily Tasks).
   final _logs = RecentTaskLogs();
   late final AppLifecycleListener _lifecycle;
   Timer? _clock;
@@ -1035,7 +1030,8 @@ class _ScheduleRowsState extends State<_ScheduleRows> {
     super.initState();
     _logs.addListener(_refresh);
     _lifecycle = AppLifecycleListener(onResume: _onClock);
-    // A new day starts at midnight while the page is open.
+    // Update every minute so a new day starts at midnight while the page is
+    // open.
     _clock = Timer.periodic(const Duration(minutes: 1), (_) => _onClock());
   }
 
@@ -1116,8 +1112,8 @@ class _ScheduleRow extends StatelessWidget {
     final s = S.of(context);
     final c = schedule;
     final st = state;
-    // Start side: the icon, the task and how often (or "Not set"). End
-    // side: when it's next due, or since when it's missed (careState).
+    // Start side: the icon, the task and how often (or "Not set"). End side:
+    // when it's next due, or since when it's missed.
     return MergeSemantics(
       child: Row(
         key: Key('schedule_${type.name}'),
@@ -1131,8 +1127,8 @@ class _ScheduleRow extends StatelessWidget {
               color: AppColors.seaTint,
               shape: BoxShape.circle,
             ),
-            // The sack fills more of its square than the drop does, so it
-            // is drawn a little smaller to look the same size.
+            // The fertilizer bag fills more of its square than the drop, so it's drawn
+            // a little smaller to look the same size.
             child: CareTypeIcon(
               type,
               size: type == TaskType.fertilizing ? 16 : 18,
@@ -1204,12 +1200,12 @@ class _SourceTile extends StatelessWidget {
   }
 }
 
-/// After choosing a picture: the picture, and optional notes for this
-/// growth stage. Pops with the notes ('' when left empty), or null on cancel.
+/// After choosing a photo: shows the photo and optional notes for this
+/// growth stage. Returns the notes ('' when empty), or null on cancel.
 class _NotesDialog extends StatefulWidget {
   const _NotesDialog({required this.preview});
 
-  /// The picture just picked.
+  /// The photo that was just picked.
   final Uint8List preview;
 
   @override
@@ -1217,7 +1213,7 @@ class _NotesDialog extends StatefulWidget {
 }
 
 class _NotesDialogState extends State<_NotesDialog> {
-  /// The rules accept notes up to this long.
+  /// The Firestore rules allow notes up to this length.
   static const _maxNotes = 500;
 
   final _notes = TextEditingController();

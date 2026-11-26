@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Soft fade (used after the splash).
+/// A soft fade transition (used after the splash screen).
 Route<T> fadeRoute<T>(Widget page) => PageRouteBuilder<T>(
       transitionDuration: const Duration(milliseconds: 450),
       reverseTransitionDuration: const Duration(milliseconds: 300),
@@ -11,7 +11,7 @@ Route<T> fadeRoute<T>(Widget page) => PageRouteBuilder<T>(
       ),
     );
 
-/// Gentle "rise" transition between screens: fade + small upward slide.
+/// A gentle transition between screens: fade in with a small upward slide.
 Route<T> riseRoute<T>(Widget page) => PageRouteBuilder<T>(
       transitionDuration: const Duration(milliseconds: 420),
       reverseTransitionDuration: const Duration(milliseconds: 320),

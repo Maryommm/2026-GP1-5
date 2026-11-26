@@ -7,22 +7,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'sun_times.dart';
 
-/// Says whether it's day or night where the user is, and changes on its
-/// own at sunrise and sunset. Used by Virtual Farm's sky.
+/// Tells whether it's day or night where the user is, and updates by
+/// itself at sunrise and sunset. Used by the Virtual Farm sky.
 ///
 /// The place:
-/// - The last place known on this phone, saved between launches. Crop
-///   Recommendations saves it whenever it reads the location
-///   ([rememberPlace]).
-/// - Refreshed from the phone's location only if the app may already read
-///   it: this never asks for permission. It uses the last position the
-///   phone knows if that's recent, otherwise one quick, low-accuracy
-///   reading.
-/// - Without one, day is 06:00–18:00 ([skyAt]).
+/// - The last place saved on this phone. Crop Recommendations saves it
+///   every time it reads the location ([rememberPlace]).
+/// - It is refreshed from the phone's location only if the app already has
+///   permission (this never asks for permission).
+/// - Without a place, day is 06:00–18:00 ([skyAt]).
 ///
-/// The phase is worked out again when the clock starts, when the app comes
-/// back to the front, when the known place changes, and just after each
-/// sunrise and sunset (a timer), so it changes while the screen is open.
+/// The phase is checked again when the clock starts, when the app comes
+/// back to the front, when the place changes, and right after each sunrise
+/// and sunset (with a timer).
 class SkyClock extends ValueNotifier<SkyPhase> {
   SkyClock({
     DateTime Function()? now,
@@ -36,7 +33,7 @@ class SkyClock extends ValueNotifier<SkyPhase> {
     knownPlace.addListener(_update);
     if (followApp) _lifecycle = AppLifecycleListener(onResume: refresh);
     if (_savedPlaceRead) {
-      // Another clock already read it: ready straight away.
+      // Another clock already read it, so it's ready right away.
       settled = true;
       unawaited(_refreshPlace());
     } else {
@@ -44,11 +41,9 @@ class SkyClock extends ValueNotifier<SkyPhase> {
     }
   }
 
-  /// True once the saved place has been read (or found missing), so
-  /// [value] is the real phase rather than the 06:00–18:00 guess. Until
-  /// then the sky isn't drawn, so it doesn't show one phase and then
-  /// switch to the other. Reading it takes a few milliseconds; a fresh
-  /// location reading isn't waited for.
+  /// True once the saved place has been read (or found missing), so [value]
+  /// is the real phase and not the 06:00–18:00 guess. Until then the sky
+  /// isn't drawn, so it doesn't flash from one phase to the other.
   bool settled = false;
 
   void _settle() {
@@ -60,21 +55,21 @@ class SkyClock extends ValueNotifier<SkyPhase> {
     unawaited(_refreshPlace());
   }
 
-  /// The phone's time zone as a fixed offset from UTC, for tests; by
-  /// default the phone's own.
+  /// The time zone as a fixed offset from UTC, for tests. By default the
+  /// phone's own time zone is used.
   final Duration? utcOffset;
 
-  /// The place the sky follows, shared by every clock. Null until known.
+  /// The place the sky follows, shared by all clocks. Null until known.
   static final ValueNotifier<SkyPlace?> knownPlace = ValueNotifier(null);
 
   /// For tests: makes the screens use this clock instead of a real one.
   @visibleForTesting
   static SkyClock Function()? clockForTests;
 
-  /// A new clock: the test one if set, otherwise a real one.
+  /// Creates a clock: the test one if set, otherwise a real one.
   static SkyClock create() => clockForTests?.call() ?? SkyClock();
 
-  /// Saves [place] as the user's place (on this phone), for the sky.
+  /// Saves [place] on this phone as the user's place, for the sky.
   static Future<void> rememberPlace(SkyPlace place) async {
     knownPlace.value = place;
     _lastLookup = DateTime.now();
@@ -109,19 +104,19 @@ class SkyClock extends ValueNotifier<SkyPhase> {
   static const _latKey = 'sky_latitude';
   static const _lngKey = 'sky_longitude';
 
-  /// The phone's location is read at most this often.
+  /// The phone's location is read at most once per this period.
   static const _lookupEvery = Duration(hours: 1);
   static DateTime? _lastLookup;
 
-  /// Reading the saved place, once per app run; every clock waits for it.
+  /// Reads the saved place once per app run. Every clock waits for it.
   static Future<void>? _savedLoad;
   static bool _savedPlaceRead = false;
 
-  /// When the phase changes next, for tests.
+  /// When the phase changes next (for tests).
   @visibleForTesting
   DateTime? nextChange;
 
-  /// Works the phase out again, and looks for a newer place if it's due.
+  /// Updates the phase, and looks for a newer place if it's time to.
   void refresh() {
     _update();
     unawaited(_refreshPlace());
@@ -134,16 +129,16 @@ class SkyClock extends ValueNotifier<SkyPhase> {
     value = state.phase;
     nextChange = state.nextChange;
     _timer?.cancel();
-    // A second after the change, so the new phase has begun. Checked at
-    // least every few hours too, in case the phone's clock is changed.
+    // One second after the change, so the new phase has started. We also check
+    // at least every 3 hours in case the phone's clock is changed.
     var wait = state.nextChange.difference(now) + const Duration(seconds: 1);
     if (wait > const Duration(hours: 3)) wait = const Duration(hours: 3);
     if (wait < const Duration(seconds: 1)) wait = const Duration(seconds: 1);
     _timer = Timer(wait, _update);
   }
 
-  /// Reads the saved place once; later calls wait for the same read. Gives
-  /// up after a second, so the sky never stays hidden for long.
+  /// Reads the saved place once (later calls wait for the same read). Gives
+  /// up after one second so the sky never stays hidden for long.
   static Future<void> _loadSavedPlace() =>
       _savedLoad ??= _readSavedPlace()
           .timeout(const Duration(seconds: 1), onTimeout: () {})
@@ -155,7 +150,7 @@ class SkyClock extends ValueNotifier<SkyPhase> {
       final prefs = await SharedPreferences.getInstance();
       final lat = prefs.getDouble(_latKey);
       final lng = prefs.getDouble(_lngKey);
-      // A broken or impossible place is ignored (06:00–18:00 instead).
+      // A broken or impossible place is ignored (06:00–18:00 is used instead).
       if (lat != null &&
           lng != null &&
           lat.abs() <= 90 &&
@@ -164,7 +159,7 @@ class SkyClock extends ValueNotifier<SkyPhase> {
         knownPlace.value = (latitude: lat, longitude: lng);
       }
     } catch (_) {
-      // No saved place: the clock uses 06:00–18:00 until one is found.
+      // No saved place: use 06:00–18:00 until one is found.
     }
   }
 
@@ -178,11 +173,11 @@ class SkyClock extends ValueNotifier<SkyPhase> {
       final place = await _locate();
       if (place != null && !_disposed) await rememberPlace(place);
     } catch (_) {
-      // Keep the place we have (or the fallback hours).
+      // Keep the place we have (or the default hours).
     }
   }
 
-  /// The phone's location, only if the app may already read it.
+  /// The phone's location, only if the app already has permission.
   static Future<SkyPlace?> _phoneLocation() async {
     if (!await Geolocator.isLocationServiceEnabled()) return null;
     final permission = await Geolocator.checkPermission();
@@ -196,7 +191,7 @@ class SkyClock extends ValueNotifier<SkyPhase> {
         DateTime.now().difference(known.timestamp) < const Duration(hours: 6)) {
       return (latitude: known.latitude, longitude: known.longitude);
     }
-    // Sunrise moves by about a minute per 15 km, so low accuracy is plenty.
+    // Sunrise moves by about a minute per 15 km, so low accuracy is enough.
     try {
       final now = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
@@ -206,7 +201,7 @@ class SkyClock extends ValueNotifier<SkyPhase> {
       );
       return (latitude: now.latitude, longitude: now.longitude);
     } catch (_) {
-      // No reading: an old position still beats none.
+      // No new reading: an old position is still better than none.
       if (known == null) rethrow;
       return (latitude: known.latitude, longitude: known.longitude);
     }

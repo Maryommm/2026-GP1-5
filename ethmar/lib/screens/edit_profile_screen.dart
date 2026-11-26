@@ -45,15 +45,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // Store the current uploaded photo.
   UploadedProfileImage? _uploadedProfileImage;
 
-  // Photo changes wait here until Save, so Cancel leaves the saved photo
-  // as it was: a newly picked photo (and its bytes, for the preview), or
-  // a request to delete the saved one.
+  // Photo changes wait here until Save, so Cancel keeps the saved photo as
+  // it was. This is either a newly picked photo (and its bytes, to show it)
+  // or a request to delete the saved one.
   XFile? _pendingPhoto;
   Uint8List? _pendingPhotoBytes;
   bool _pendingDelete = false;
 
-  // The username as saved. Starts as the one passed in, and moves on if Save
-  // stores the username but then fails on the photo, so a retry doesn't
+  // The username as saved. It starts as the one passed in, and is updated if
+  // Save stores the username but then fails on the photo, so a retry doesn't
   // save the username twice.
   late String _savedUsername = widget.username;
 
@@ -67,7 +67,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // Check if anything has changed since the screen opened.
   bool get _hasChanges => _usernameChanged || _photoChanged;
 
-  // Whether a photo shows right now, saved or pending.
+  // Whether a photo is shown right now (saved or pending).
   bool get _hasPhoto =>
       _pendingPhoto != null || (_uploadedProfileImage != null && !_pendingDelete);
 
@@ -99,7 +99,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  // Save the username and any photo change. Nothing reaches the server
+  // Save the username and any photo change. Nothing is sent to the server
   // before this, so leaving without saving keeps the profile as it was.
   Future<void> _save() async {
     // Prevent saving during another operation.
@@ -149,8 +149,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       Navigator.of(context).pop();
 
     } on ProfileImageException catch (error) {
-      // The username (if changed) is saved; the photo change is kept so
-      // Save can try it again.
+      // The username (if changed) is saved. The photo change is kept so Save
+      // can try it again.
       if (!mounted) return;
       _showError(_profilePhotoError(s, error));
 
@@ -196,8 +196,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _photoBusy = true);
 
-    // Null until the camera or gallery returns a file, so errors can be
-    // told apart: picking vs. uploading.
+    // Null until the camera or gallery returns a file, so we can tell if the
+    // error happened while picking or while checking the photo.
     XFile? image;
 
     try {
@@ -239,8 +239,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         // Failed while opening the camera or gallery.
         await _handlePickerError(source, error);
       } else {
-        // Failed after a photo was chosen, for a reason the check could not
-        // identify.
+        // Failed after a photo was chosen, for a reason the check couldn't find.
         _showError(S.of(context).errImageRead);
       }
 
@@ -250,14 +249,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // Explain a camera or gallery failure using image_picker's error code.
-  // Unknown causes get a neutral message for the action that failed.
+  // Explain a camera or gallery error using image_picker's error code.
+  // Unknown errors get a general message for the action that failed.
   Future<void> _handlePickerError(ImageSource source, Object error) async {
     final code = error is PlatformException ? error.code : null;
 
     if (code == 'camera_access_denied') {
-      // Point to Settings only if Android will not ask again; a plain
-      // denial needs no message.
+      // Only point to Settings if Android won't ask again. A normal "no" needs
+      // no message.
       final status = await Permission.camera.status;
       if (status.isPermanentlyDenied || status.isRestricted) {
         await _showCameraSettingsDialog();
@@ -275,8 +274,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   // Make sure the camera can be used. Shows Android's own prompt when it
-  // is allowed to ask, and the Settings dialog only when it is not.
-  // A plain "Don't allow" is respected quietly.
+  // can still ask, and the Settings dialog only when it can't.
+  // If the user just says "Don't allow", we accept it quietly.
   Future<bool> _ensureCameraAccess() async {
     var status = await Permission.camera.status;
     if (status.isGranted) return true;
@@ -340,20 +339,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (openSettings == true) await openAppSettings();
   }
 
-  // Remove the photo from the preview. The saved photo is deleted on Save.
+  // Remove the photo from the screen. The saved photo is deleted on Save.
   void _deletePhoto() {
     if (!_hasPhoto || _saving || _photoBusy) return;
 
     setState(() {
       _pendingPhoto = null;
       _pendingPhotoBytes = null;
-      // Only a saved photo needs deleting; a photo picked just now was never
-      // uploaded.
+      // Only a saved photo needs to be deleted. A photo picked just now was
+      // never uploaded.
       _pendingDelete = _uploadedProfileImage != null;
     });
   }
 
-  // Convert photo errors into user-friendly messages.
+  // Convert photo errors into friendly messages.
   // Technical details (HTTP status, server codes) are never shown.
   String _profilePhotoError(S s, ProfileImageException error) {
     return switch (error.code) {
@@ -448,8 +447,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                // Edit Profile screen header.
-                // Same header as Profile: back button and centred title.
+                // The same header as Profile: back button and centred title.
                 EthmarCenteredHeader(title: s.editProfile),
 
                 Padding(
@@ -557,8 +555,7 @@ class _PhotoArea extends StatelessWidget {
         Stack(
           clipBehavior: Clip.none,
           children: [
-            // The current photo or default avatar, in a forest-green ring
-            // like Profile's.
+            // The current photo or default avatar, in a green ring like on Profile.
             Container(
               padding: const EdgeInsets.all(5),
               decoration: const BoxDecoration(
@@ -662,7 +659,7 @@ class _PhotoPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Rounded rectangle in the Home green, like the app's other controls.
+    // A rounded rectangle in the Home green, like the app's other buttons.
     return Material(
       color: AppColors.featureCard,
       shape: const RoundedRectangleBorder(borderRadius: kControlRadius),

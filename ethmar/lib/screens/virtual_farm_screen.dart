@@ -23,25 +23,25 @@ import 'add_plant_screen.dart';
 import 'my_plants_screen.dart';
 import 'plant_details_screen.dart';
 
-/// Virtual Farm: the user's lands as 3D (isometric) blocks of grass on
-/// soil, floating on a soft sky over hills ([FarmSky]): by day between the
-/// user's sunrise and sunset, by night otherwise ([SkyClock]). Pinch or use
-/// the buttons to zoom.
+/// Virtual Farm: the user's lands drawn as 3D (isometric) blocks of grass
+/// on soil, over a sky with hills ([FarmSky]). It shows day between the
+/// user's sunrise and sunset, and night otherwise ([SkyClock]). Pinch or
+/// use the buttons to zoom.
 ///
 /// Each land holds 5 × 5 = 25 plants. New plants go in the next free square
 /// automatically, row by row from the back corner. When every land is full,
-/// a new land can be added next to them, growing the farm up to 3 × 3 lands.
-/// An empty farm prompts for the first plant.
-/// The farm itself comes from [FarmStore].
+/// a new land can be added next to them, up to 3 × 3 lands.
+/// An empty farm asks the user to add their first plant.
+/// The farm data comes from [FarmStore].
 class VirtualFarmScreen extends StatefulWidget {
   const VirtualFarmScreen({super.key});
 
-  /// "Pinch to Zoom" shows until the user first zooms (by pinching or with
-  /// + / −), then never again, also after a restart. Saved on this phone
-  /// under this key.
+  /// "Pinch to Zoom" shows until the user zooms for the first time (by
+  /// pinching or with + / −), and then never again, even after a restart.
+  /// It is saved on this phone under this key.
   static const zoomHintDoneKey = 'farm_zoom_hint_done';
 
-  /// For tests: forgets what was read, so it's read again.
+  /// For tests: forgets the saved value so it's read again.
   @visibleForTesting
   static void resetZoomHintForTests() =>
       _VirtualFarmScreenState._zoomLearned = null;
@@ -54,15 +54,15 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     with SingleTickerProviderStateMixin {
   static const _minScale = 0.6;
 
-  /// Text over the night sky: soft white.
+  /// Text colour on the night sky: soft white.
   static const _onNight = Color(0xF2FFFFFF);
 
-  /// How far in you can zoom on a single land filling the screen. With more
+  /// How far you can zoom in when a single land fills the screen. With more
   /// lands each one is drawn smaller, so the limit grows to match.
   static const _maxZoomOneLand = 5.0;
 
-  /// The order lands are added in, as (column, row) on the farm: right of
-  /// the first, in front of it, the corner between, then out to 3 × 3.
+  /// The order lands are added in, as (column, row): right of the first, in
+  /// front of it, the corner between them, then out to 3 × 3.
   static const _landSpots = [
     (0, 0), (1, 0), (0, 1), (1, 1), //
     (2, 0), (2, 1), (0, 2), (1, 2), (2, 2),
@@ -70,14 +70,14 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
 
   int get _landCount => FarmStore.lands.value;
 
-  /// True once we know the user has no plants (not while they're loading).
+  /// True once we know the user has no plants (not while loading).
   bool get _farmEmpty =>
       FarmStore.plantsLoaded.value && FarmStore.plants.value.isEmpty;
 
-  /// Id of a plant added while this screen is open; it pops in.
+  /// The id of a plant added while this screen is open, so it can pop in.
   String? _newest;
 
-  /// The plants already on the farm, to notice a new one.
+  /// The plants already on the farm, to notice when a new one is added.
   Set<String?> _knownPlants = const {};
 
   final _view = TransformationController();
@@ -91,17 +91,17 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     });
   Animation<Matrix4>? _moveTween;
 
-  /// Size of the zoomable area, kept from the last layout.
+  /// Size of the zoomable area from the last layout.
   Size _viewport = Size.zero;
 
   /// Day or night where the user is, for the sky behind the farm.
   final _sky = SkyClock.create();
 
-  /// Whether the user has zoomed before, shared by every farm screen once
-  /// read. Null until read, and the hint stays hidden meanwhile.
+  /// Whether the user has zoomed before (shared by all farm screens once
+  /// read). Null until it's read, and the hint stays hidden until then.
   static bool? _zoomLearned;
 
-  /// The zoom when the current pinch or drag started.
+  /// The zoom level when the current pinch or drag started.
   double _scaleAtStart = 1;
 
   @override
@@ -136,7 +136,8 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     final added = ids.difference(_knownPlants);
     _knownPlants = ids;
     setState(() {
-      // Several at once is the farm loading, not the user adding a plant.
+      // Several new plants at once means the farm is loading, not the user
+      // adding a plant.
       if (added.length == 1) _newest = added.first;
     });
   }
@@ -147,14 +148,14 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
       final prefs = await SharedPreferences.getInstance();
       learned = prefs.getBool(VirtualFarmScreen.zoomHintDoneKey) ?? false;
     } catch (_) {
-      // Can't read it: show the hint.
+      // Can't read it, so show the hint.
     }
-    // A zoom while it was loading has already set it.
+    // If the user zoomed while it was loading, it's already set.
     _zoomLearned ??= learned;
     if (mounted) setState(() {});
   }
 
-  /// The user zoomed for real: hide the hint for good.
+  /// The user really zoomed, so hide the hint for good.
   void _zoomed() {
     if (_zoomLearned == true) return;
     setState(() => _zoomLearned = true);
@@ -163,7 +164,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
         .catchError((Object _) => false);
   }
 
-  /// True when two zoom levels really differ (not just rounding).
+  /// True when two zoom levels are really different (not just rounding).
   static bool _scaleChanged(double a, double b) => (a - b).abs() > a * 0.01;
 
   void _onMove() {
@@ -171,12 +172,12 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     if (tween != null) _view.value = tween.value;
   }
 
-  /// The zoom before a + or − press, until its move ends; null otherwise
-  /// (recentering, pinching).
+  /// The zoom before a + or − press, until its animation ends. Null
+  /// otherwise (recentering, pinching).
   double? _zoomFrom;
 
-  /// After a + or − move: if the farm's zoom really changed (the viewer
-  /// may hold it at a limit), the user has zoomed.
+  /// After a + or − animation: if the zoom really changed (it may be held at
+  /// a limit), the user has zoomed.
   void _checkButtonZoom() {
     final from = _zoomFrom;
     _zoomFrom = null;
@@ -203,8 +204,8 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
     _move.forward(from: 0);
   }
 
-  /// The next spot a land can be added in. Null until every land is full
-  /// (25 plants each), and once the farm is at its biggest.
+  /// The next spot where a land can be added. Null until every land is full
+  /// (25 plants each), and when the farm is at its biggest size.
   ///
   /// TODO(backend): Test once plants are saved: fill a land (all 25
   ///   squares) → the "Add land" spot appears next to it; not full → it
@@ -230,10 +231,10 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
 
   double get _maxScale => _maxZoomOneLand * _zoomRoom;
 
-  /// How much smaller one land is drawn now than when it's alone.
+  /// How much smaller one land is drawn now compared to when it's alone.
   double _zoomRoom = 1;
 
-  /// Zooms around the middle of the screen, staying within the limits.
+  /// Zooms around the middle of the screen, within the limits.
   void _zoomBy(double factor) {
     final current = _view.value.getMaxScaleOnAxis();
     final k = (current * factor).clamp(_minScale, _maxScale) / current;
@@ -251,25 +252,25 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    // Until the real phase is known, the usual day colours over the cream.
+    // Until the real day/night phase is known, use the normal day colours.
     final night = _sky.settled && _sky.value == SkyPhase.night;
-    // Over the night sky, light status bar icons, title and hint. The
-    // buttons are white and stay as they are.
+    // On the night sky, use light status bar icons, title and hint. The
+    // buttons are white and stay the same.
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: night ? ethmarSystemBarsOnDark : ethmarSystemBars,
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: Stack(
           children: [
-            // The landscape stays still behind the farm: only the farm
-            // inside the InteractiveViewer pans and zooms.
+            // The background stays still. Only the farm inside the InteractiveViewer
+            // moves and zooms.
             Positioned.fill(child: FarmSky(phase: _sky.value, ready: _sky.settled)),
             Positioned.fill(
               child: LayoutBuilder(
                 builder: (context, box) {
                   _viewport = box.biggest;
-                  // The farm fills almost the whole width, but stays short
-                  // enough to fit between the header and the buttons.
+                  // The farm fills almost the whole width, but is short enough to fit
+                  // between the header and the buttons.
                   final fit = Size(box.maxWidth * 0.96, box.maxHeight * 0.9);
                   final lands = _landSpots.take(_landCount).toList();
                   final next = _nextSpot;
@@ -288,7 +289,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                       _zoomFrom = null;
                       _scaleAtStart = _view.value.getMaxScaleOnAxis();
                     },
-                    // A pinch that changed the zoom counts; a pan doesn't.
+                    // A pinch that changed the zoom counts; just moving around doesn't.
                     onInteractionEnd: (_) {
                       if (_scaleChanged(
                         _scaleAtStart,
@@ -317,8 +318,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                                     ),
                                   ),
                                 ),
-                                // Back squares first, so plants in front
-                                // overlap the ones behind them.
+                                // Back squares first, so plants in front overlap the ones behind them.
                                 for (final plant in layout.backToFront(plants))
                                   _PlacedPlant(
                                     key: ValueKey(plant.id),
@@ -366,8 +366,8 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
               child: EthmarCenteredHeader(
                 title: s.farmTitle,
                 titleColor: night ? _onNight : null,
-                // On the reading start side: right in Arabic, left in
-                // English. A main tab, so no back button there.
+                // On the start side: right in Arabic, left in English. This is a main tab,
+                // so there is no back button.
                 leading: const _MyPlantsButton(),
                 showBack: false,
               ),
@@ -394,7 +394,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
                                   color: night ? _onNight : null,
                                 ),
                               ),
-                            // The empty farm's prompt has its own button.
+                            // The empty farm prompt has its own button.
                             if (!_farmEmpty) ...[
                               const SizedBox(height: 10),
                               _AddPlantButton(
@@ -423,7 +423,7 @@ class _VirtualFarmScreenState extends State<VirtualFarmScreen>
   }
 }
 
-/// Shown over a farm with no plants: says so and offers to add the first.
+/// Shown on a farm with no plants: says so and offers to add the first one.
 class _EmptyFarmPrompt extends StatelessWidget {
   const _EmptyFarmPrompt({required this.onAddPlant});
   final VoidCallback onAddPlant;
@@ -431,7 +431,7 @@ class _EmptyFarmPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    // Below the middle, so the land stays in view above it.
+    // Below the middle, so the land is still visible above it.
     return Align(
       alignment: const Alignment(0, 0.35),
       child: Padding(
@@ -478,12 +478,12 @@ class _EmptyFarmPrompt extends StatelessWidget {
   }
 }
 
-/// "My plants" in the header corner: a white circle with a potted plant
-/// beside a list. Opens the list of the user's plants.
+/// The "My plants" button in the header corner: a white circle with a
+/// potted plant and a list. Opens the list of the user's plants.
 class _MyPlantsButton extends StatelessWidget {
   const _MyPlantsButton();
 
-  /// The picture's box. The drawing fills about 70% of its width.
+  /// The picture's box size. The drawing fills about 70% of its width.
   static const _iconSize = 40.0;
 
   @override
@@ -495,14 +495,14 @@ class _MyPlantsButton extends StatelessWidget {
         tooltip: S.of(context).myPlants,
         onPressed: () =>
             Navigator.of(context).push(riseRoute(const MyPlantsScreen())),
-        // Less padding around the bigger picture: still a 48 circle.
+        // Less padding around the bigger picture, but still a 48 circle.
         style: IconButton.styleFrom(
           minimumSize: const Size(48, 48),
           padding: const EdgeInsets.all(4),
         ),
         iconSize: _iconSize,
-        // The drawing sits a little below the picture's middle; lifted
-        // so it's centred in the circle.
+        // The drawing is a bit below the middle of the picture, so it's moved up
+        // to be centred in the circle.
         icon: Transform.translate(
           offset: const Offset(0, -_iconSize * 0.046),
           child: Image.asset(
@@ -517,7 +517,7 @@ class _MyPlantsButton extends StatelessWidget {
   }
 }
 
-/// +, − and reset, stacked in one white pill.
+/// The +, − and reset buttons, stacked in one white pill.
 class _ZoomControls extends StatelessWidget {
   const _ZoomControls({
     required this.onZoomIn,
@@ -559,9 +559,9 @@ class _ZoomControls extends StatelessWidget {
   }
 }
 
-/// One plant standing in its square: the crop's picture, its base on the
-/// square's middle. [popIn] grows it in, for the plant just added.
-/// Tapping it opens the plant's details.
+/// One plant standing in its square: the crop's picture with its base in
+/// the middle of the square. [popIn] makes it grow in (for the plant just
+/// added). Tapping it opens the plant's details.
 class _PlacedPlant extends StatelessWidget {
   const _PlacedPlant({
     super.key,
@@ -579,9 +579,8 @@ class _PlacedPlant extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Narrower than the square, so there's grass between neighbours (in
-    // this view the next square along is only half a square to the side).
-    // The pictures are about 4:5.
+    // Narrower than the square, so there's grass between plants. The pictures
+    // are about 4:5.
     final width = squareWidth * 0.6;
     final height = width * 1.3;
     Widget picture = PlantPicture(
@@ -596,7 +595,7 @@ class _PlacedPlant extends StatelessWidget {
     if (popIn) picture = _PopIn(child: picture);
     return Positioned(
       left: at.dx - width / 2,
-      // The pictures' soil sits a little above their bottom edge.
+      // The soil in the pictures is a little above their bottom edge.
       top: at.dy - height * 0.94,
       child: Semantics(
         label: plant.name,
@@ -612,8 +611,8 @@ class _PlacedPlant extends StatelessWidget {
   }
 }
 
-/// Grows its child up from the ground with a little bounce. Waits a moment
-/// first, so it plays once the add-a-plant screen has slid away.
+/// Grows its child up from the ground with a little bounce. It waits a
+/// moment first, so it plays after the add-a-plant screen has closed.
 class _PopIn extends StatefulWidget {
   const _PopIn({required this.child});
   final Widget child;
@@ -658,8 +657,8 @@ class _PopInState extends State<_PopIn> with SingleTickerProviderStateMixin {
   }
 }
 
-/// "+ Add plant": opens the add-a-plant steps. Same look as the "Add Plant"
-/// pill on Home, a bit taller.
+/// "+ Add plant": opens the add-a-plant steps. It looks like the "Add
+/// Plant" pill on Home, but a bit taller.
 class _AddPlantButton extends StatelessWidget {
   const _AddPlantButton({required this.onPressed});
   final VoidCallback onPressed;
@@ -695,8 +694,8 @@ class _AddPlantButton extends StatelessWidget {
   }
 }
 
-/// "+ Add land", sitting on the empty spot where the next land will go.
-/// On a small spot (a big farm, zoomed out) it's just a round "+".
+/// "+ Add land", on the empty spot where the next land will go. On a small
+/// spot (big farm, zoomed out) it's just a round "+".
 class _AddLandButton extends StatelessWidget {
   const _AddLandButton({required this.onPressed});
   final VoidCallback onPressed;
@@ -748,12 +747,12 @@ class _AddLandButton extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // The farm, drawn in isometric view. Each land is a block: a grass diamond
-// on top, two side faces (grass edge with a wavy line into the soil), and a
-// soft shadow underneath. Left faces are lit, right faces are in shade.
-// Lands sit edge to edge, so together they read as one bigger field.
+// on top, two side faces (grass with a wavy line into the soil), and a
+// soft shadow underneath. Left faces are light, right faces are in shade.
+// Lands touch each other, so together they look like one bigger field.
 // ---------------------------------------------------------------------------
 
-/// Where every land (and the empty "next" spot) sits on the canvas, sized so
+/// Where every land (and the empty "next" spot) is on the canvas, sized so
 /// the whole farm fits in [fit].
 class _FarmLayout {
   _FarmLayout(this.lands, this.next, Size fit) {
@@ -771,18 +770,18 @@ class _FarmLayout {
     size = Size(widthInLands * landWidth, heightInLands * landWidth);
   }
 
-  /// Squares per side of a land, one plant each. The grid isn't drawn; it
-  /// only tells the app where plants go.
+  /// Squares on each side of a land, one plant each. The grid isn't drawn;
+  /// it only tells the app where plants go.
   static const cells = FarmStore.squaresPerSide;
 
-  /// Side thickness, as a part of a land's width.
+  /// The side thickness, as a part of a land's width.
   static const depth = 0.15;
   static const _shadowRoom = 0.08;
 
   /// (column, row) of each land, in the order they were added.
   final List<(int, int)> lands;
 
-  /// Where the next land would go, or null when the farm is full size.
+  /// Where the next land would go, or null when the farm is at full size.
   final (int, int)? next;
 
   late final double landWidth;
@@ -790,37 +789,37 @@ class _FarmLayout {
   late final int _minAcross;
   late final int _minDown;
 
-  /// Top-left of the box around the land at [spot].
+  /// The top-left corner of the box around the land at [spot].
   Offset originOf((int, int) spot) => Offset(
     (spot.$1 - spot.$2 - _minAcross) * landWidth / 2,
     (spot.$1 + spot.$2 - _minDown) * landWidth / 4,
   );
 
-  /// A point on a land's grass top: [u] runs from its back corner to its
-  /// right corner, [v] to its left corner (0..1).
+  /// A point on a land's grass top: [u] goes from its back corner to its
+  /// right corner, and [v] to its left corner (0 to 1).
   Offset pointOn((int, int) spot, double u, double v) =>
       originOf(spot) +
       Offset(landWidth / 2 + (u - v) * landWidth / 2, (u + v) * landWidth / 4);
 
-  /// Middle of the land's grass top.
+  /// The middle of the land's grass top.
   Offset middleOf((int, int) spot) => pointOn(spot, 0.5, 0.5);
 
-  /// Where [plant] grows: its land, and its square's row and column there.
-  /// Squares go row by row from the land's back corner.
+  /// Where [plant] grows: its land, and its square's row and column. Squares
+  /// go row by row from the land's back corner.
   ({(int, int) land, int row, int col}) squareOf(FarmPlant plant) => (
     land: lands[plant.land],
     row: plant.square ~/ cells,
     col: plant.square % cells,
   );
 
-  /// Middle of [plant]'s square.
+  /// The middle of [plant]'s square.
   Offset squareMiddle(FarmPlant plant) {
     final s = squareOf(plant);
     return pointOn(s.land, (s.col + 0.5) / cells, (s.row + 0.5) / cells);
   }
 
-  /// [plants] ordered from the back of the farm to the front, so drawing
-  /// them in this order layers them correctly.
+  /// [plants] sorted from the back of the farm to the front, so drawing them
+  /// in this order layers them correctly.
   List<FarmPlant> backToFront(List<FarmPlant> plants) {
     int depth(FarmPlant plant) {
       final s = squareOf(plant);
@@ -837,7 +836,7 @@ class _FarmPainter extends CustomPainter {
   const _FarmPainter(this.layout, this.plants);
   final _FarmLayout layout;
 
-  /// Planted squares get a soft shadow under the plant.
+  /// Squares with a plant get a soft shadow under it.
   final List<FarmPlant> plants;
 
   static const _grassTop = Color(0xFFA9D57F);
@@ -867,7 +866,7 @@ class _FarmPainter extends CustomPainter {
       );
     }
 
-    // Back lands first: a land in front covers the sides of the one behind.
+    // Back lands first, so a land in front covers the sides of the one behind.
     final ordered = [...layout.lands]
       ..sort((a, b) => (a.$1 + a.$2).compareTo(b.$1 + b.$2));
     for (final spot in ordered) {
@@ -898,7 +897,8 @@ class _FarmPainter extends CustomPainter {
     Offset at(double u, double v) => layout.pointOn(spot, u, v);
     final top = at(0, 0), right = at(1, 0), bottom = at(1, 1), left = at(0, 1);
 
-    // The wave runs along the whole farm edge, so it joins up between lands.
+    // The wave runs along the whole edge of the farm, so it joins up between
+    // lands.
     _side(
       canvas,
       left,
@@ -932,9 +932,8 @@ class _FarmPainter extends CustomPainter {
       Paint()..color = _grassTop,
     );
 
-    // Little grass tufts, different on each land but the same every time.
-    // They keep away from the middle of each grid square, where that
-    // square's crop will stand.
+    // Small grass tufts, different on each land but the same every time. They
+    // stay away from the middle of each square, where the plant stands.
     final rand = math.Random(7 + col * 31 + row * 17);
     final tuft = Paint()..color = _tuft;
     final k = w / 360;
@@ -959,7 +958,7 @@ class _FarmPainter extends CustomPainter {
       }
     }
 
-    // Light rim along the front edges, only where no land joins on.
+    // A light edge along the front sides, only where no other land touches.
     final rim = Paint()
       ..color = Colors.white.withValues(alpha: 0.35)
       ..strokeWidth = 2
@@ -969,8 +968,8 @@ class _FarmPainter extends CustomPainter {
   }
 
   /// One side face from [a] to [b]: soil, with a grass band on top whose
-  /// lower edge waves like the example. [from] and [to] say where this face
-  /// sits along the farm's edge, so the wave continues onto the next land.
+  /// bottom edge is wavy. [from] and [to] say where this face is along the
+  /// farm's edge, so the wave continues onto the next land.
   void _side(
     Canvas canvas,
     Offset a,
@@ -1006,7 +1005,7 @@ class _FarmPainter extends CustomPainter {
     band.close();
     canvas.drawPath(band, Paint()..color = grass);
 
-    // Darker strip at the very bottom, like deeper earth.
+    // A darker strip at the very bottom, like deeper soil.
     canvas.drawPath(
       Path()
         ..moveTo(a.dx, a.dy + depth * 0.86)

@@ -34,9 +34,10 @@ class JourneyPhotoException implements Exception {
 }
 
 /// Uploads and deletes journey timeline photos through the image Worker
-/// (`workers/profile-images`, endpoint `/v1/plant-journey`), which keeps the
-/// Cloudinary key off the phone. Each photo is saved at
-/// [JourneyPhoto.publicIdFor]; the Worker takes the uid from the login token.
+/// (`workers/profile-images`, endpoint `/v1/plant-journey`). The Worker
+/// keeps the Cloudinary key off the phone. Each photo is saved at
+/// [JourneyPhoto.publicIdFor], and the Worker gets the uid from the login
+/// token.
 class JourneyPhotoService {
   JourneyPhotoService({
     http.Client? client,
@@ -48,12 +49,12 @@ class JourneyPhotoService {
     'https://ethmar-profile-images.fanyeol-23.workers.dev/v1/plant-journey',
   );
 
-  /// The Worker accepts up to 5 MB. Photos are shrunk when picked (see
-  /// [pickWidth]), so a real one is far smaller.
+  /// The Worker accepts up to 5 MB. Photos are made smaller when picked (see
+  /// [pickWidth]), so real ones are much smaller than this.
   static const maxBytes = 5 * 1024 * 1024;
 
-  /// The longest side to pick a photo at, and its JPEG quality: enough
-  /// for the timeline, and quick to send on mobile data.
+  /// The longest side and JPEG quality for picked photos: good enough for the
+  /// timeline and quick to upload on mobile data.
   static const pickWidth = 1600.0;
   static const pickQuality = 80;
 
@@ -100,7 +101,7 @@ class JourneyPhotoService {
       );
     final response = await _send(request);
 
-    // Accept only the photo this user asked for, as the Worker saves it.
+    // Only accept the photo this user uploaded, at the path we expect.
     final saved = _json(response)?['image'];
     final expectedId = JourneyPhoto.publicIdFor(session.uid, plantId, entryId);
     if (saved is! Map<String, dynamic> ||
@@ -129,14 +130,14 @@ class JourneyPhotoService {
     }
   }
 
-  /// Deletes the photo of journey entry [entryId] of [plantId]. A photo
-  /// that's already gone counts as deleted.
+  /// Deletes the photo of journey entry [entryId] of [plantId]. A photo that
+  /// is already gone counts as deleted.
   Future<void> deleteEntryPhoto({
     required String plantId,
     required String entryId,
   }) => _delete({'plantId': plantId, 'entryId': entryId});
 
-  /// Deletes every journey photo of [plantId], when the plant is deleted.
+  /// Deletes all journey photos of [plantId] (used when the plant is deleted).
   Future<void> deletePlantPhotos(String plantId) =>
       _delete({'plantId': plantId});
 
@@ -149,7 +150,7 @@ class JourneyPhotoService {
     await _send(request);
   }
 
-  /// Sends [request] and turns a failure into a [JourneyPhotoException].
+  /// Sends [request] and turns any failure into a [JourneyPhotoException].
   Future<http.Response> _send(http.BaseRequest request) async {
     final http.Response response;
     try {
@@ -181,7 +182,8 @@ class JourneyPhotoService {
     }
   }
 
-  /// JPEG, PNG or WebP, from the file's first bytes; null for anything else.
+  /// Detects JPEG, PNG or WebP from the file's first bytes. Returns null for
+  /// anything else.
   static MediaType? _mediaType(Uint8List b) {
     bool starts(List<int> sig, [int at = 0]) =>
         b.length >= at + sig.length &&
@@ -197,8 +199,8 @@ class JourneyPhotoService {
     return null;
   }
 
-  /// The signed-in user and a fresh ID token. Refreshed every time, like
-  /// the profile picture's, so a newly verified email counts at once.
+  /// The signed-in user and a fresh ID token. The token is refreshed every
+  /// time so a newly verified email works right away.
   static Future<JourneyPhotoSession> _firebaseSession() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {

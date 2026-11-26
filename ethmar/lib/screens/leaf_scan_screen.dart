@@ -12,12 +12,12 @@ import '../widgets/centered_header.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 
-/// Scan a sick leaf: live camera inside a viewfinder, tips, and a shutter.
-/// Taking the photo freezes the frame, shows a short "analysing" sweep and
-/// then the diagnosis dialog.
+/// Scan a sick leaf: the live camera inside a frame, tips and a shutter
+/// button. Taking the photo freezes the picture, shows a short "analysing"
+/// animation and then the diagnosis dialog.
 ///
 /// UI only for now: the photo isn't saved or sent anywhere, and the result
-/// is always the same prototype diagnosis.
+/// is always the same sample diagnosis.
 /// TODO(diagnosis-model): Capture the photo, send it to the diagnosis model
 ///   and show its real result.
 class LeafScanScreen extends StatefulWidget {
@@ -37,7 +37,7 @@ class _LeafScanScreenState extends State<LeafScanScreen>
   bool _cameraFailed = false;
 
   /// True when the camera was closed because the app went to the background,
-  /// so it's reopened when the app comes back.
+  /// so it's opened again when the app comes back.
   bool _closedForBackground = false;
 
   bool _analysing = false;
@@ -98,8 +98,8 @@ class _LeafScanScreenState extends State<LeafScanScreen>
       if (_analysing) await camera.pausePreview();
       setState(() => _camera = camera);
     } catch (_) {
-      // No camera (desktop, web), or the user said no to camera access.
-      // The placeholder still lets the rest of the flow be tried.
+      // No camera (desktop, web), or the user didn't allow camera access. The
+      // rest of the flow can still be tried without it.
       if (mounted) setState(() => _cameraFailed = true);
     } finally {
       _starting = false;
@@ -109,7 +109,7 @@ class _LeafScanScreenState extends State<LeafScanScreen>
   void _capture() {
     if (_analysing) return;
     HapticFeedback.mediumImpact();
-    // Freezing the preview looks like the photo was taken.
+    // Freezing the camera image makes it look like the photo was taken.
     _camera?.pausePreview().catchError((_) {});
     setState(() {
       _analysing = true;
@@ -134,7 +134,7 @@ class _LeafScanScreenState extends State<LeafScanScreen>
       Navigator.of(context).pop();
       return;
     }
-    // "Scan another leaf", or the dialog was closed: back to the camera.
+    // "Scan another leaf", or the dialog was closed: go back to the camera.
     _stepTimer?.cancel();
     _camera?.resumePreview().catchError((_) {});
     setState(() => _analysing = false);
@@ -171,8 +171,8 @@ class _LeafScanScreenState extends State<LeafScanScreen>
                   ),
                 ),
               ),
-              // Both bottom panels share one slot (the taller one sets its
-              // height), so the viewfinder doesn't jump when they swap.
+              // Both bottom panels share one space (sized by the taller one), so the
+              // frame doesn't jump when they swap.
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                 child: Entrance(
@@ -227,8 +227,8 @@ class _Swap extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Viewfinder: white card holding the camera (or a placeholder), the corner
-// brackets, and the scanning sweep while analysing.
+// Viewfinder: a white card with the camera (or a placeholder), the corner
+// lines, and the scanning animation while analysing.
 // ---------------------------------------------------------------------------
 
 class _Viewfinder extends StatelessWidget {
@@ -291,14 +291,14 @@ class _Viewfinder extends StatelessWidget {
   }
 }
 
-/// The camera preview filling the viewfinder (cropped, not stretched).
+/// The camera image filling the frame (cropped, not stretched).
 class _CameraFill extends StatelessWidget {
   const _CameraFill({required this.camera});
   final CameraController camera;
 
   @override
   Widget build(BuildContext context) {
-    // The preview size is reported in landscape; the phone is upright.
+    // The camera reports its size in landscape, but the phone is upright.
     final size = camera.value.previewSize!;
     return FittedBox(
       fit: BoxFit.cover,
@@ -358,7 +358,7 @@ class _NoCamera extends StatelessWidget {
   }
 }
 
-/// Four rounded "L" corners, like the sketch's frame.
+/// Four rounded "L" corners around the camera frame.
 class _CornerBrackets extends CustomPainter {
   const _CornerBrackets(this.color);
   final Color color;
@@ -376,7 +376,7 @@ class _CornerBrackets extends CustomPainter {
       ..lineTo(0, r)
       ..arcToPoint(const Offset(r, 0), radius: const Radius.circular(r))
       ..lineTo(len, 0);
-    // Draw the top-left corner, then mirror it into the other three.
+    // Draw the top-left corner, then mirror it to make the other three.
     for (final (sx, sy) in const [(1.0, 1.0), (-1.0, 1.0), (1.0, -1.0), (-1.0, -1.0)]) {
       canvas
         ..save()
@@ -391,7 +391,7 @@ class _CornerBrackets extends CustomPainter {
   bool shouldRepaint(covariant _CornerBrackets old) => old.color != color;
 }
 
-/// A turquoise line sweeping up and down over the frozen photo.
+/// A turquoise line moving up and down over the frozen photo.
 class _ScanSweep extends StatefulWidget {
   const _ScanSweep();
 
@@ -452,7 +452,8 @@ class _ScanSweepState extends State<_ScanSweep>
 }
 
 // ---------------------------------------------------------------------------
-// Bottom panels: tips + shutter while aiming, status text while analysing.
+// Bottom panels: tips and the shutter button while aiming, status text
+// while analysing.
 // ---------------------------------------------------------------------------
 
 class _AimControls extends StatelessWidget {
@@ -513,7 +514,7 @@ class _TipChip extends StatelessWidget {
   }
 }
 
-/// Round forest shutter with a white ring, like a camera button.
+/// A round green shutter button with a white ring, like a camera button.
 class _ShutterButton extends StatelessWidget {
   const _ShutterButton({required this.label, required this.onPressed});
   final String label;
@@ -600,7 +601,7 @@ class _AnalysingStatus extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Diagnosis dialog (prototype result, always "Dry leaves").
+// Diagnosis dialog (sample result for now, always "Dry leaves").
 // TODO(diagnosis-model): Fill this from the model's result (name, how hard
 //   it is to fix and description).
 // ---------------------------------------------------------------------------

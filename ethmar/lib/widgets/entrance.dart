@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Fades + lifts a child in after [delay]. Kept short and small so screens
-/// settle calmly. Shows the child straight away when the system asks for
-/// reduced motion.
+/// Fades and slides a child in after [delay]. If the phone is set to
+/// reduce motion, the child is shown right away.
 class Entrance extends StatefulWidget {
   const Entrance({super.key, required this.child, this.delay = Duration.zero, this.offset = 12});
   final Widget child;
@@ -50,7 +49,7 @@ class _EntranceState extends State<Entrance> with SingleTickerProviderStateMixin
   }
 }
 
-/// Runs 0→1 once after [delay]; handy for the self-drawing squiggle.
+/// Animates from 0 to 1 once after [delay] (used for the squiggle).
 class DelayedProgress extends StatefulWidget {
   const DelayedProgress({super.key, required this.builder, this.delay = Duration.zero,
       this.duration = const Duration(milliseconds: 700)});

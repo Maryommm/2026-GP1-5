@@ -4,12 +4,11 @@
 ///   - completed  List<String>  ids of the tasks done that day, each
 ///                              "{plantId}_irrigation" or
 ///                              "{plantId}_fertilization"
-///   - late       List<String>  ids of that day's tasks done after the day
-///                              was over (optional). They don't count for
+///   - late       List<String>  ids of that day's tasks that were done on a
+///                              later day (optional). They don't count for
 ///                              the streak.
 ///   - lateOn     Map           task id → "yyyy-mm-dd", the day each late
-///                              task was really done (optional; missing
-///                              for tasks done late before it was kept)
+///                              task was actually done (optional)
 library;
 
 /// One day's finished tasks. [date] is the document name, not a field.
@@ -24,18 +23,18 @@ class TaskLog {
   /// "yyyy-mm-dd", see [dateKey].
   final String date;
 
-  /// Ids of the tasks done that day, see [irrigationTaskId] and
-  /// [fertilizationTaskId].
+  /// Ids of the tasks done that day (see [irrigationTaskId] and
+  /// [fertilizationTaskId]).
   final List<String> completed;
 
-  /// Ids of the tasks of that day done late, on a later day (from the
+  /// Ids of that day's tasks that were done late, on a later day (from the
   /// missed tasks on Daily Tasks).
   final List<String> late;
 
-  /// The day ("yyyy-mm-dd") each task in [late] was really done.
+  /// The day ("yyyy-mm-dd") each task in [late] was actually done.
   final Map<String, String> lateOn;
 
-  /// The document name for [day], in the phone's local time: "2026-10-30".
+  /// The document name for [day] in the phone's local time, e.g. "2026-10-30".
   static String dateKey(DateTime day) {
     final local = day.toLocal();
     final m = local.month.toString().padLeft(2, '0');
@@ -43,7 +42,7 @@ class TaskLog {
     return '${local.year}-$m-$d';
   }
 
-  /// The local date of a [dateKey], or null if [key] isn't one.
+  /// The local date of a [dateKey], or null if [key] is not valid.
   static DateTime? parseKey(String? key) {
     if (key == null) return null;
     final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(key);
@@ -55,10 +54,10 @@ class TaskLog {
     );
   }
 
-  /// The id of watering plant [plantId].
+  /// The task id for watering plant [plantId].
   static String irrigationTaskId(String plantId) => '${plantId}_irrigation';
 
-  /// The id of fertilizing plant [plantId].
+  /// The task id for fertilizing plant [plantId].
   static String fertilizationTaskId(String plantId) =>
       '${plantId}_fertilization';
 
@@ -66,10 +65,10 @@ class TaskLog {
 
   bool isDoneLate(String taskId) => late.contains(taskId);
 
-  /// Done on that day or later.
+  /// True if done on that day or later.
   bool isDone(String taskId) => isCompleted(taskId) || isDoneLate(taskId);
 
-  /// The day the late task [taskId] was really done, or null if unknown.
+  /// The day the late task [taskId] was actually done, or null if unknown.
   DateTime? lateDoneOn(String taskId) => parseKey(lateOn[taskId]);
 
   Map<String, Object> toMap() => {
@@ -78,8 +77,8 @@ class TaskLog {
     if (lateOn.isNotEmpty) 'lateOn': lateOn,
   };
 
-  /// Builds a log from document [date] and its fields.
-  /// Throws a [FormatException] if the saved values aren't valid.
+  /// Creates a log from document [date] and its fields.
+  /// Throws a [FormatException] if the saved values are not valid.
   factory TaskLog.fromMap(String date, Map<String, dynamic> data) {
     final completed = data['completed'];
     final late = data['late'] ?? const [];

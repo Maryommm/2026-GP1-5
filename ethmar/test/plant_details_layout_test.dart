@@ -122,7 +122,7 @@ void main() {
       await open(tester, plant(), locale: locale);
       expect(tester.takeException(), isNull);
 
-      // The user's name is the title; delete is no longer in the header.
+      // The user's name is the title, and the delete button isn't in the header.
       final header = find.byType(EthmarCenteredHeader);
       expect(find.descendant(of: header, matching: find.text('Balcony buddy')),
           findsOneWidget);

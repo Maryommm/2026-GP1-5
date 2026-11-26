@@ -37,10 +37,10 @@ class UserService {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
 
-  // Any username is allowed, as long as its lowercase form can be a
-  // Firestore document name (it reserves the username): not empty, no "/",
-  // not "." or "..", and not "__like_this__". The app stops typing at 30
-  // characters; 100 leaves room for emoji, which count as several.
+  // Any username is allowed as long as its lowercase form can be used as a
+  // Firestore document name: not empty, no "/", not "." or "..", and not
+  // "__like_this__". The app stops typing at 30 characters; 100 leaves room
+  // for emoji, which count as several characters.
   // firestore.rules checks the same things.
   static bool _isAllowedUsername(String username) {
     final id = username.toLowerCase();
@@ -52,9 +52,9 @@ class UserService {
         !(id.startsWith('__') && id.endsWith('__'));
   }
 
-  // Check if nobody has reserved this username yet. Works before sign up,
+  // Check if nobody has taken this username yet. This works before sign up,
   // so the sign-up screen can check the name while the user types.
-  // A name that can't be reserved at all also counts as unavailable.
+  // A name that isn't allowed also counts as unavailable.
   Future<bool> isUsernameAvailable(String username) async {
     final trimmedUsername = username.trim();
     if (!_isAllowedUsername(trimmedUsername)) return false;
@@ -165,9 +165,9 @@ class UserService {
   }
 
   // For a verified account with no profile (the app closed during email
-  // verification). Saves the profile with the username kept from sign up and
-  // returns it. If that isn't possible, deletes the unfinished account so the
-  // email can sign up again, and returns null.
+  // verification). Saves the profile with the username kept from sign up
+  // and returns it. If that's not possible, deletes the unfinished account
+  // so the email can sign up again, and returns null.
   // Throws FirebaseAuthException 'requires-recent-login' if the account
   // can't be deleted until the user logs in again.
   Future<String?> finishUnfinishedSignUp() async {
@@ -182,9 +182,9 @@ class UserService {
         await createCurrentUserProfile(username: username);
         return username.trim();
       } on UsernameAlreadyTakenException {
-        // Someone took the name meanwhile; fall through and remove the account.
+        // Someone took the name in the meantime, so remove the account below.
       } on ArgumentError {
-        // The kept name can't be used; fall through and remove the account.
+        // The saved name can't be used, so remove the account below.
       }
     }
 

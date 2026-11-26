@@ -1,13 +1,13 @@
 /// The user's streak and how many lands their farm has.
 ///
 /// Stats summary: `users/{uid}/stats/summary`
-///   - currentStreak      int          days in a row with tasks done
+///   - currentStreak      int          days in a row with all tasks done
 ///   - lastCompletedDate  String|null  "yyyy-mm-dd" of the last such day
 ///                                     (see TaskLog.dateKey); null if none
 ///   - lands              int          1-9
 ///
-/// Kept apart from `users/{uid}`, whose rules allow only the 4 profile
-/// fields.
+/// This is saved separately from `users/{uid}`, because the rules only
+/// allow the 4 profile fields there.
 library;
 
 class FarmStats {
@@ -17,7 +17,7 @@ class FarmStats {
     this.lands = 1,
   });
 
-  /// The document's name inside `users/{uid}/stats`.
+  /// The document name inside `users/{uid}/stats`.
   static const docId = 'summary';
 
   final int currentStreak;
@@ -30,7 +30,7 @@ class FarmStats {
     'lands': lands,
   };
 
-  /// Throws a [FormatException] if the saved values aren't valid.
+  /// Throws a [FormatException] if the saved values are not valid.
   factory FarmStats.fromMap(Map<String, dynamic> data) {
     final currentStreak = data['currentStreak'];
     final lastCompletedDate = data['lastCompletedDate'];

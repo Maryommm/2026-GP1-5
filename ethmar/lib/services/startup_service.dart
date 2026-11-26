@@ -6,9 +6,9 @@ import 'user_service.dart';
 // Define the possible screens after startup.
 enum StartupDestination { welcome, login, home }
 
-// Define the possible startup errors.
+// The possible startup errors.
 // unfinishedSignUp: the account was removed, so the user must sign up again.
-// logInToFinishSignUp: removing it needs a fresh login first.
+// logInToFinishSignUp: removing the account needs a fresh login first.
 enum StartupFailure {
   authentication,
   network,

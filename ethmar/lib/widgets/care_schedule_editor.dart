@@ -7,13 +7,13 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'care_icon.dart';
 
-/// A schedule while it's being edited; [on] is false until the user turns
+/// A schedule while it's being edited. [on] is false until the user turns
 /// the reminder on.
 class ScheduleDraft {
   ScheduleDraft(this.repeat, this.time);
 
   /// Starts from a saved schedule, or from [repeat] at [time] (turned off)
-  /// when there isn't one yet.
+  /// if there isn't one yet.
   ScheduleDraft.from(CareSchedule? saved, Repeat repeat, TimeOfDay time)
     : on = saved != null,
       repeat = saved?.repeat ?? repeat,
@@ -26,9 +26,8 @@ class ScheduleDraft {
   CareSchedule? get result => on ? CareSchedule(repeat, time) : null;
 }
 
-/// White card with the irrigation and fertilization schedules from the
-/// sketch, each with its own on/off switch. Used when adding a plant and
-/// when editing one.
+/// White card with the watering and fertilizing schedules, each with its
+/// own on/off switch. Used when adding a plant and when editing one.
 class CareScheduleCard extends StatelessWidget {
   const CareScheduleCard({
     super.key,
@@ -39,7 +38,7 @@ class CareScheduleCard extends StatelessWidget {
   final ScheduleDraft irrigation;
   final ScheduleDraft fertilization;
 
-  /// Called after either draft changes, so the screen can rebuild.
+  /// Called when either schedule changes, so the screen can rebuild.
   final VoidCallback onChanged;
 
   @override
@@ -79,8 +78,8 @@ class CareScheduleCard extends StatelessWidget {
   }
 }
 
-/// One schedule from the sketch: title with an on/off switch; when on,
-/// the repetition (with − / +) and the alarm time.
+/// One schedule: a title with an on/off switch, and when it's on, the
+/// repeat (with − / + buttons) and the reminder time.
 class _ScheduleSection extends StatelessWidget {
   const _ScheduleSection({
     required this.title,
@@ -271,7 +270,8 @@ class _SquareButton extends StatelessWidget {
   }
 }
 
-/// A tinted box showing part of the alarm time; tapping opens the picker.
+/// A tinted box showing part of the reminder time. Tapping it opens the
+/// time picker.
 class _TimeBox extends StatelessWidget {
   const _TimeBox({required this.text, required this.onTap, this.width});
   final String text;

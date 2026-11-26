@@ -178,8 +178,8 @@ class FirestoreProfileImageMetadataStore implements ProfileImageMetadataStore {
       .collection('media')
       .doc('profile');
 
-  // Both save on the server or not at all: offline, a plain set or delete
-  // would wait forever instead of failing (see saveOnServer).
+  // Both methods save on the server or not at all. Offline, a plain set or
+  // delete would wait forever instead of failing (see saveOnServer).
   @override
   // Save uploaded image details.
   Future<void> save(String uid, UploadedProfileImage image) {
@@ -247,9 +247,9 @@ class ProfileImageService {
     return _metadataStore.watch(user.uid);
   }
 
-  // Read a selected image and check its size and type, without uploading it.
-  // Edit Profile uses this to reject a bad file as soon as it is picked and
-  // to preview it before Save.
+  // Read a selected image and check its size and type without uploading it.
+  // Edit Profile uses this to reject a bad file right away and to show it
+  // before saving.
   Future<Uint8List> readValidImage(XFile image) async =>
       (await _readValidImage(image)).bytes;
 

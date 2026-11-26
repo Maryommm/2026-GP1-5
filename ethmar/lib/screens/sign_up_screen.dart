@@ -20,7 +20,7 @@ import 'login_screen.dart';
 import 'main_shell.dart';
 import 'validators.dart';
 
-// Where the check for the typed username stands.
+// The state of the username availability check.
 enum _UsernameStatus { unchecked, checking, available, taken, checkFailed }
 
 // Screen for creating a new user account.
@@ -448,13 +448,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             onSubmitted: _loading ? null : (_) => _submit(),
                           ),
 
-                          // The password rules: dim, then green once followed.
+                          // The password rules: grey, then green once followed.
                           PasswordRules(controller: _password),
 
                           const SizedBox(height: 36),
 
-                          // Create account button. Dimmed until every field
-                          // is correct and the username is free.
+                          // Create account button. It is dimmed until every field is correct and the
+                          // username is free.
                           EthmarButton(
                             label: s.createButton,
                             showArrow: true,

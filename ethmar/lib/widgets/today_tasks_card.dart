@@ -12,10 +12,9 @@ import '../theme/app_theme.dart';
 import 'page_routes.dart';
 
 /// The Today's Tasks part of Home's tasks-and-streak card: the title,
-/// today's progress as a sunny bar (with a green tick once all are done),
-/// "1/3 completed" below it, and a chevron at the end.
-/// The whole part opens Daily Tasks, where the tasks themselves are listed.
-/// It has no card of its own; Home draws the card around it.
+/// today's progress as a yellow bar (with a green tick when all are done),
+/// "1/3 completed" under it, and an arrow at the end.
+/// Tapping it opens Daily Tasks. Home draws the card around it.
 class TodayTasksCard extends StatefulWidget {
   const TodayTasksCard({super.key});
 
@@ -24,8 +23,8 @@ class TodayTasksCard extends StatefulWidget {
 }
 
 class _TodayTasksCardState extends State<TodayTasksCard> {
-  /// Today's log and those of the missed days, as Daily Tasks uses them,
-  /// so both count the same tasks.
+  /// Today's log and the logs of the missed days (same as Daily Tasks), so
+  /// both count the same tasks.
   final _logs = RecentTaskLogs();
   late final AppLifecycleListener _lifecycle;
   Timer? _clock;
@@ -36,7 +35,8 @@ class _TodayTasksCardState extends State<TodayTasksCard> {
     _logs.addListener(_refresh);
     _lifecycle = AppLifecycleListener(onResume: _onClock);
     FarmStore.plants.addListener(_refresh);
-    // Once a minute: tasks turn overdue, and a new day starts at midnight.
+    // Every minute, because tasks become overdue and a new day starts at
+    // midnight.
     _clock = Timer.periodic(const Duration(minutes: 1), (_) => _onClock());
   }
 
@@ -103,14 +103,13 @@ class _TodayTasksCardState extends State<TodayTasksCard> {
                             .copyWith(fontSize: 18, height: 1.2),
                       ),
                       const SizedBox(height: 4),
-                      // As tall as the tick, with or without it, so the card
-                      // does not grow when the last task is done.
+                      // Same height as the tick, so the card doesn't grow when the last task is
+                      // done.
                       SizedBox(
                         height: 20,
                         child: Row(
                           children: [
-                            // Today's progress as a sunny bar that fills
-                            // smoothly.
+                            // Today's progress as a yellow bar that fills smoothly.
                             Expanded(
                               child: TweenAnimationBuilder<double>(
                                 tween: Tween(end: progress),
@@ -127,7 +126,7 @@ class _TodayTasksCardState extends State<TodayTasksCard> {
                                 ),
                               ),
                             ),
-                            // Every task done: a green tick at the bar's end.
+                            // All tasks done: show a green tick at the end of the bar.
                             if (allDone) ...[
                               const SizedBox(width: 6),
                               const Icon(
@@ -155,8 +154,7 @@ class _TodayTasksCardState extends State<TodayTasksCard> {
                   ),
                 ),
                 const SizedBox(width: 14),
-                // "Opens more", centred on the whole tasks part, at its end
-                // (like a list row). chevron_right flips in Arabic.
+                // The arrow at the end (like a list row). chevron_right flips in Arabic.
                 const Icon(
                   Icons.chevron_right_rounded,
                   size: 26,

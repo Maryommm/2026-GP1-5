@@ -25,13 +25,13 @@ import 'plant_details_screen.dart';
 
 typedef SavePlant = Future<FarmPlant> Function(FarmPlant plant);
 
-/// "Add a plant", in two steps: (screens)
-///  1. Choose the crop
-///  2. Name it and, if wanted, set the irrigation and fertilization schedules.
+/// The "Add a plant" screen, in two steps:
+///  1. Choose the crop.
+///  2. Name it and, if wanted, set the watering and fertilizing schedules.
 class AddPlantScreen extends StatefulWidget {
   const AddPlantScreen({super.key, this.savePlant});
 
-  /// Test seam; production callers save through [FarmStore].
+  /// Lets tests replace saving. Normally plants are saved through [FarmStore].
   final SavePlant? savePlant;
 
   /// Returns the added plant, if any.
@@ -67,12 +67,12 @@ class AddPlantScreen extends StatefulWidget {
 class _AddPlantScreenState extends State<AddPlantScreen> {
   int _step = 0;
 
-  /// Crop type shown in step 1, or null for all.
+  /// The category filter in step 1, or null for all.
   CropCategory? _filter;
   CatalogCrop? _crop;
 
-  /// An unknown plant's category, chosen by the user in step 2; it must be
-  /// set before saving. Catalog crops already have theirs.
+  /// The category the user chose for an unknown plant in step 2. It must be
+  /// set before saving. Catalog crops already have one.
   CropCategory? _unknownCategory;
   bool _showCategoryError = false;
 
@@ -101,12 +101,13 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     super.dispose();
   }
 
-  /// [name] is what to suggest for an unknown plant, e.g. the search text.
+  /// Picks [crop]. [name] is the suggested name for an unknown plant, e.g.
+  /// the search text.
   void _choose(CatalogCrop crop, {String name = ''}) {
     FocusScope.of(context).unfocus();
     setState(() {
-      //keep the user's own name if they come back for the same crop.
-      // An unknown plant has no name to suggest: the user types their own.
+      // Keep the user's own name if they come back to the same crop.
+      // An unknown plant has no name to suggest, so the user types their own.
       if (crop != _crop || crop.id == unknownCropId && name.isNotEmpty) {
         _name.text = crop.id == unknownCropId ? name : crop.name.of(context);
       }
@@ -141,8 +142,8 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     } on FarmFullException {
       _saveFailed((s) => s.farmLandFull, EthmarToastType.info);
     } catch (e) {
-      // Offline, the save fails within a few seconds (it never waits for
-      // the connection), and the form keeps what was chosen for a retry.
+      // Offline, the save fails within a few seconds, and the form keeps what
+      // the user chose so they can try again.
       debugPrint('Could not add the plant: $e');
       _saveFailed(
         (s) => isNetworkError(e) ? s.farmSaveFailed : s.plantAddFailedGeneric,
@@ -151,8 +152,9 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     }
   }
 
-  /// The id every try on this screen saves the plant under, so a try that
-  /// reached the server though its answer was lost isn't added twice.
+  /// Every try on this screen saves the plant with this same id, so a plant
+  /// is never added twice (for example if the answer from the server was
+  /// lost).
   String? _plantId;
 
   Future<FarmPlant> _saveToFarm(FarmPlant plant) =>
@@ -208,16 +210,17 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     );
   }
 
-  // Step 1: choose the crop process
+  // Step 1: choose the crop.
 
   Widget _buildChooseStep() {
     final s = S.of(context);
     final query = _search.text.trim();
 
-    // The search covers every category; the chips then narrow it down.
+    // The search looks in every category; the chips then filter the results.
     final found = cropCatalog.where((c) => c.matches(query)).toList();
     int countOf(CropCategory c) => found.where((x) => x.category == c).length;
-    // Only categories with a match, so no chip leads to an empty grid.
+    // Only show categories that have a match, so no chip leads to an empty
+    // grid.
     final categories = <CropCategory>{
       for (final crop in found) crop.category,
     };
@@ -303,7 +306,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
     );
   }
 
-  // Step 2: name and schedules process
+  // Step 2: the name and the schedules.
 
   Widget _buildDetailsStep() {
     final s = S.of(context);
@@ -377,7 +380,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   }
 }
 
-// Header: back, centred title and which step, straight on the background.
+// Header: back button, centred title and the current step.
 
 class _StepHeader extends StatelessWidget {
   const _StepHeader({required this.step});
@@ -405,9 +408,9 @@ class _StepHeader extends StatelessWidget {
   }
 }
 
-// Step 1 classes: search field, no-match message and crop card
+// Step 1 widgets: search field, "no match" message and crop card.
 
-/// Rounded white search box, styled like the app's text fields.
+/// A rounded white search box, styled like the app's text fields.
 class _CropSearchField extends StatelessWidget {
   const _CropSearchField({required this.controller, required this.onChanged});
   final TextEditingController controller;
@@ -458,8 +461,8 @@ class _CropSearchField extends StatelessWidget {
   }
 }
 
-/// Shown when no crop matches the search: offers the unknown plant instead,
-/// named after what the user typed.
+/// Shown when no crop matches the search. It offers to add an unknown
+/// plant instead, named after what the user typed.
 class _NoCropFound extends StatelessWidget {
   const _NoCropFound({required this.query, required this.onUseUnknown});
   final String query;
@@ -497,8 +500,8 @@ class _NoCropFound extends StatelessWidget {
   }
 }
 
-/// Square card: the crop's picture on warm white with a thin earthy border
-/// (like the recommender's cards), name below.
+/// A square card with the crop's picture on white with a thin border, and
+/// the name below.
 class _CropCard extends StatelessWidget {
   const _CropCard({required this.crop, required this.onTap});
   final CatalogCrop crop;
@@ -553,10 +556,11 @@ class _CropCard extends StatelessWidget {
   }
 }
 
-// Step 2 classes: chosen crop and summary dialog
+// Step 2 widgets: category picker, chosen crop and summary dialog.
 
-/// An unknown plant's category: one chip per category, and a short line on
-/// why it's needed. [showError] asks for a choice after a save attempt.
+/// Lets the user pick a category for an unknown plant: one chip per
+/// category and a short line explaining why. [showError] asks the user to
+/// choose after they tried to save without one.
 class _CategoryPicker extends StatelessWidget {
   const _CategoryPicker({
     required this.selected,
@@ -607,8 +611,8 @@ class _CategoryPicker extends StatelessWidget {
   }
 }
 
-/// The crop picked in step 1, with a link back to change it. [category] is
-/// null while an unknown plant has none chosen yet.
+/// The crop picked in step 1, with a link to change it. [category] is null
+/// while an unknown plant has no category yet.
 class _ChosenCrop extends StatelessWidget {
   const _ChosenCrop({
     required this.crop,
@@ -726,7 +730,7 @@ class _SummaryDialog extends StatelessWidget {
                           plant.name,
                           style: AppText.title(context).copyWith(fontSize: 18),
                         ),
-                        // The crop, unless the name already says it.
+                        // Show the crop name, unless the plant's name already says it.
                         if (plant.name != crop.name.of(context))
                           Text(
                             crop.name.of(context),
@@ -799,7 +803,7 @@ class _SummaryRow extends StatelessWidget {
   final String label;
   final String value;
 
-  /// False shows the "not set yet" value in a quieter colour.
+  /// When false, the "not set yet" value is shown in a lighter colour.
   final bool set;
 
   @override

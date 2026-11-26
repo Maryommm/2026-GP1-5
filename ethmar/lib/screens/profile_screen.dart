@@ -43,8 +43,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (confirmed == true) await _logout();
   }
 
-  // Centred dialog over a dimmed background. Cancel, Back or tapping
-  // outside all return null/false, so nothing happens.
+  // A dialog in the centre over a dimmed background. Cancel, Back or tapping
+  // outside all return null or false, so nothing happens.
   Future<bool?> _showLogoutDialog() {
     final s = S.of(context);
     return showDialog<bool>(
@@ -146,7 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, savedName, _) {
         final username = savedName.isEmpty ? widget.username : savedName;
         return PopScope(
-          // Stay put while logging out.
+          // Don't allow leaving while logging out.
           canPop: !_loading,
           child: Scaffold(
             body: LeafPrintBackground(
@@ -270,7 +270,7 @@ class _UserInfo extends StatelessWidget {
   final String email;
   final DateTime? created;
 
-  // Same size as on Edit Profile, so the photo doesn't jump between them.
+  // The same size as on Edit Profile, so the photo doesn't jump between them.
   static const _avatarSize = 96.0;
   static const _ring = 5.0;
 
@@ -280,8 +280,7 @@ class _UserInfo extends StatelessWidget {
     final date = created;
     return Column(
       children: [
-        // The saved profile photo, or the Ethmar default avatar, in a
-        // forest-green ring.
+        // The saved profile photo, or the Ethmar default avatar, in a green ring.
         Container(
           padding: const EdgeInsets.all(_ring),
           decoration: const BoxDecoration(
@@ -319,7 +318,7 @@ class _UserInfo extends StatelessWidget {
           ),
         ],
 
-        // The registered email, quiet and always left-to-right.
+        // The email, in a lighter style and always left to right.
         if (email.isNotEmpty) ...[
           const SizedBox(height: 4),
           _InfoRow(
@@ -334,12 +333,12 @@ class _UserInfo extends StatelessWidget {
   }
 }
 
-// Two balanced cards: plants and rank.
+// Two cards of the same size: plants and rank.
 class _Stats extends StatelessWidget {
   const _Stats();
 
-  // TODO(stats): Temporary fixed values for this stage. Connect to the
-  //   user's real plants and leaderboard rank once they are stored.
+  // TODO(stats): Fixed values for now. Connect to the user's real plants and
+  //   leaderboard rank once they are saved.
 
   static const _rank = '\u2014';
 
@@ -350,8 +349,8 @@ class _Stats extends StatelessWidget {
       valueListenable: FarmStore.plants,
       builder: (context, plants, _) => IntrinsicHeight(
         child: Row(
-          // My Plants stays on the left and My Rank on the right in both
-          // languages; text inside each card keeps the app's direction.
+          // My Plants stays on the left and My Rank on the right in both languages.
+          // The text inside each card follows the app's direction.
           textDirection: TextDirection.ltr,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -367,8 +366,8 @@ class _Stats extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
-                // The trophy image has more empty space around it, so it is
-                // drawn a little larger to look the same size as the plant.
+                // The trophy picture has more empty space around it, so it's drawn a
+                // little bigger to look the same size as the plant.
                 image: 'assets/images/ethmar_rank_icon.png',
                 imageSize: 36,
                 color: AppColors.sunTint,
@@ -383,8 +382,8 @@ class _Stats extends StatelessWidget {
   }
 }
 
-// Label centred on top; icon and value centred together below it.
-// Display only: no tap, no chevron.
+// The label centred on top, and the icon and value centred together below
+// it. For display only (can't be tapped).
 class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.image,
@@ -414,7 +413,7 @@ class _StatCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Row 1: the label, centred (Arabic keeps its RTL direction).
+            // Row 1: the label, centred.
             Text(
               label,
               maxLines: 1,
@@ -423,8 +422,8 @@ class _StatCard extends StatelessWidget {
               style: AppText.small(context).copyWith(fontSize: 14),
             ),
             const SizedBox(height: 4),
-            // Row 2: icon then value, one centred group, left-to-right
-            // in both languages.
+            // Row 2: the icon then the value as one centred group, left to right in
+            // both languages.
             Row(
               textDirection: TextDirection.ltr,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -462,7 +461,7 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// A small centred icon + text line under the username.
+// A small centred line with an icon and text, under the username.
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
     this.icon,
@@ -501,7 +500,7 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// Soft peach outlined button with a log-out icon.
+// A soft peach outlined button with a log-out icon.
 class _LogOutButton extends StatelessWidget {
   const _LogOutButton({
     required this.label,
@@ -520,7 +519,7 @@ class _LogOutButton extends StatelessWidget {
       enabled: !loading,
       child: Material(
         color: AppColors.coralTint,
-        // Same rounded shape and border width as the language options.
+        // The same rounded shape and border width as the language options.
         shape: RoundedRectangleBorder(
           borderRadius: kControlRadius,
           side: BorderSide(
@@ -546,7 +545,7 @@ class _LogOutButton extends StatelessWidget {
                   : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Arrow points the reading way in Arabic too.
+                        // The arrow points the reading direction in Arabic too.
                         Transform.flip(
                           flipX: isRtl,
                           child: const Icon(
@@ -590,7 +589,7 @@ class _SettingsItem {
   final VoidCallback? onTap;
 }
 
-// One white card holding the settings rows, with thin separators.
+// One white card with the settings rows and thin lines between them.
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({required this.items});
   final List<_SettingsItem> items;
@@ -658,7 +657,7 @@ class _SettingsRow extends StatelessWidget {
                 Text(value, style: AppText.small(context)),
               ],
               const SizedBox(width: 4),
-              // Flips automatically in Arabic.
+              // Flips by itself in Arabic.
               const Icon(
                 Icons.chevron_right_rounded,
                 size: 22,
@@ -672,7 +671,7 @@ class _SettingsRow extends StatelessWidget {
   }
 }
 
-// Arabic and English, with the current one marked.
+// The language options (Arabic and English), with the current one marked.
 class _LanguageSheet extends StatelessWidget {
   const _LanguageSheet();
 

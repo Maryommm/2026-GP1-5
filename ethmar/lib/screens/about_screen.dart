@@ -9,8 +9,8 @@ import '../widgets/centered_header.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_logo.dart';
 
-/// About Ethmar: logo and tagline, what Ethmar is, what it offers (three
-/// feature cards) and our goal.
+/// About Ethmar: the logo and tagline, what Ethmar is, what it offers
+/// (three feature cards) and our goal.
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
@@ -35,7 +35,7 @@ class AboutScreen extends StatelessWidget {
                   Entrance(
                     child: Column(
                       children: [
-                        // Same in both languages: the logo, then the tagline.
+                        // The logo, then the tagline (the same in both languages).
                         const EthmarLogo(width: 150),
                         const SizedBox(height: 8),
                         Text(
@@ -116,8 +116,8 @@ class AboutScreen extends StatelessWidget {
   }
 }
 
-/// Credit for the plant data, as Permapeople asks of free API users: a
-/// line that links back to their site.
+/// Credit for the plant data, which Permapeople asks for from free API
+/// users: a line that links to their website.
 class _PlantDataCredit extends StatelessWidget {
   const _PlantDataCredit({required this.label});
   final String label;
@@ -128,7 +128,7 @@ class _PlantDataCredit extends StatelessWidget {
     try {
       await launchUrl(_site, mode: LaunchMode.externalApplication);
     } catch (_) {
-      // No browser to open it: the credit is still shown.
+      // No browser to open it, but the credit is still shown.
     }
   }
 
@@ -192,7 +192,7 @@ class _TextSection extends StatelessWidget {
           else
             Row(
               children: [
-                // Same look as the feature cards' icons: a tinted circle.
+                // The same look as the feature card icons: a tinted circle.
                 Container(
                   width: 44,
                   height: 44,
@@ -215,7 +215,7 @@ class _TextSection extends StatelessWidget {
   }
 }
 
-// One benefit card: icon, short title and a short description.
+// One feature card: an icon, a short title and a short description.
 class _OfferCard extends StatelessWidget {
   const _OfferCard({
     required this.icon,

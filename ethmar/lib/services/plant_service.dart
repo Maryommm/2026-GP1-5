@@ -13,16 +13,16 @@ import '../models/streak.dart';
 import '../models/task_log.dart';
 import 'network_errors.dart';
 
-/// Error when every square on every land already has a plant.
+/// Thrown when every square on every land already has a plant.
 class FarmFullException implements Exception {
   const FarmFullException();
 }
 
-/// Reads and saves the signed-in user's plants, farm stats and task log in
+/// Reads and saves the signed-in user's plants, farm stats and task logs in
 /// Firestore. See farm_plant.dart, farm_stats.dart and task_log.dart for the
 /// paths and fields.
 ///
-/// Screens normally go through `FarmStore`, which keeps the latest values
+/// Screens usually use `FarmStore` instead, which keeps the latest values
 /// ready for them.
 class PlantService {
   PlantService({FirebaseFirestore? firestore, FirebaseAuth? auth})
@@ -39,7 +39,7 @@ class PlantService {
     return user.uid;
   }
 
-  /// True while somebody is signed in.
+  /// True while someone is signed in.
   bool get signedIn => _auth.currentUser != null;
 
   DocumentReference<Map<String, dynamic>> _userDoc(String uid) =>
@@ -59,7 +59,8 @@ class PlantService {
     String plantId,
   ) => _plants(uid).doc(plantId).collection('journey');
 
-  /// Live journey timeline of [plantId], newest first. Empty when signed out.
+  /// The live journey timeline of [plantId], newest first. Empty when signed
+  /// out.
   Stream<List<JourneyEntry>> watchJourney(String plantId) => _forEachUser(
     signedOut: const [],
     watch: (uid) => _journey(
@@ -68,16 +69,16 @@ class PlantService {
     ).snapshots().map((snapshot) => _readJourney(snapshot.docs)),
   );
 
-  /// A new, unused id for a journey entry of [plantId]. The photo is
-  /// uploaded under it first, then the entry is saved with it.
+  /// A new, unused id for a journey entry of [plantId]. The photo is uploaded
+  /// with this id first, then the entry is saved with it.
   String newJourneyEntryId(String plantId) => _journey(_uid, plantId).doc().id;
 
-  /// Saves journey entry [entryId] of [plantId]. The date is the server's
-  /// time of saving; the rules accept no other.
+  /// Saves journey entry [entryId] of [plantId]. The date is set by the
+  /// server when saving (the rules don't allow any other date).
   ///
-  /// Saved on the server or not at all (see [SaveOnServer.saveOnServer]):
-  /// offline it fails, and the photo already uploaded for it is deleted,
-  /// so an entry can't reach the server later pointing at a deleted photo.
+  /// It is saved on the server or not at all (see [SaveOnServer.saveOnServer]).
+  /// If it fails, the uploaded photo is deleted, so we never end up with an
+  /// entry pointing to a deleted photo.
   Future<void> saveJourneyEntry(
     String plantId,
     String entryId, {
@@ -94,15 +95,15 @@ class PlantService {
     });
   }
 
-  /// Builds the entries, newest first. One bad document is skipped.
+  /// Builds the entries, newest first. A broken document is skipped.
   List<JourneyEntry> _readJourney(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) {
     final entries = <JourneyEntry>[];
     for (final doc in docs) {
       var data = doc.data();
-      // Saved on this phone but not yet on the server: the server's date
-      // isn't known yet, so show it as now.
+      // Saved on this phone but not on the server yet, so the server date isn't
+      // known. Show it as now.
       if (data['date'] == null && doc.metadata.hasPendingWrites) {
         data = {...data, 'date': Timestamp.now()};
       }
@@ -115,36 +116,36 @@ class PlantService {
     return entries..sort((a, b) => b.date.compareTo(a.date));
   }
 
-  /// Live list of the user's plants, sorted by land, then square. Empty when
-  /// signed out; it switches over when another user signs in.
+  /// The live list of the user's plants, sorted by land, then by square.
+  /// Empty when signed out, and switches when another user signs in.
   ///
-  /// The plants have no journey entries: those live in their own subcollection
-  /// (see [watchJourney]).
+  /// The plants don't include journey entries, because those are in their
+  /// own subcollection (see [watchJourney]).
   Stream<List<FarmPlant>> watchPlants() => _forEachUser(
     signedOut: const [],
     watch: (uid) =>
         _plants(uid).snapshots().map((snapshot) => _readPlants(snapshot.docs)),
   );
 
-  /// Live farm stats. Accounts that haven't saved any yet get the defaults
-  /// (1 land, no streak).
+  /// The live farm stats. Accounts that haven't saved any yet get the
+  /// defaults (1 land, no streak).
   Stream<FarmStats> watchStats() => _forEachUser(
     signedOut: const FarmStats(),
     watch: (uid) => _stats(uid).snapshots().map(_readStats),
   );
 
-  /// A new, unused id for a plant. The Add Plant screen keeps one for all
-  /// its tries, so a try that did reach the server isn't added twice.
+  /// A new, unused plant id. The Add Plant screen uses the same id for all
+  /// its retries, so a plant is never added twice.
   String newPlantId() => _plants(_uid).doc().id;
 
-  /// Saves a new plant on the first free square of the user's [lands], and
-  /// returns it with its id, land and square. [id] is from [newPlantId];
-  /// if a plant with it is already saved (an earlier try that went through
-  /// though its answer was lost), that one is returned and nothing changes.
+  /// Saves a new plant on the first free square of the user's [lands] and
+  /// returns it with its id, land and square. [id] comes from [newPlantId].
+  /// If a plant with that id is already saved (an earlier try worked but the
+  /// answer was lost), that plant is returned and nothing changes.
   ///
-  /// The squares taken are read from the server, and the plant is saved
-  /// there or not at all (see [SaveOnServer.saveOnServer]): offline, this
-  /// fails within [serverTimeout] instead of waiting for the connection.
+  /// The taken squares are read from the server, and the plant is saved on
+  /// the server or not at all (see [SaveOnServer.saveOnServer]). When
+  /// offline, this fails within [serverTimeout].
   /// Throws a [FarmFullException] if there is no free square.
   Future<FarmPlant> addPlant(
     FarmPlant plant, {
@@ -176,22 +177,18 @@ class PlantService {
     });
   }
 
-  /// Saves the changes made on the Edit Plant screen: in one transaction,
-  /// reads the plant as it is saved now and updates only the fields the
-  /// user changed (see [PlantEdit.updateOver]). A task done meanwhile
-  /// (its `lastDone`, `previousDone` or the other schedule) is never
-  /// overwritten with the screen's older copy. If the plant changes before
-  /// the transaction ends, Firestore runs it again on the new values.
+  /// Saves the changes from the Edit Plant screen in one transaction. It
+  /// reads the plant as it is saved now and updates only the fields the user
+  /// changed (see [PlantEdit.updateOver]), so a task done in the meantime is
+  /// never overwritten by the screen's older copy.
   ///
-  /// The streak is updated in the same transaction when the edit changes
-  /// whether today is finished (see [streakAfterScheduleChange]): a task
-  /// added to a completed today takes today's +1 back. [plants] are the
-  /// user's plants (this one is read fresh).
+  /// The streak is updated in the same transaction if the edit changes
+  /// whether today is finished (see [streakAfterScheduleChange]). [plants]
+  /// are the user's plants.
   ///
-  /// Returns the streak that was lost because a day was missed (0 if
-  /// none), for Home to tell the user. Throws an [ArgumentError] if the
-  /// plant was never saved (no id), and a [StateError] if it no longer
-  /// exists.
+  /// Returns the streak that was lost because a day was missed (0 if none),
+  /// so Home can tell the user. Throws an [ArgumentError] if the plant was
+  /// never saved, and a [StateError] if it no longer exists.
   Future<int> editPlant(PlantEdit edit, {required List<FarmPlant> plants}) async {
     final id = edit.opened.id;
     if (id == null) {
@@ -239,26 +236,23 @@ class PlantService {
     });
   }
 
-  /// Deletes a plant and then its journey entries. Firestore doesn't delete
-  /// subcollections by itself.
+  /// Deletes a plant and then its journey entries (Firestore doesn't delete
+  /// subcollections automatically).
   ///
-  /// The plant is deleted in a transaction that also updates the streak
-  /// (see [streakAfterPlantDeleted]): if it had today's last unfinished
-  /// task, today is completed. Both happen, or neither (a transaction
-  /// needs the server, so offline it fails and nothing changes). [others]
-  /// are the user's other plants that stay: not this one, nor ones whose
-  /// delete has already succeeded.
+  /// The plant is deleted in a transaction that also updates the streak (see
+  /// [streakAfterPlantDeleted]). If it had today's last unfinished task,
+  /// today becomes completed. Both happen or neither does. [others] are the
+  /// user's other plants that are staying.
   ///
-  /// If the connection is lost and it isn't known whether the delete went
-  /// through, the server is asked: a plant already gone counts as deleted.
-  /// Otherwise the error is thrown, the plant stays, and trying again is
-  /// safe (deleting a plant that is already gone changes nothing).
+  /// If the connection drops and we don't know if the delete worked, we ask
+  /// the server. A plant that is already gone counts as deleted. Otherwise
+  /// the error is thrown and the plant stays (trying again is safe).
   ///
-  /// The journey entries are removed afterwards, without waiting: left
-  /// behind, they only take space.
+  /// The journey entries are deleted afterwards without waiting, because
+  /// leftovers only take space.
   ///
-  /// Returns the streak that was lost because a day was missed (0 if
-  /// none), for Home to tell the user.
+  /// Returns the streak that was lost because a day was missed (0 if none),
+  /// so Home can tell the user.
   Future<int> deletePlant(
     String plantId, {
     List<FarmPlant> others = const [],
@@ -287,11 +281,11 @@ class PlantService {
         doc.get(const GetOptions(source: Source.server)),
       )).exists;
     } catch (_) {
-      return false; // Still unknown: report the failure.
+      return false; // Still unknown, so report the failure.
     }
   }
 
-  /// Deletes every journey entry of [plant]. A batch can hold at most 500
+  /// Deletes all journey entries of [plant]. A batch can hold at most 500
   /// writes.
   Future<void> _deleteJourney(DocumentReference<Object?> plant) async {
     final journey = await plant.collection('journey').get();
@@ -319,12 +313,12 @@ class PlantService {
       final statsSnapshot = await transaction.get(stats);
       final logSnapshot = await transaction.get(log);
       transaction.delete(plant);
-      if (data == null) return 0; // Already gone: nothing changes today.
+      if (data == null) return 0; // Already gone, nothing changes today.
       final FarmPlant deleted;
       try {
         deleted = FarmPlant.fromMap(plantId, data);
       } on FormatException {
-        return 0; // Unreadable, so it never had tasks on the screens.
+        return 0; // Unreadable, so it never showed tasks on the screens.
       }
       final remaining = [for (final p in others) if (p.id != plantId) p];
       final beforePlants = [...remaining, deleted];
@@ -346,8 +340,8 @@ class PlantService {
     });
   }
 
-  /// Saves the number of lands. Changes only that field, so the streak in
-  /// the same document stays as it is.
+  /// Saves the number of lands. Only that field is changed, so the streak in
+  /// the same document stays the same.
   Future<void> saveLands(int lands) async {
     final stats = _stats(_uid);
     await _firestore.saveOnServer<void>((transaction) async {
@@ -360,8 +354,8 @@ class PlantService {
     });
   }
 
-  /// Live task log of the day [date] ("yyyy-mm-dd", see [TaskLog.dateKey]).
-  /// An empty log when nothing is done yet or when signed out.
+  /// The live task log for [date] ("yyyy-mm-dd", see [TaskLog.dateKey]).
+  /// Empty when nothing is done yet or when signed out.
   Stream<TaskLog> watchTaskLog(String date) => _forEachUser(
     signedOut: TaskLog(date: date),
     watch: (uid) => _taskLog(uid, date).snapshots().map((snapshot) {
@@ -376,12 +370,11 @@ class PlantService {
     }),
   );
 
-  /// The plant's schedule of [type] with its done days changed by [change],
-  /// as the fields to update; null when there is nothing to change (no such
-  /// plant or schedule any more, or the same done days).
+  /// The fields to update when the done days of the plant's [type] schedule
+  /// change by [change]. Returns null when there is nothing to change.
   ///
-  /// Only `lastDone`, `previousDone` and, when an un-tick moves it, `since`
-  /// are written (as dotted paths), so a name or schedule saved at the same
+  /// Only `lastDone`, `previousDone` and (when an un-tick moves it) `since`
+  /// are written, using dotted paths, so a name or schedule saved at the same
   /// moment isn't overwritten.
   @visibleForTesting
   static Map<String, Object>? doneDaysUpdate(
@@ -419,18 +412,17 @@ class PlantService {
     };
   }
 
-  /// Marks task [taskId] of [today] as done (or not done), and updates the
-  /// streak in the same transaction, so the log and the streak always agree.
-  /// The plant [plantId]'s schedule of [type] records it too (see
-  /// [CareSchedule.markedDone] and [CareSchedule.markedUndone]), so its next
-  /// task counts from today, or as before once un-ticked.
+  /// Marks task [taskId] of [today] as done (or not done) and updates the
+  /// streak in the same transaction, so the log and the streak always match.
+  /// The plant's schedule also records it (see [CareSchedule.markedDone] and
+  /// [CareSchedule.markedUndone]), so the next task counts from today.
   ///
-  /// [todayTaskIds] are the ids of every task due today and [plants] the
-  /// user's plants; they decide whether the day is complete and whether an
+  /// [todayTaskIds] are the ids of all tasks due today and [plants] are the
+  /// user's plants. They decide whether the day is complete and whether an
   /// earlier day was missed (see streak.dart).
   ///
   /// Returns the streak that was lost because a day was missed (0 if none),
-  /// for Home to tell the user.
+  /// so Home can tell the user.
   Future<int> setTaskDone({
     required DateTime today,
     required String plantId,
@@ -486,11 +478,10 @@ class PlantService {
     });
   }
 
-  /// Marks task [taskId] of the past day [day] as done late on [doneOn]
-  /// (or not done). That day's log keeps it with the day it was really
-  /// done, and the plant [plantId]'s schedule of [type] records it, so its
-  /// next task counts from [doneOn]. The streak doesn't change: a task done
-  /// after its day never adds to it.
+  /// Marks task [taskId] from the past day [day] as done late on [doneOn]
+  /// (or not done). That day's log saves the day it was actually done, and
+  /// the plant's schedule records it so the next task counts from [doneOn].
+  /// The streak doesn't change, because a late task never adds to it.
   Future<void> setLateTaskDone({
     required DateTime day,
     required DateTime doneOn,
@@ -505,7 +496,8 @@ class PlantService {
     await _firestore.saveOnServer<void>((transaction) async {
       final saved = _readLog(log.id, (await transaction.get(log)).data());
       final plantSnapshot = await transaction.get(plant);
-      // Done on time after all (e.g. on another phone): nothing to change.
+      // It was already done on time (for example on another phone), so there is
+      // nothing to change.
       if (saved.isCompleted(taskId)) return;
       final late = {...saved.late};
       final lateOn = {...saved.lateOn};
@@ -540,7 +532,7 @@ class PlantService {
   /// has no plants. Call when the app opens or comes back on a new day.
   ///
   /// Returns the streak that was lost because a day was missed (0 if none).
-  /// The reset happens once, so this reports a lost streak only once.
+  /// The reset only happens once, so a lost streak is only reported once.
   Future<int> checkStreak(DateTime today) async {
     final uid = _uid;
     final plants = _readPlants((await _plants(uid).get()).docs);
@@ -554,7 +546,7 @@ class PlantService {
     });
   }
 
-  /// The saved log of day [date], or an empty one (also when it's bad).
+  /// The saved log for [date], or an empty one (also if it's broken).
   TaskLog _readLog(String date, Map<String, dynamic>? data) {
     if (data == null) return TaskLog(date: date);
     try {
@@ -565,7 +557,7 @@ class PlantService {
     }
   }
 
-  /// The saved stats, or the defaults when there are none (or they're bad).
+  /// The saved stats, or the defaults if there are none (or they're broken).
   FarmStats _readStats(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data();
     if (data == null) return const FarmStats();
@@ -577,8 +569,8 @@ class PlantService {
     }
   }
 
-  /// Builds the plants from their documents. One bad document is skipped, so
-  /// it can't take the whole farm down with it.
+  /// Builds the plants from their documents. A broken document is skipped so
+  /// it can't break the whole farm.
   List<FarmPlant> _readPlants(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) {
@@ -598,8 +590,8 @@ class PlantService {
     return inFarmOrder(plants);
   }
 
-  /// Runs [watch] for whoever is signed in, starting over when that changes,
-  /// so one user never sees another user's data.
+  /// Runs [watch] for the signed-in user and starts again when the user
+  /// changes, so one user never sees another user's data.
   Stream<T> _forEachUser<T>({
     required T signedOut,
     required Stream<T> Function(String uid) watch,

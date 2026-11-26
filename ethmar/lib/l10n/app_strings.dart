@@ -161,7 +161,8 @@ class AppStrings {
     'month11': 'Nov',
     'month12': 'Dec',
     'listJoin': ', ',
-    // Reasons and warnings from the model (codes in recommender/scripts/scoring.py).
+    // Reasons and warnings from the model (the codes are in
+    // recommender/scripts/scoring.py).
     'note_temp_ok': 'The weather in your area suits it all season',
     'note_rain_ok': 'The rain in your area covers its water needs',
     'note_light_ok': 'The sunlight in your spot suits it',
@@ -274,15 +275,14 @@ class AppStrings {
     'homeCardRecommended': 'Crop Recommendations',
     'homeCardNearMe': 'Agricultural Services',
     'homeCardLeaderboard': 'Leaderboard',
-    'homeCardAddPlant': 'Grow a Plant',
     'homeCardDiagnosis': 'Plant Diagnosis',
     'navAskThamoor': 'Ask Thamoor',
-    // Home's Explore section (new layout).
+    // Home's "Ethmar Services" section.
     'homeExplore': 'Ethmar Services',
     'homeDiagnosisHint':
         'Discover plant diseases by taking photos of its leaves.',
     'homeDiagnosisAction': 'Scan a leaf',
-    // Home's Today's Tasks + streak card and the main Recommended card.
+    // Home's Today's Tasks and streak card, and the main Recommended card.
     'homeTasksDoneOf': '{done}/{total} completed',
     'homeNoTasksShort': 'No tasks today',
     'homeRecommendHint': 'Crops that suit your area this season.',
@@ -817,7 +817,6 @@ class AppStrings {
     'homeCardRecommended': 'توصيات المحاصيل',
     'homeCardNearMe': 'الخدمات الزراعية',
     'homeCardLeaderboard': 'لوحة الصدارة',
-    'homeCardAddPlant': 'ازرع نبتة',
     'homeCardDiagnosis': 'تشخيص النبات',
     'navAskThamoor': 'اسأل ثمور',
     'homeExplore': 'خدمات إثمار',
@@ -1063,7 +1062,7 @@ class AppStrings {
     'careToday': 'اليوم',
     'careTomorrow': 'غدًا',
     'careInTwoDays': 'بعد يومين',
-    // 3 to 10, then 11 and more (Arabic counted nouns).
+    // 3 to 10, then 11 and more (Arabic number forms).
     'careInDaysFew': 'بعد {n} أيام',
     'careInDaysMany': 'بعد {n} يومًا',
     'careYesterday': 'أمس',
@@ -1150,8 +1149,8 @@ class S {
         errPasswordSpecial,
       ]);
 
-  /// "Your password needs a number", or a bullet list when several rules
-  /// are missing.
+  /// "Your password needs a number", or a bullet list when more than one rule
+  /// is missing.
   String passwordNeeds(List<String> missing) => missing.length == 1
       ? '${t('errPasswordNeeds')} ${missing.single}'
       : '${t('errPasswordNeeds')}:\n${missing.map((m) => '• $m').join('\n')}';
@@ -1245,12 +1244,11 @@ class S {
   String get cropWaterHigh => t('cropWaterHigh');
   String get cropWaterHighHint => t('cropWaterHighHint');
 
-  /// Month 1-12 by name, e.g. "Oct" / "أكتوبر".
+  /// The name of month 1-12, e.g. "Oct" / "أكتوبر".
   String monthName(int month) => t('month$month');
 
-  /// Months as ranges, e.g. [10, 11, 12, 1, 2] -> "Oct–Feb"; a full year
-  /// gives "All year". The year wraps, so Dec and Jan count as next to each
-  /// other.
+  /// Months written as ranges, e.g. [10, 11, 12, 1, 2] -> "Oct–Feb". All 12
+  /// months give "All year". Dec and Jan count as next to each other.
   String monthRanges(List<int> months) {
     final set = months.where((m) => m >= 1 && m <= 12).toSet();
     if (set.length == 12) return t('cropAllYear');
@@ -1281,8 +1279,8 @@ class S {
     return known.length == 1 ? known.first : '${known.first}–${known.last}';
   }
 
-  /// The sentence for a reason or warning from the model. A code the app
-  /// doesn't know yet falls back to the model's English text.
+  /// The sentence for a reason or warning from the model. If the app doesn't
+  /// know the code, it uses the model's English text.
   String cropNote(ModelNote note) {
     final key = 'note_${note.code}';
     if (!_map.containsKey(key)) return note.text;
@@ -1301,7 +1299,7 @@ class S {
   String get homeGoodMorning => t('homeGoodMorning');
   String get homeGoodAfternoon => t('homeGoodAfternoon');
   String get homeGoodEvening => t('homeGoodEvening');
-  /// Home slogan by its stable index (0, 1 or 2).
+  /// The Home slogan for index 0, 1 or 2.
   String homeSlogan(int i) => t('homeSlogan${i + 1}');
   String get streakNotStartedTitle => t('streakNotStartedTitle');
   String get streakNotStartedHint => t('streakNotStartedHint');
@@ -1366,15 +1364,14 @@ class S {
   String get homeCardRecommended => t('homeCardRecommended');
   String get homeCardNearMe => t('homeCardNearMe');
   String get homeCardLeaderboard => t('homeCardLeaderboard');
-  String get homeCardAddPlant => t('homeCardAddPlant');
   String get homeCardDiagnosis => t('homeCardDiagnosis');
   String get navAskThamoor => t('navAskThamoor');
   String get homeExplore => t('homeExplore');
   String get homeDiagnosisHint => t('homeDiagnosisHint');
   String get homeDiagnosisAction => t('homeDiagnosisAction');
 
-  /// "1/3 completed". The numbers are isolated left-to-right, so they keep
-  /// this order inside the Arabic sentence too.
+  /// "1/3 completed". The numbers are wrapped as left-to-right text so they
+  /// keep this order inside the Arabic sentence too.
   String homeTasksDoneOf(int done, int total) => t('homeTasksDoneOf')
       .replaceAll('{done}/{total}', '${String.fromCharCode(0x2066)}$done/$total${String.fromCharCode(0x2069)}');
   String get homeNoTasksShort => t('homeNoTasksShort');
@@ -1514,12 +1511,12 @@ class S {
   /// How many messages each reminder type has (see [reminderTitle]).
   static const reminderVariants = 3;
 
-  /// A care reminder's title. [watering] picks watering or fertilizing and
-  /// [variant] (0-2) one of its messages; each title has its own emoji.
+  /// A care reminder's title. [watering] picks watering or fertilizing, and
+  /// [variant] (0-2) picks one of its messages.
   String reminderTitle({required bool watering, required int variant}) =>
       t(_reminderKey(watering, variant, 'Title'));
 
-  /// The body that goes with [reminderTitle], with [plant], the plant's name.
+  /// The message that goes with [reminderTitle], with the plant's name.
   String reminderBody({
     required bool watering,
     required int variant,
@@ -1592,7 +1589,7 @@ class S {
   String get notesLabel => t('notesLabel');
   String get notesHint => t('notesHint');
   String get pictureAdded => t('pictureAdded');
-  /// "Day 12": which day of the plant's life a journey picture is from.
+  /// "Day 12": which day of the plant's life a journey photo is from.
   String journeyDay(int n) => t('journeyDay').replaceAll('{n}', '$n');
   String get uploadingPicture => t('uploadingPicture');
   String get errJourneyUpload => t('errJourneyUpload');
@@ -1625,8 +1622,8 @@ class S {
     _ => t('careInDaysMany').replaceAll('{n}', '$days'),
   };
 
-  /// "Yesterday", "2 days ago", "3 days ago" for [days] back (a missed
-  /// task stays for three days).
+  /// "Yesterday", "2 days ago", "3 days ago" for [days] back (a missed task
+  /// stays for three days).
   String careDaysAgo(int days) => switch (days) {
     <= 1 => t('careYesterday'),
     2 => t('careTwoDaysAgo'),

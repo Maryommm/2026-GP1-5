@@ -1,31 +1,24 @@
-/// When watering and fertilizing are due: the one place that decides it, for
-/// Daily Tasks, Home, Plant Details, the streak and the care reminders.
+/// Decides when watering and fertilizing are due. Daily Tasks, Home,
+/// Plant Details, the streak and the reminders all use these rules.
 ///
-/// The rules, for one plant and one type (watering and fertilizing never
-/// affect each other):
-/// - The first task is due on the schedule's start day
-///   ([CareSchedule.since]; for older schedules without one, on the
-///   planting-day rhythm from the day the plant was last saved).
-/// - Once a task is done, on time, early on its day, or late, the next one
-///   is due [Repeat.days] days after the day it was really done
-///   ([CareSchedule.lastDone]), at the schedule's time, but never before
-///   the start day (after a new repeat whose day has already passed, the
-///   next task is due on the day it was changed).
-/// - A task that isn't done on its day is missed for the next
-///   [missedTaskDays] days, and can still be done then (late). Meanwhile
-///   no other task of the same type is due for that plant, so there are
-///   never two to do at once.
-/// - If it still isn't done, it expires (it stays not done) and the
-///   schedule carries on as it was: the next task is the first of the
-///   usual days after the missed ones. Skipped tasks don't pile up.
+/// Rules for one plant and one task type (watering and fertilizing are
+/// handled separately):
+/// - The first task is due on the schedule's start day ([CareSchedule.since]).
+///   Old schedules without a start day count from the day the plant was
+///   last saved.
+/// - After a task is done (on time or late), the next one is due
+///   [Repeat.days] days after the day it was actually done, but never
+///   before the start day.
+/// - A task that is not done on its day stays "missed" for
+///   [missedTaskDays] days and can still be done late. While it is missed,
+///   no new task of the same type is added, so there are never two at once.
+/// - If it is still not done after that, it expires and the schedule just
+///   continues. Skipped tasks do not pile up.
 ///
-/// With nothing done, the tasks therefore come every [activeStep] days:
-/// every [Repeat.days] days, or, for schedules shorter than the missed
-/// days, the first of those days after them (every 4 days for daily and
-/// every-2-days watering, every 6 for every 3 days).
+/// So when nothing is done, a task comes every [activeStep] days.
 ///
-/// Days are counted on calendar dates, so a daylight-saving change never
-/// moves a task's day or its time of day.
+/// Days are counted by calendar date, so daylight saving time never moves
+/// a task.
 library;
 
 import 'daily_task.dart' show TaskType, missedTaskDays;
@@ -39,18 +32,19 @@ class CareTask {
   final FarmPlant plant;
   final TaskType type;
 
-  /// The alarm time: the day of the task at the schedule's time.
+  /// The reminder time: the task's day at the schedule's time.
   final DateTime at;
 }
 
-/// Days between tasks while none is done: [every], or the first multiple of
-/// it after a missed task's [missedTaskDays] days.
+/// How many days apart the tasks are when none of them is done.
+/// It is [every], or the first multiple of [every] that comes after the
+/// missed days.
 int activeStep(int every) =>
     every * ((missedTaskDays + 1 + every - 1) ~/ every);
 
-/// Where one plant's watering or fertilizing stands on [today]: the task to
-/// do now (missed or due today), whether today's is done, and when the next
-/// one is. Build it with [careState].
+/// The state of one plant's watering or fertilizing on [today]: what task
+/// to do now, whether today's task is done, and when the next one is.
+/// Create it with [careState].
 class CareState {
   const CareState._({
     required this.plant,
@@ -70,40 +64,40 @@ class CareState {
   final TaskType type;
   final CareSchedule schedule;
 
-  /// The date this state is for.
+  /// The day this state is for.
   final DateTime today;
 
-  /// The latest time the task was done, as far as is known (null if never):
-  /// the schedule counts from its [CareDone.date].
+  /// The last time the task was done (null if never). The schedule counts
+  /// from this date.
   final CareDone? anchor;
 
-  /// The first task after [anchor] (or the schedule's first task if it was
-  /// never done). With nothing done, the tasks are on this day and every
-  /// [activeStep] days after it.
+  /// The first task after [anchor], or the schedule's first task if it was
+  /// never done. If nothing is done, tasks fall on this day and then every
+  /// [activeStep] days.
   final DateTime start;
 
-  /// A missed task that can still be done (late), or null.
+  /// A missed task that can still be done late, or null.
   final DateTime? missed;
 
-  /// A task is due today and isn't done yet.
+  /// True if a task is due today and is not done yet.
   final bool dueToday;
 
-  /// Today's task is done (on time).
+  /// True if today's task was done on time.
   final bool doneToday;
 
-  /// The schedule's usual rhythm falls on today, but the [missed] task
-  /// takes its place, so there is no second task today.
+  /// True if a task would normally be due today, but the [missed] task takes
+  /// its place (so there are not two tasks today).
   final bool suppressedToday;
 
-  /// The next task that isn't done, today or later: today's when
-  /// [dueToday], otherwise a later day (after the missed one's days).
+  /// The next task that is not done yet: today's task if [dueToday],
+  /// otherwise a later day.
   final DateTime next;
 
-  /// The task to show as the current one: the missed task if there is one,
+  /// The task to show as current: the missed one if there is one,
   /// otherwise [next].
   DateTime get nextDue => missed ?? next;
 
-  /// The task log id, e.g. "{plantId}_irrigation".
+  /// The task log id, for example "{plantId}_irrigation".
   String get taskId => careTaskId(plant.id ?? '', type);
 
   /// [day] at the schedule's time.
@@ -115,10 +109,8 @@ class CareState {
     schedule.time.minute,
   );
 
-  /// The days with a task from [from] to [to] (both dates included),
-  /// assuming none of them gets done (as when the app isn't opened). Used
-  /// for the reminders: doing a task changes the plant, and the reminders
-  /// are planned again.
+  /// All the days that have a task between [from] and [to] (both included),
+  /// assuming none of them gets done. Used to plan the reminders.
   Iterable<DateTime> taskDays(DateTime from, DateTime to) sync* {
     final step = activeStep(schedule.repeat.days);
     final s = _dayNumber(start), end = _dayNumber(to);
@@ -132,21 +124,19 @@ class CareState {
   }
 }
 
-/// The task log id of [type] for plant [plantId].
+/// The task log id for [type] on plant [plantId].
 String careTaskId(String plantId, TaskType type) => switch (type) {
   TaskType.watering => TaskLog.irrigationTaskId(plantId),
   TaskType.fertilizing => TaskLog.fertilizationTaskId(plantId),
 };
 
-/// Where [plant]'s task of [type] stands on the date of [now], or null if
-/// that schedule is switched off.
+/// The state of [plant]'s [type] task on the date of [now], or null if that
+/// schedule is turned off.
 ///
-/// [logs] are task logs by date key (see [TaskLog.dateKey]), usually today's
-/// and those of the [missedTaskDays] days before. They are optional: the
-/// plant's saved [CareSchedule.lastDone] is enough. When given, they also
-/// count ticks not saved on the plant yet (or done before it was kept),
-/// and a [CareSchedule.lastDone] that a log no longer shows (un-ticked) is
-/// set aside.
+/// [logs] are task logs by date key (see [TaskLog.dateKey]). They are
+/// optional because the plant's saved [CareSchedule.lastDone] is enough.
+/// When given, they also include ticks that are not saved on the plant
+/// yet, and ignore a saved tick that was un-ticked.
 CareState? careState(
   FarmPlant plant,
   TaskType type,
@@ -177,7 +167,7 @@ CareState? careState(
     next = s;
     dueToday = s == t;
   } else {
-    // The latest task on or before today, none done since the anchor.
+    // The latest task on or before today, with nothing done since the anchor.
     final latest = s + (t - s) ~/ step * step;
     if (latest == t) {
       next = t;
@@ -203,8 +193,8 @@ CareState? careState(
   );
 }
 
-/// [careState] for each saved plant's watering and fertilizing that is
-/// switched on.
+/// [careState] for every watering and fertilizing schedule that is turned
+/// on.
 List<CareState> careStates(
   List<FarmPlant> plants,
   DateTime now, {
@@ -216,13 +206,13 @@ List<CareState> careStates(
         if (careState(plant, type, now, logs: logs) case final state?) state,
 ];
 
-/// The care tasks that were (or will be) on the date of [day], in time
-/// order: for a past day, the tasks the user had that day, whether done or
-/// not; for a later day, the tasks it will have if none is done before.
+/// The care tasks of [day], sorted by time.
+/// For a past day: the tasks the user had that day, done or not.
+/// For a future day: the tasks it will have if nothing is done before then.
 ///
-/// Worked out from what each plant's schedule saves (its start day and the
-/// last two times the task was done), without the task logs. Used for the
-/// streak: a day with tasks that wasn't completed breaks it.
+/// This only uses what each schedule saves (start day and the last two
+/// done times), not the task logs. Used for the streak: a day with tasks
+/// that was not completed breaks it.
 List<CareTask> dueTasks(List<FarmPlant> plants, DateTime day) {
   final tasks = <CareTask>[
     for (final plant in plants)
@@ -245,8 +235,8 @@ bool _hadTask(CareSchedule schedule, FarmPlant plant, DateTime day) {
     return d >= s && (d - s) % step == 0;
   }
 
-  // The known times it was done, the latest first. Between two of them,
-  // the tasks came every activeStep days from the earlier one.
+  // The known done times, newest first. Between two of them, tasks came
+  // every activeStep days starting from the older one.
   final done = [
     if (schedule.lastDone case final last?) last,
     if (schedule.previousDone case final previous?) previous,
@@ -255,21 +245,22 @@ bool _hadTask(CareSchedule schedule, FarmPlant plant, DateTime day) {
     final due = _dayNumber(time.due), date = _dayNumber(time.date);
     if (d == due) return true;
     if (d > date) {
-      // After the latest time it was done, the schedule's start day
-      // counts too (a new repeat); between two done days it can't.
+      // After the newest done time, the start day also counts (in case the
+      // repeat changed). Between two done times it can't.
       return onChain(
         i == 0 ? _nextAfter(time, schedule) : _addDays(time.date, every),
       );
     }
-    // Between a missed task and the day it was done late: no other task.
+    // Between a missed task and the day it was done late there is no other
+    // task.
     if (d > due) return false;
   }
   return onChain(_firstDay(schedule, plant));
 }
 
-/// The latest known time the task [id] was done: the plant's saved
+/// The last known time task [id] was done: from the plant's saved
 /// [CareSchedule.lastDone] (or [CareSchedule.previousDone] if the latest
-/// was un-ticked), or a tick in [logs], whichever is later.
+/// was un-ticked), or from a tick in [logs], whichever is newer.
 CareDone? _anchor(
   CareSchedule schedule,
   FarmPlant plant,
@@ -278,16 +269,16 @@ CareDone? _anchor(
   Map<String, TaskLog> logs,
 ) {
   CareDone? best;
-  // A saved time still counts unless its day's log is known and no longer
-  // has the task (it was un-ticked and the plant isn't updated yet).
+  // A saved time still counts, unless that day's log is loaded and no longer
+  // has the task (it was un-ticked but the plant isn't updated yet).
   for (final saved in [schedule.lastDone, schedule.previousDone]) {
     if (saved == null) continue;
     final log = logs[TaskLog.dateKey(saved.due)];
     if (log != null && !log.isDone(id)) continue;
     if (saved.isAfter(best)) best = saved;
   }
-  // Ticks in the logs, from the schedule's start (a tick of an older,
-  // changed schedule doesn't count).
+  // Ticks from the logs, starting at the schedule's start day (ticks from an
+  // older schedule don't count).
   final first = schedule.since ?? _dateOnly(plant.updatedAt);
   for (final log in logs.values) {
     final day = TaskLog.parseKey(log.date);
@@ -296,7 +287,7 @@ CareDone? _anchor(
     if (log.isCompleted(id)) {
       tick = CareDone(date: day, due: day);
     } else if (log.isDoneLate(id)) {
-      // Ticked late before the day was kept: it was at least a day later.
+      // Ticked late before we kept the real day: it was at least one day later.
       var on = log.lateDoneOn(id) ?? _addDays(day, 1);
       if (on.isAfter(today)) on = today;
       tick = CareDone(date: on, due: day);
@@ -306,17 +297,16 @@ CareDone? _anchor(
   return best;
 }
 
-/// The first task after the task was done at [done]: [Repeat.days] days
-/// after the day it was really done, but not before the schedule's start
-/// day (after a new repeat, a day already passed becomes the start day).
+/// The next task after one done at [done]: [Repeat.days] days after the
+/// day it was actually done, but not before the schedule's start day.
 DateTime _nextAfter(CareDone done, CareSchedule schedule) {
   final next = _addDays(done.date, schedule.repeat.days);
   final since = schedule.since;
   return since != null && since.isAfter(next) ? since : next;
 }
 
-/// The schedule's first task when it was never done: its start day, or for
-/// older schedules without one, the first planting-day rhythm day from the
+/// The first task of a schedule that was never done: its start day. Old
+/// schedules without a start day use the planting-day rhythm from the
 /// plant's last save.
 DateTime _firstDay(CareSchedule schedule, FarmPlant plant) =>
     schedule.since ??
@@ -333,13 +323,13 @@ DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
 DateTime _addDays(DateTime day, int days) =>
     DateTime(day.year, day.month, day.day + days);
 
-/// Days since 1 January 1970 for the date of [t]. Counted on UTC dates, so
-/// a daylight-saving change can't make a day 23 or 25 hours long.
+/// Number of days since 1 January 1970 for the date of [t]. It uses UTC
+/// dates so daylight saving can't make a day 23 or 25 hours long.
 int _dayNumber(DateTime t) =>
     DateTime.utc(t.year, t.month, t.day).millisecondsSinceEpoch ~/
     Duration.millisecondsPerDay;
 
-/// The local date of a [_dayNumber].
+/// Turns a [_dayNumber] back into a local date.
 DateTime _fromDayNumber(int n) {
   final utc = DateTime.fromMillisecondsSinceEpoch(
     n * Duration.millisecondsPerDay,

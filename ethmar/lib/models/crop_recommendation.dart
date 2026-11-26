@@ -61,7 +61,7 @@ enum CropCategory {
     AppColors.info,
   ),
   other(
-    // Mostly plants grown for looks (see cropCatalog), so "plants".
+    // Mostly decorative plants (see cropCatalog), so it's called "plants".
     BiText('Other plants', 'نباتات أخرى'),
     'assets/images/GRAIN.png',
     'assets/images/GRAINicon.png',
@@ -73,7 +73,7 @@ enum CropCategory {
   const CropCategory(
       this.label, this.image, this.iconImage, this.color, this.tint, this.dark);
 
-  /// The category for the model's `crop_group` value.
+  /// Converts the model's `crop_group` value to a category.
   static CropCategory fromGroup(String group) => switch (group) {
         'fruit_tree' => fruit,
         'fruiting' => vegetable,
@@ -85,10 +85,10 @@ enum CropCategory {
 
   final BiText label;
 
-  /// Pastel illustration of the category (transparent PNG).
+  /// Category illustration (PNG with a transparent background).
   final String image;
 
-  /// Full-colour icon version (transparent, artwork in the middle ~45%).
+  /// Full-colour icon version (PNG with a transparent background).
   final String iconImage;
 
   final Color color;
@@ -99,9 +99,9 @@ enum CropCategory {
 /// How well a crop suits the user's area (the model's `band`).
 enum MatchBand { excellent, good, fair }
 
-/// One reason or warning from the model. The app writes its own English or
-/// Arabic sentence from [code] and the months; [text] is the model's English
-/// sentence, used only if the app doesn't know the code yet.
+/// One reason or warning from the model. The app builds its own English or
+/// Arabic sentence from [code] and the months. [text] is the model's
+/// English sentence, used only if the app doesn't know the code.
 class ModelNote {
   const ModelNote({
     required this.code,
@@ -119,10 +119,10 @@ class ModelNote {
 
   final String code;
 
-  /// A single month (1-12), e.g. the month to plant in.
+  /// A single month (1-12), for example the month to plant in.
   final int? month;
 
-  /// Months the note is about, e.g. the hot months that need shade.
+  /// The months the note is about, for example the hot months that need shade.
   final List<int> months;
   final String text;
 }
@@ -144,7 +144,8 @@ class CropRecommendation {
     this.tips = const [],
   });
 
-  /// One item of the API's `results` list (see recommender/scripts/scoring.py).
+  /// Reads one item of the API's `results` list
+  /// (see recommender/scripts/scoring.py).
   factory CropRecommendation.fromJson(Map<String, dynamic> json) {
     final details = (json['details'] as Map?)?.cast<String, dynamic>() ?? {};
     final optimal = _numbers(details['temp_optimal_c']);
@@ -154,8 +155,8 @@ class CropRecommendation {
     final english = json['common_name'] as String? ?? '';
     final arabic = json['name_ar'] as String? ?? '';
 
-    // Skipped notes: the planting months are already shown as "Best time",
-    // and soil isn't talked about on the card. The next note is used instead.
+    // Some notes are skipped: planting months are already shown as
+    // "Best time", and soil isn't shown on the card. The next note is used.
     final reasons = _notes(json['reasons'])
         .where((n) => !_hiddenNotes.contains(n.code))
         .toList();
@@ -196,44 +197,44 @@ class CropRecommendation {
   final CropCategory category;
   final MatchBand band;
 
-  /// The model's score for this crop, 0 to 1 (null if the API sent none).
+  /// The model's score for this crop, from 0 to 1 (null if the API sent none).
   final double? score;
 
-  /// [score] as a whole percentage, e.g. 0.874 -> 87. Rounded down, so the
-  /// number always agrees with the badge (0.796 is a fair match: 79%).
+  /// [score] as a whole percentage, for example 0.874 -> 87. It is rounded
+  /// down so it always matches the badge (0.796 is "fair": 79%).
   int? get scorePercent => score == null
       ? null
       : (score!.clamp(0.0, 1.0) * 100).floor();
 
-  /// Every good month to plant (1-12).
+  /// All the good months to plant (1-12).
   final List<int> bestMonths;
 
-  /// Best growing temperature in degrees Celsius.
+  /// Best growing temperature range in degrees Celsius.
   final int? minTemp;
   final int? maxTemp;
 
-  /// Any of "low", "medium", "high".
+  /// Any of "low", "medium" or "high".
   final List<String> waterNeed;
 
-  /// Days from planting to harvest. For trees it's the fruiting season, so
-  /// the screen shows the tree's height instead.
+  /// Days from planting to harvest. For trees this is the fruiting season,
+  /// so the screen shows the tree's height instead.
   final ({int min, int max})? harvestDays;
   final double? heightM;
 
-  /// Lower-case parts you eat, e.g. "fruit", "leaves".
+  /// The parts you eat, in lower case, for example "fruit" or "leaves".
   final List<String> edibleParts;
 
-  /// Why it suits the user's area (best reason from the model).
+  /// Why it suits the user's area (the model's best reason).
   final ModelNote? reason;
 
-  /// Every care warning, most serious first (the model sorts them).
+  /// All care warnings, most serious first (the model sorts them).
   final List<ModelNote> tips;
 
-  /// The most serious care warning, if any.
+  /// The most serious care warning, if there is one.
   ModelNote? get tip => tips.isEmpty ? null : tips.first;
 }
 
-/// The user's area: this month's average climate (not today's weather).
+/// The user's area: the average climate for this month (not today's weather).
 class GrowingConditions {
   const GrowingConditions({
     required this.city,
@@ -245,30 +246,30 @@ class GrowingConditions {
 
   final BiText city;
 
-  /// 1-12.
+  /// The month, from 1 to 12.
   final int month;
 
-  /// Average daily low and high this month, in degrees Celsius.
+  /// Average daily low and high for this month, in degrees Celsius.
   final int tempLow;
   final int tempHigh;
 
-  /// Average rain this month.
+  /// Average rain for this month, in millimetres.
   final double rainMm;
 }
 
-/// Where the user will grow the crops. The server uses it to pick the soil
-/// pH: bought potting soil is neutral, garden soil is the area's soil.
+/// Where the user will grow the crops. The server uses it to choose the
+/// soil pH: potting soil is neutral, garden soil uses the area's soil.
 enum Planting { pot, ground }
 
-/// Hours of direct sun the plants get: full (6+), partial (3-6), shade (<3).
+/// Hours of direct sun: full (6+), partial (3-6), shade (less than 3).
 enum Sunlight { full, partial, shade }
 
-/// How often the user will water: low (weekly or less), medium (a few times
-/// a week), high (daily, soil kept moist).
+/// How often the user will water: low (weekly or less), medium (a few
+/// times a week), high (daily, soil kept moist).
 enum Watering { low, medium, high }
 
-/// The user's answers before the recommendations. The enum names are the
-/// values the API expects.
+/// The user's answers before getting recommendations. The enum names are
+/// the values the API expects.
 class GrowingSetup {
   const GrowingSetup({
     required this.planting,
@@ -315,41 +316,44 @@ class CropRecommendationResult {
   /// The first page of crops, best first.
   final List<CropRecommendation> crops;
 
-  /// How many crops suit the area in all; more than [crops] when there are
-  /// further pages to load.
+  /// How many crops suit the area in total. It is more than [crops] when
+  /// there are more pages to load.
   int get total => _total ?? crops.length;
   final int? _total;
 
-  /// Where the crops were picked for, so the next pages use the same place.
+  /// The location the crops were picked for, so the next pages use the same
+  /// place.
   final double latitude;
   final double longitude;
 
   /// The user's answers, so the next pages use the same setup.
   final GrowingSetup setup;
 
-  /// True when the soil of the area couldn't be fetched, so the server used
+  /// True when the area's soil data couldn't be loaded, so the server used
   /// an average (neutral) pH. Trying again may give a more exact result.
   final bool soilPhEstimated;
 }
 
-/// Model notes the crop card never shows (see CropRecommendation.fromJson).
+/// Model notes that the crop card never shows
+/// (see CropRecommendation.fromJson).
 const _hiddenNotes = {
-  // When to plant: shown as "Best time" instead.
+  // Planting time: shown as "Best time" instead.
   'plant_next_month', 'plant_later',
-  // Soil pH: only the small mismatches are hidden. A pH beyond what the
-  // crop survives (needs_acidic_soil, needs_alkaline_soil) is shown.
+  // Soil pH: only small differences are hidden. A pH the crop can't survive
+  // (needs_acidic_soil, needs_alkaline_soil) is still shown.
   'ph_ok', 'prefers_more_acidic', 'prefers_more_alkaline',
 };
 
-/// The numbers in a JSON list. Anything that isn't a list gives an empty
-/// list, so one unexpected field can't stop the whole page from loading.
+/// Reads a JSON list of whole numbers. Anything that isn't a list gives an
+/// empty list, so one bad field can't stop the whole page from loading.
 List<int> _ints(Object? value) => [
       if (value is List)
         for (final v in value)
           if (v is num) v.toInt(),
     ];
 
-/// Numbers from a list such as `[15.0, 29.0]`; empty if any value is missing.
+/// Reads numbers from a list like `[15.0, 29.0]`. Empty if any value is
+/// missing.
 List<double> _numbers(Object? value) {
   final list = value as List? ?? const [];
   if (list.any((v) => v is! num)) return const [];

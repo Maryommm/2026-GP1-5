@@ -11,8 +11,9 @@ import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/ethmar_buttons.dart';
 
-/// "Near me" (AgriMap): nurseries and farm stores around the user.
-///  PROTOTYPE: the map is drawn, the places are hard-coded, and the GPS permission is skipped.
+/// The "Near me" map (AgriMap): nurseries and farm stores around the user.
+/// For now this is a prototype: the map is drawn by the app, the places
+/// are hard-coded, and the GPS permission is skipped.
 
 /// TODO(location) in the next sprints
 /// TODO(google-maps) in the next sprints
@@ -41,7 +42,7 @@ class _Place {
   final Offset at;
 }
 
-/// Colours and icon for each kind of place
+/// The colours and icon for each kind of place.
 ({Color color, Color tint, IconData icon}) _look(_PlaceType type) =>
     switch (type) {
       _PlaceType.nursery => (
@@ -56,12 +57,12 @@ class _Place {
       ),
     };
 
-// The drawn map
+// The drawn map.
 const _mapSize = Size(1400, 1400);
 const _userAt = Offset(700, 700);
 const _land = Color(0xFFF1EBDF);
 
-// dummy data (places)
+// Sample places (hard-coded for now).
 const _places = [
   _Place(
     _PlaceType.nursery,
@@ -197,7 +198,7 @@ class _AgriMapScreenState extends State<AgriMapScreen>
                   duration: const Duration(milliseconds: 400),
                   child: ready
                       ? _buildMap()
-                      // Empty map until (and unless) we know where the user is.
+                      // Show an empty map until we know where the user is.
                       : const ColoredBox(
                           key: ValueKey('empty'),
                           color: _land,
@@ -279,7 +280,7 @@ class _AgriMapScreenState extends State<AgriMapScreen>
         size: _mapSize,
         child: Stack(
           children: [
-            // Tapping the map itself closes the preview card.
+            // Tapping the map closes the place card.
             Positioned.fill(
               child: GestureDetector(
                 onTap: () => setState(() => _selected = null),
@@ -310,7 +311,7 @@ class _AgriMapScreenState extends State<AgriMapScreen>
 }
 
 
-// Header and filters
+// Header and filters.
 
 class _MapHeader extends StatelessWidget {
   const _MapHeader();
@@ -318,8 +319,8 @@ class _MapHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    // The app's centred header, on a panel so the title stays readable
-    // over the map moving underneath.
+    // The app's centred header on a panel, so the title stays readable while
+    // the map moves underneath.
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.featureCard,
@@ -343,8 +344,8 @@ class _MapHeader extends StatelessWidget {
   }
 }
 
-/// All / Nurseries / Farm stores. The type chips carry the marker colour,
-/// so they double as the map's legend.
+/// All / Nurseries / Farm stores. The chips use the same colours as the
+/// markers, so they also work as the map's legend.
 class _FilterBar extends StatelessWidget {
   const _FilterBar({required this.selected, required this.onSelect});
   final _Filter selected;
@@ -457,9 +458,9 @@ class _FilterChip extends StatelessWidget {
 }
 
 
-// Map pieces: markers, the user's dot, and the drawn streets.
+// Map parts: markers, the user's dot and the drawn streets.
 
-/// A round pin with the place's icon. Grows a little when selected.
+/// A round pin with the place's icon. It grows a little when selected.
 class _Marker extends StatelessWidget {
   const _Marker({
     required this.place,
@@ -541,7 +542,7 @@ class _PinTip extends CustomPainter {
   bool shouldRepaint(covariant _PinTip old) => old.color != color;
 }
 
-/// Turquoise "you are here" dot with a soft pulse around it.
+/// A turquoise "you are here" dot with a soft pulse around it.
 class _UserDot extends StatefulWidget {
   const _UserDot();
 
@@ -617,7 +618,7 @@ class _UserDotState extends State<_UserDot>
   }
 }
 
-/// map look
+/// Draws the pretend map: the land, parks and roads.
 
 class _MapPainter extends CustomPainter {
   const _MapPainter();
@@ -691,7 +692,8 @@ class _MapPainter extends CustomPainter {
 }
 
 
-// Overlays: recenter, preview card, locating, denied, permission prompt.
+// Overlays: recenter button, place card, locating, denied, permission
+// prompt.
 
 
 class _RecenterButton extends StatelessWidget {
@@ -715,7 +717,8 @@ class _RecenterButton extends StatelessWidget {
   }
 }
 
-/// Shown after tapping a marker: what the place is, its name, address and how far it is.
+/// Shown after tapping a marker: the kind of place, its name, address and
+/// distance.
 class _PreviewCard extends StatelessWidget {
   const _PreviewCard({super.key, required this.place, required this.onClose});
   final _Place place;
@@ -870,7 +873,8 @@ class _LocatingPill extends StatelessWidget {
   }
 }
 
-/// Location denied: explains why GPS is needed; the map stays empty.
+/// Shown when location is denied. It explains why GPS is needed, and the
+/// map stays empty.
 class _DeniedCard extends StatelessWidget {
   const _DeniedCard({required this.onAllow});
   final VoidCallback onAllow;

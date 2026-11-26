@@ -3,11 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-/// Typography:
-///  * Headings  -> Baloo Bhaijaan 2 (rounded, friendly, Arabic + English)
-///  * Body / UI -> Readex Pro (soft, very readable, Arabic + English)
-///  * Accent    -> Baloo Bhaijaan 2 in Arabic and English
-///                 (for the little earth-brown lines under titles)
+/// Text styles. Fonts:
+///  * Headings  -> Baloo Bhaijaan 2 (rounded and friendly, Arabic + English)
+///  * Body / UI -> Readex Pro (easy to read, Arabic + English)
+///  * Accent    -> Baloo Bhaijaan 2 (the small earth-brown lines under
+///                 titles)
 class AppText {
   AppText._();
 

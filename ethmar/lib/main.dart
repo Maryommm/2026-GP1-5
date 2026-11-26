@@ -27,11 +27,10 @@ Future<void> main() async {
   runApp(EthmarApp(firebaseReady: firebaseReady));
 }
 
-/// Starts Firebase, then follows the signed-in user's plants and lands and
-/// keeps their care reminders scheduled. Used at launch and by the startup
-/// error screen's retry, so a successful retry starts the same services.
-/// Notifications are awaited so a tap that opened the app is known before
-/// the first screen.
+/// Starts Firebase, then starts following the user's plants and lands and
+/// scheduling their care reminders. Used at launch and by the "retry"
+/// button on the startup error screen. Notifications are awaited so we
+/// know if a notification tap opened the app before the first screen.
 Future<bool> startFirebaseServices() async {
   if (!await initFirebase()) return false;
   FarmStore.start();
@@ -39,8 +38,8 @@ Future<bool> startFirebaseServices() async {
   return true;
 }
 
-/// Starts Firebase and reports whether it worked. The error itself is
-/// swallowed on purpose so no configuration details are logged or shown.
+/// Starts Firebase and returns whether it worked. The error is not shown
+/// or logged on purpose, so no configuration details are leaked.
 Future<bool> initFirebase() async {
   try {
     if (Firebase.apps.isEmpty) {
@@ -76,15 +75,15 @@ class EthmarApp extends StatelessWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
 
-        // The usual bars on every page. A page that asks for others (Virtual
-        // Farm at night) gets them only while it's on screen.
+        // Use the normal system bars on every page. A page that needs different
+        // ones (Virtual Farm at night) sets them only while it's on screen.
         builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
           value: ethmarSystemBars,
           child: child!,
         ),
 
-        // Start with the splash screen to restore the user session, or a
-        // generic error screen if Firebase could not start.
+        // Start with the splash screen (which restores the user session), or an
+        // error screen if Firebase could not start.
         home: firebaseReady
             ? const SplashScreen()
             : const StartupErrorScreen(retry: startFirebaseServices),

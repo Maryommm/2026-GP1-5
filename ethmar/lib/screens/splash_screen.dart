@@ -10,12 +10,12 @@ import 'login_screen.dart';
 import 'main_shell.dart';
 import 'welcome_screen.dart';
 
-/// 3-second animated splash, matching the approved video preview:
-///  0.30–1.30s  word forms right → left
-///  0.75–1.38s  plant-shaped Alif stem grows up from its base
-///  1.22–1.82s  its two leaves unfold
+/// A 3-second animated splash screen:
+///  0.30–1.30s  the word appears from right to left
+///  0.75–1.38s  the plant-shaped Alif stem grows up
+///  1.22–1.82s  its two leaves open
 ///  1.60–2.26s  the three dots of ث fall like little leaves
-///  2.70–3.00s  gentle fade, then session-aware startup routing
+///  2.70–3.00s  a fade out, then the app opens the right first screen
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, this.startupService});
 
@@ -41,13 +41,13 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    // Don't start the clock until the first frame is actually on screen.
-    // Otherwise the engine's start-up time eats the beginning of the
-    // animation and it appears to begin half-way through.
+    // Start the timer only after the first frame is on screen. Otherwise the
+    // app's start-up time uses up the beginning of the animation and it looks
+    // like it starts half-way through.
     WidgetsBinding.instance.addPostFrameCallback((_) => _runStartup());
   }
 
-  // Finish the animation before checking the saved user session.
+  // Let the animation finish before checking the saved user session.
   Future<void> _runStartup() async {
     await Future<void>.delayed(const Duration(milliseconds: 250));
     if (!mounted) return;
@@ -108,6 +108,8 @@ class _SplashScreenState extends State<SplashScreen>
 }
 
 // ---------------------------------------------------------------------------
+// Animation helpers.
+// ---------------------------------------------------------------------------
 
 double _clamp01(double v) => v < 0 ? 0.0 : (v > 1 ? 1.0 : v);
 double _seg(double t, double a, double b) => _clamp01((t - a) / (b - a));
@@ -123,7 +125,7 @@ Path _poly(List<double> xy) {
   return p..close();
 }
 
-// Regions (logo space) that split the plant-shaped Alif from the word.
+// Areas (in logo space) that separate the plant-shaped Alif from the word.
 final Path _leafLeft =
     _poly([140, 120, 215.5, 120, 215.5, 197, 206.5, 210, 206.5, 245, 140, 245]);
 final Path _branchRight =
@@ -164,7 +166,7 @@ final List<_Dot> _dots = [
 class SplashLogoPainter extends CustomPainter {
   SplashLogoPainter({required this.t, required this.area});
 
-  final double t; // seconds, 0..3
+  final double t; // seconds, from 0 to 3
   final Rect area;
 
   static const _color = AppColors.forest;
@@ -181,7 +183,7 @@ class SplashLogoPainter extends CustomPainter {
     final fade = 1 - _easeInOutSine(_seg(t, 2.70, 3.00));
     final done = t >= 1.84;
 
-    // 1) Word forms from right to left (soft-edged wipe).
+    // 1) The word appears from right to left (with a soft edge).
     final w = _easeOutSine(_seg(t, 0.30, 1.30));
     const feather = 34.0;
     final edge = 500 - (500 - 100 + feather) * w;
@@ -206,7 +208,7 @@ class SplashLogoPainter extends CustomPainter {
       canvas.drawPath(EthmarLogoData.alif, paint);
       canvas.drawPath(EthmarLogoData.hamza, paint);
       canvas.drawPath(EthmarLogoData.ra, paint);
-      // Mask: transparent left of the edge, opaque to its right.
+      // Mask: see-through on the left of the edge, solid on the right.
       canvas.drawRect(
         layerBounds,
         Paint()
@@ -219,7 +221,7 @@ class SplashLogoPainter extends CustomPainter {
     }
 
     if (!done) {
-      // 2) Stem grows upward, base fixed, with a rounded shoot tip.
+      // 2) The stem grows upward from a fixed base, with a rounded tip.
       final g = _easeInOutSine(_seg(t, 0.75, 1.38));
       final top = 271.5 - (271.5 - 186) * g;
       if (g > 0) {
@@ -233,7 +235,7 @@ class SplashLogoPainter extends CustomPainter {
         canvas.restore();
       }
 
-      // Leaves unfold from the joint.
+      // The leaves open from the joint.
       void leaf(
           Path region, double t0, double t1, double px, double py, double r0) {
         final u = _easeOutCubic(_seg(t, t0, t1));
@@ -254,7 +256,7 @@ class SplashLogoPainter extends CustomPainter {
       leaf(_branchRight, 1.32, 1.82, 221, 201, -38);
     }
 
-    // 3) Dots of ث fall like small leaves.
+    // 3) The dots of ث fall like small leaves.
     for (final d in _dots) {
       final u = _seg(t, d.t0, d.t0 + 0.46);
       if (u <= 0) continue;

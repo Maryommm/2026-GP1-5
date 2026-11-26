@@ -1,7 +1,6 @@
 # English and Arabic display names for every recommendable crop. Read by
 # recommender/scripts/clean_dataset.py. Crops in common_crops.csv use the names there
-# instead. The names were drafted with help from an AI tool and should be
-# reviewed by a native Arabic speaker; edit a row and re-run clean_dataset.py.
+# instead. To change a name, edit its row and run clean_dataset.py again.
 canonical_binomial,name_en,name_ar
 morus rubra,Red mulberry,توت أحمر
 prunus avium,Sweet cherry,كرز حلو

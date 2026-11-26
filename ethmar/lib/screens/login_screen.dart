@@ -400,7 +400,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           IgnorePointer(
                             ignoring: _loading,
                             child: Align(
-                              // Right side in both languages.
+                              // On the right in both languages.
                               alignment: Alignment.centerRight,
                               child: EthmarLink(
                                 label: s.forgotPassword,
@@ -417,8 +417,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           const SizedBox(height: 24),
 
-                          // Login button. Dimmed until both fields are
-                          // correct, like the Create account button.
+                          // Login button. It is dimmed until both fields are correct, like the
+                          // Create account button.
                           EthmarButton(
                             label: s.loginButton,
                             showArrow: true,

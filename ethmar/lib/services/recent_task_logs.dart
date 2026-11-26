@@ -7,10 +7,10 @@ import '../models/task_log.dart';
 import 'farm_store.dart';
 
 /// The task logs of today and the [missedTaskDays] days before, kept live
-/// from Firestore: what careState needs to tell whether today's task and
-/// the missed ones are done. Listeners hear about every change.
+/// from Firestore. careState needs them to know whether today's task and
+/// the missed ones are done. Listeners are told about every change.
 ///
-/// A day's log is only in [logs] once it has arrived, so a log that hasn't
+/// A day's log is only added to [logs] after it loads, so a log that hasn't
 /// loaded yet never looks like "nothing done".
 class RecentTaskLogs extends ChangeNotifier {
   RecentTaskLogs({DateTime Function()? now}) : _now = now ?? DateTime.now {
@@ -23,7 +23,7 @@ class RecentTaskLogs extends ChangeNotifier {
   /// The date the logs are for.
   late DateTime today;
 
-  /// The logs that have arrived, by date key (see [TaskLog.dateKey]).
+  /// The logs that have loaded, by date key (see [TaskLog.dateKey]).
   final Map<String, TaskLog> logs = {};
 
   final _changes = <StreamSubscription<TaskLog>>[];
@@ -31,8 +31,8 @@ class RecentTaskLogs extends ChangeNotifier {
 
   static DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
 
-  /// Moves to the new day's logs if the date has changed since. Call when
-  /// the app comes back to the front, and now and then while it's open.
+  /// Switches to the new day's logs if the date has changed. Call when the
+  /// app comes back to the front, and from time to time while it's open.
   void checkDay() {
     final now = _dateOnly(_now());
     if (now == today) return;
@@ -61,7 +61,7 @@ class RecentTaskLogs extends ChangeNotifier {
           onError: (Object e) => debugPrint('Could not load a task log: $e'),
         ));
       } catch (e) {
-        // No Firebase (e.g. in tests): the plants' saved days still work.
+        // No Firebase (for example in tests): the plants' saved days still work.
         debugPrint('Could not follow the task log of $date: $e');
       }
     }

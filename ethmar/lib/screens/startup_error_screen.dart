@@ -8,8 +8,8 @@ import '../widgets/ethmar_logo.dart';
 import '../widgets/page_routes.dart';
 import 'splash_screen.dart';
 
-/// Shown when Firebase could not start. Uses a generic message only, so no
-/// error details or project configuration ever reach the screen.
+/// Shown when Firebase could not start. It only shows a general message,
+/// so no error details or project settings are ever shown.
 class StartupErrorScreen extends StatefulWidget {
   const StartupErrorScreen({super.key, required this.retry});
 

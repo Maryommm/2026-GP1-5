@@ -6,10 +6,11 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'ethmar_buttons.dart';
 
-/// Makes sure the camera can be used, the same way as on Edit Profile:
-/// Android's own prompt when it may still ask, and a dialog offering the
-/// app's settings only when it won't. A plain "Don't allow" is respected
-/// quietly. True when the camera may be opened.
+/// Makes sure the camera can be used (the same way as on Edit Profile).
+/// Shows Android's own prompt when it can still ask, and a dialog that
+/// opens the app's settings only when it can't. If the user just says
+/// "Don't allow", we accept it quietly. Returns true when the camera can
+/// be opened.
 Future<bool> ensureCameraAccess(BuildContext context) async {
   var status = await Permission.camera.status;
   if (status.isGranted) return true;
@@ -66,6 +67,6 @@ Future<void> showCameraSettingsDialog(BuildContext context) async {
       ),
     ),
   );
-  // The status is checked again on the next tap, so no restart is needed.
+  // The permission is checked again on the next tap, so no restart is needed.
   if (openSettings == true) await openAppSettings();
 }

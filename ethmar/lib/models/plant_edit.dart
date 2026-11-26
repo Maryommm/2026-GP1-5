@@ -1,7 +1,7 @@
-/// What the Edit Plant screen saves: only what the user changed, applied
-/// over the plant as it is saved now, never the copy the screen opened
-/// with. So a task done on another phone (or another screen) while the
-/// form was open isn't undone by saving it.
+/// What the Edit Plant screen saves. Only the fields the user changed are
+/// written, on top of the plant as it is saved now (not the old copy the
+/// screen opened with). So a task done on another phone while the form was
+/// open is not lost when saving.
 library;
 
 import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart' show mapEquals;
 import 'daily_task.dart' show TaskType;
 import 'farm_plant.dart';
 
-/// Marks a field to delete in [PlantEdit.updateOver] (Firestore's
+/// Marks a field to delete in [PlantEdit.updateOver] (becomes Firestore's
 /// `FieldValue.delete()` when saved).
 class DeleteField {
   const DeleteField._();
@@ -28,17 +28,16 @@ class PlantEdit {
     required this.fertilization,
   });
 
-  /// [PlantEdit.updateOver]'s value for a field to delete.
+  /// The value [PlantEdit.updateOver] uses for a field to delete.
   static const delete = DeleteField._();
 
-  /// The plant as the screen showed it when it was opened.
+  /// The plant as it was when the screen was opened.
   final FarmPlant opened;
 
   /// The name in the form.
   final String name;
 
-  /// The schedules in the form (repeat and time only), null when switched
-  /// off.
+  /// The schedules in the form (repeat and time only). Null when turned off.
   final CareSchedule? irrigation;
   final CareSchedule? fertilization;
 
@@ -47,23 +46,20 @@ class PlantEdit {
     TaskType.fertilizing => fertilization,
   };
 
-  /// The fields to update on the plant whose saved fields are [latest], as
-  /// Firestore field paths (e.g. `irrigation.time`), with [delete] for a
-  /// field to remove. Empty when there is nothing to change.
+  /// The fields to update on the plant, where [latest] is the plant as saved
+  /// now. Keys are Firestore field paths (e.g. `irrigation.time`) and
+  /// [delete] marks a field to remove. Empty when nothing changed.
   ///
-  /// Only what the user changed compared to [opened] is written, over
-  /// [latest]:
-  /// - The name only if it was changed in the form.
-  /// - A schedule only if it was switched on or off, or its repeat or time
-  ///   changed; the other schedule is left alone.
-  /// - A changed schedule is worked out from the saved one (see
-  ///   [CareSchedule.savedOver], on [today]), so its done days are the
-  ///   latest ones; only its fields that change are written. A repeat
-  ///   changed elsewhere is kept when only the time was changed here, and
-  ///   the other way round.
+  /// Only what the user changed compared to [opened] is written:
+  /// - The name, only if it was changed.
+  /// - A schedule, only if it was turned on or off, or its repeat or time
+  ///   changed. The other schedule is left alone.
+  /// - A changed schedule is built from the saved one (see
+  ///   [CareSchedule.savedOver] on [today]), so it keeps the latest done
+  ///   days. Only the fields that changed are written.
   ///
-  /// [now] becomes `updatedAt` when anything changes. Throws a
-  /// [FormatException] if [latest] isn't a valid plant.
+  /// [now] is saved as `updatedAt` when anything changes. Throws a
+  /// [FormatException] if [latest] is not a valid plant.
   Map<String, Object?> updateOver(
     Map<String, dynamic> latest,
     DateTime today,
@@ -80,8 +76,8 @@ class PlantEdit {
     return update;
   }
 
-  /// [data] with [update] (from [updateOver]) applied, as Firestore applies
-  /// it: dotted paths set nested fields, [delete] removes one.
+  /// Returns [data] with [update] (from [updateOver]) applied the same way
+  /// Firestore does it: dotted paths set nested fields, [delete] removes one.
   static Map<String, dynamic> applied(
     Map<String, dynamic> data,
     Map<String, Object?> update,
@@ -120,7 +116,7 @@ class PlantEdit {
     final current = saved.scheduleOf(type);
 
     if (draft == null) {
-      // Switched off here: switch it off, whatever it is now.
+      // Turned off here, so turn it off no matter what it is now.
       if (before == null || current == null) return const {};
       return {field: null};
     }
@@ -128,7 +124,7 @@ class PlantEdit {
     final timeChanged = before == null || draft.time != before.time;
     if (!repeatChanged && !timeChanged) return const {};
     if (current == null) {
-      // Off now (or switched on here): a new schedule, from today.
+      // It is off now (or was turned on here), so start a new schedule today.
       return {
         field: CareSchedule(draft.repeat, draft.time).savedOver(
           null,

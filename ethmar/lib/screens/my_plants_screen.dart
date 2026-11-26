@@ -27,11 +27,11 @@ import 'plant_details_screen.dart';
 /// "My plants": every plant on the farm, newest first, by the name the
 /// user gave it. Tapping one opens its details.
 ///
-/// The Filter button in the header lists the plant categories; picking one
-/// shows only the plants in it, and clearing it shows them all again.
+/// The Filter button lists the plant categories. Picking one shows only
+/// the plants in it, and clearing it shows them all again.
 ///
-/// The Select button puts a box next to every plant: tapping plants ticks
-/// them, and Delete removes all the ticked ones after asking. Cancel or
+/// The Select button adds a checkbox next to every plant. The user ticks
+/// plants, and Delete removes all the ticked ones after asking. Cancel or
 /// Back leaves select mode without deleting anything.
 class MyPlantsScreen extends StatefulWidget {
   const MyPlantsScreen({super.key});
@@ -41,19 +41,19 @@ class MyPlantsScreen extends StatefulWidget {
 }
 
 class _MyPlantsScreenState extends State<MyPlantsScreen> {
-  /// The chosen category; null shows every plant.
+  /// The chosen category. Null shows every plant.
   CropCategory? _filter;
 
-  /// True while the boxes are shown.
+  /// True while the checkboxes are shown.
   bool _selecting = false;
 
   /// Ids of the ticked plants. Only the ones still on screen count (see
-  /// [_ticked]), so a plant hidden by the filter or deleted elsewhere is
+  /// [_ticked]), so a plant hidden by the filter or deleted somewhere else is
   /// never deleted by mistake.
   final _selected = <String>{};
 
-  /// Today's and the missed days' task logs, as Daily Tasks and Plant
-  /// Details use them, so each card's next care dates match theirs.
+  /// Today's and the missed days' task logs (same as Daily Tasks and Plant
+  /// Details), so each card's next care dates match.
   final _logs = RecentTaskLogs();
   late final AppLifecycleListener _lifecycle;
   Timer? _clock;
@@ -63,7 +63,8 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
     super.initState();
     _logs.addListener(_refresh);
     _lifecycle = AppLifecycleListener(onResume: _onClock);
-    // "Today" and "Tomorrow" move on at midnight while the page is open.
+    // Update every minute so "Today" and "Tomorrow" change at midnight while
+    // the page is open.
     _clock = Timer.periodic(const Duration(minutes: 1), (_) => _onClock());
   }
 
@@ -108,8 +109,8 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
 
   /// Asks first, then deletes [plants] and their journey entries.
   ///
-  /// Each plant leaves the list once its delete is confirmed; one that
-  /// can't be deleted (e.g. offline) stays, and the screen says so.
+  /// Each plant leaves the list once its delete is confirmed. A plant that
+  /// can't be deleted (e.g. offline) stays, and the screen shows a message.
   Future<void> _deleteTicked(List<FarmPlant> plants) async {
     if (plants.isEmpty) return;
     final confirmed = await showDialog<bool>(
@@ -120,8 +121,8 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
     if (confirmed != true || !mounted) return;
     final s = S.of(context);
     _stopSelecting();
-    // One after another, so the streak only counts deletes that worked;
-    // the ones that fail stay in the list.
+    // Deleted one by one, so the streak only counts deletes that worked. The
+    // ones that fail stay in the list.
     final failed = await FarmStore.deletePlants([for (final p in plants) p.id!]);
     if (mounted && failed.isNotEmpty) {
       showEthmarToast(
@@ -145,7 +146,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
       ),
       builder: (_) => _FilterSheet(plants: plants, selected: _filter),
     );
-    // Closed without a choice: keep the current filter.
+    // Closed without choosing: keep the current filter.
     if (choice != null && mounted) _setFilter(choice.category);
   }
 
@@ -174,18 +175,16 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Just the title and Back; the actions are in the
-                  // toolbar below.
+                  // Just the title and Back. The actions are in the toolbar below.
                   EthmarCenteredHeader(title: s.myPlants),
-                  // Nothing to filter or select on an empty farm. A little
-                  // below the header, where the first card used to start.
+                  // Nothing to filter or select on an empty farm.
                   if (plants.isNotEmpty) const SizedBox(height: 16),
                   if (plants.isNotEmpty)
                     selecting
                         ? _SelectionBar(
                             count: ticked.length,
                             allTicked: ticked.length == newestFirst.length,
-                            // Nothing to tick when the filter shows none.
+                            // Nothing to tick when the filter shows no plants.
                             onToggleAll: newestFirst.isEmpty
                                 ? null
                                 : () => setState(() {
@@ -219,10 +218,8 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
                         ),
                       ),
                     ),
-                  // How many plants the list shows (all of them, or the
-                  // filter's). In select mode only the ticked count shows,
-                  // and this line goes, with its space.
-                  // In select mode, what to do instead.
+                  // In select mode, a hint about what to do. Otherwise, how many plants the
+                  // list shows (all of them, or the filtered ones).
                   if (selecting)
                     Padding(
                       padding: const EdgeInsetsDirectional.fromSTEB(
@@ -265,7 +262,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
                               16,
                               10,
                               16,
-                              // The delete bar below takes the safe area.
+                              // The delete bar below handles the safe area.
                               16 +
                                   (selecting && ticked.isNotEmpty
                                       ? 0
@@ -334,7 +331,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
   }
 }
 
-/// Under the header: Filter and Select, on the end side.
+/// Under the header: the Filter and Select buttons, on the end side.
 class _Toolbar extends StatelessWidget {
   const _Toolbar({required this.onFilter, required this.onSelect});
   final VoidCallback onFilter;
@@ -345,8 +342,8 @@ class _Toolbar extends StatelessWidget {
     final s = S.of(context);
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 0),
-      // On one line at the end side; on a very narrow screen with large
-      // text the second button moves to a line of its own.
+      // On one line on the end side. On a very narrow screen with large text,
+      // the second button moves to its own line.
       child: Wrap(
         alignment: WrapAlignment.end,
         spacing: 8,
@@ -371,9 +368,9 @@ class _Toolbar extends StatelessWidget {
   }
 }
 
-/// In place of the toolbar in select mode, on a pale green band so the
-/// mode is clear: how many plants are ticked, a button to tick (or untick)
-/// every plant on screen, and Cancel.
+/// Replaces the toolbar in select mode, on a pale green band so the mode
+/// is clear: how many plants are ticked, a button to tick (or untick) every
+/// plant on screen, and Cancel.
 class _SelectionBar extends StatelessWidget {
   const _SelectionBar({
     required this.count,
@@ -395,10 +392,9 @@ class _SelectionBar extends StatelessWidget {
     // On the page's own background, like the toolbar it replaces.
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 16, 0),
-      // The count takes the start side, the buttons the rest; when the
-      // buttons don't fit on one line (narrow phones, large text) Cancel
-      // Selection moves under the other one instead of running off the
-      // screen.
+      // The count is on the start side and the buttons take the rest. If the
+      // buttons don't fit on one line (narrow phones, large text), Cancel
+      // Selection moves under the other button.
       child: Row(
         children: [
           Expanded(
@@ -426,7 +422,7 @@ class _SelectionBar extends StatelessWidget {
                       label: allTicked ? s.deselectAll : s.selectAll,
                       onPressed: toggleAll,
                     ),
-                  // Leaves select mode; nothing is deleted.
+                  // Leaves select mode without deleting anything.
                   _ToolbarButton(
                     key: const Key('cancelSelecting'),
                     icon: Icons.close_rounded,
@@ -443,8 +439,8 @@ class _SelectionBar extends StatelessWidget {
   }
 }
 
-/// A compact white pill with an optional icon and a short label, in the
-/// app's dark green, for the toolbar and the select-mode bar.
+/// A small white pill button with an optional icon and a short label, used
+/// in the toolbar and the select-mode bar.
 class _ToolbarButton extends StatelessWidget {
   const _ToolbarButton({
     super.key,
@@ -474,10 +470,10 @@ class _ToolbarButton extends StatelessWidget {
         child: InkWell(
           onTap: onPressed,
           child: ConstrainedBox(
-            // An easy tap target, still compact.
+            // Easy to tap, but still compact.
             constraints: const BoxConstraints(minHeight: 44),
             child: Padding(
-              // A little room above and below for a label that wraps.
+              // A little space above and below in case the label wraps.
               padding: EdgeInsetsDirectional.fromSTEB(
                 glyph == null ? 14 : 12,
                 4,
@@ -491,8 +487,8 @@ class _ToolbarButton extends StatelessWidget {
                     Icon(glyph, size: 18, color: AppColors.forest),
                     const SizedBox(width: 6),
                   ],
-                  // Wraps onto a second line, rather than overflowing,
-                  // when there isn't room (narrow phones, large text).
+                  // Wraps to a second line instead of overflowing when there isn't room
+                  // (narrow phones, large text).
                   Flexible(
                     child: Text(
                       label,
@@ -513,8 +509,9 @@ class _ToolbarButton extends StatelessWidget {
   }
 }
 
-/// Asks before deleting the ticked plants; their journey entries go too.
-/// One plant is named, as on its details page.
+/// Asks before deleting the ticked plants (their journey entries are
+/// deleted too). If there is only one, it is named, like on its details
+/// page.
 class _DeletePlantsDialog extends StatelessWidget {
   const _DeletePlantsDialog({required this.plants});
   final List<FarmPlant> plants;
@@ -574,11 +571,10 @@ class _DeletePlantsDialog extends StatelessWidget {
   }
 }
 
-/// The plant's picture, its name, what it is, how old it is and how often
-/// it's watered.
+/// A plant card: the picture, name, type, age and how often it's watered.
 ///
-/// In select mode ([selected] isn't null) a box at the start shows whether
-/// it's ticked, and tapping the card ticks or unticks it.
+/// In select mode ([selected] isn't null) a checkbox at the start shows
+/// whether it's ticked, and tapping the card ticks or unticks it.
 class _PlantCard extends StatelessWidget {
   const _PlantCard({
     required this.plant,
@@ -591,7 +587,7 @@ class _PlantCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool? selected;
 
-  /// Recent task logs and the time, for the next care dates.
+  /// The recent task logs and the current time, for the next care dates.
   final Map<String, TaskLog> logs;
   final DateTime now;
 
@@ -601,9 +597,9 @@ class _PlantCard extends StatelessWidget {
     final ticked = selected;
     return Semantics(
       checked: ticked,
-      // Select mode: a card waiting to be ticked has a slightly stronger
-      // outline; a ticked one (to be deleted) a soft red, with a red
-      // border and a little lift. Outside select mode, as always.
+      // In select mode, an unticked card has a slightly stronger outline, and a
+      // ticked one (to be deleted) is soft red with a red border and a small
+      // shadow. Outside select mode it looks normal.
       child: Material(
         color: ticked == true ? AppColors.errorTint : AppColors.surface,
         elevation: ticked == true ? 3 : 0,
@@ -621,7 +617,7 @@ class _PlantCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          // The whole card ticks or unticks it in select mode.
+          // In select mode, tapping the card ticks or unticks it.
           onTap: onTap,
           child: Padding(
             padding: EdgeInsetsDirectional.fromSTEB(
@@ -648,8 +644,7 @@ class _PlantCard extends StatelessWidget {
                   ),
                 Container(
                   key: Key('plantPictureFrame_${plant.id}'),
-                  // The card grows with its text; the picture sets its
-                  // smallest height.
+                  // The card grows with its text; the picture sets the minimum height.
                   width: 68,
                   height: 68,
                   padding: const EdgeInsets.all(6),
@@ -662,7 +657,7 @@ class _PlantCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Long names wrap onto a second line.
+                      // Long names wrap to a second line.
                       Text(
                         plant.name,
                         maxLines: 2,
@@ -676,7 +671,7 @@ class _PlantCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Tapping opens the details only outside select mode.
+                // The arrow (opens the details) only shows outside select mode.
                 if (ticked == null)
                   const Icon(
                     Icons.chevron_right_rounded,
@@ -691,9 +686,9 @@ class _PlantCard extends StatelessWidget {
   }
 }
 
-/// The filtering options: "All" and every plant category, each with how
-/// many of the user's plants are in it. Picking one closes the sheet with
-/// that choice (a null category means all plants).
+/// The filter options: "All" and every plant category, each with how many
+/// of the user's plants are in it. Picking one closes the sheet with that
+/// choice (a null category means all plants).
 class _FilterSheet extends StatelessWidget {
   const _FilterSheet({required this.plants, required this.selected});
   final List<FarmPlant> plants;
@@ -733,8 +728,8 @@ class _FilterSheet extends StatelessWidget {
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
-        // The counts line up in one column: the tick always has its
-        // place, empty when not selected. A zero is lighter.
+        // The counts line up in one column: the tick always keeps its space, even
+        // when it isn't shown. A zero is shown lighter.
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -799,7 +794,7 @@ class _FilterSheet extends StatelessWidget {
   }
 }
 
-/// The chosen category under the header; tapping it clears the filter.
+/// The chosen category under the header. Tapping it clears the filter.
 class _ActiveFilter extends StatelessWidget {
   const _ActiveFilter({required this.category, required this.onClear});
   final CropCategory category;
@@ -856,17 +851,17 @@ class _ActiveFilter extends StatelessWidget {
   }
 }
 
-/// No plant in the chosen category: says so, with a way back to all plants.
+/// Shown when no plant is in the chosen category, with a way back to all
+/// plants.
 class _NoMatch extends StatelessWidget {
   const _NoMatch();
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    // In the space under the toolbar, the filter chip (whose X clears the
-    // filter) and the count: centred across, and a little above the
-    // middle, which looks centred (the exact middle looks low). Scrolls if
-    // the text is very large.
+    // In the space under the toolbar: the filter chip (its X clears the
+    // filter) and the count, centred and a little above the middle (which
+    // looks more centred). It scrolls if the text is very large.
     return Align(
       key: const Key('filterNoMatch'),
       alignment: const Alignment(0, -0.3),
@@ -895,7 +890,7 @@ class _NoMatch extends StatelessWidget {
   }
 }
 
-/// Nothing planted yet: a friendly nudge to add the first plant.
+/// Nothing planted yet: a friendly message to add the first plant.
 class _NoPlants extends StatelessWidget {
   const _NoPlants();
 

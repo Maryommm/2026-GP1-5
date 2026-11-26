@@ -1,5 +1,5 @@
 // Leaderboard screen: ranks the user against other players by how many
-// plants they have in their farm.
+// plants they have on their farm.
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -13,8 +13,9 @@ import '../widgets/character.dart';
 import '../widgets/entrance.dart';
 import '../widgets/centered_header.dart';
 
-// ASK FOR PERMISSION FROM THE USER TO ACCESS THEIR NAME AND PROFILE PICTURE.
-/// UI only for now: the other players are made up and the user's count comes from their farm.
+// TODO: ask the user for permission to show their name and profile picture.
+/// UI only for now: the other players are made up, and the user's count
+/// comes from their farm.
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
 
@@ -51,12 +52,13 @@ class LeaderboardScreen extends StatelessWidget {
                   24 + MediaQuery.paddingOf(context).bottom,
                 ),
                 children: [
-                  // The dark green card: your rank, progress to the top 10, and the podium with places 1 to 3.
+                  // The dark green card: your rank, progress to the top 10, and the podium
+                  // with places 1 to 3.
                   Entrance(
                     child: _Stage(
                       rank: you + 1,
                       plants: players[you].plants,
-                      // Plants needed to pass whoever is 10th now.
+                      // The plants needed to pass the player who is 10th now.
                       tenthPlants:
                           players[math.min(9, players.length - 1)].plants,
                       top3: players.take(3).toList(),
@@ -97,9 +99,9 @@ class LeaderboardScreen extends StatelessWidget {
 
 
 
-// Players
+// Players.
 
-/// One player on the leaderboard. marks the signed-in user.
+/// One player on the leaderboard. [isYou] marks the signed-in user.
 class _Player {
   const _Player(this.name, this.plants, {this.isYou = false});
   final String name;
@@ -107,7 +109,8 @@ class _Player {
   final bool isYou;
 }
 
-// TODO(backend): dummy data Load the real leaderboard in the next sprints.
+// Made-up players for now.
+// TODO(backend): Load the real leaderboard in the next sprints.
 const _otherPlayers = [
   _Player('sara.grows', 58),
   _Player('abdullah_farm', 47),
@@ -129,8 +132,8 @@ const _otherPlayers = [
 List<_Player> _ranked(String name, int plants) {
   // The made-up players plus the user.
   final all = [..._otherPlayers, _Player(name, plants, isYou: true)];
-  // Sort by plants, biggest first. On a tie, put the user after the
-  // others untill the user overtakes them.
+  // Sort by plants, biggest first. On a tie, put the user after the others
+  // until the user has more plants.
   all.sort((a, b) {
     final byPlants = b.plants.compareTo(a.plants);
     if (byPlants != 0) return byPlants;
@@ -144,18 +147,18 @@ List<_Player> _ranked(String name, int plants) {
 
 
 
-/// The stage: deep forest, a touch lighter at the top.
+/// The dark green background colours, a bit lighter at the top.
 const _stageTop = Color(0xFF173A26);
 const _stageBottom = Color(0xFF0F2418);
 
-/// One accent per podium place: warm gold, fresh mint, soft peach.
+/// One colour per podium place: gold, mint and peach.
 const _placeAccent = {
   1: Color(0xFFFFC93C),
   2: Color(0xFF7FE0CF),
   3: Color(0xFFFFA98F),
 };
 
-/// Pastel pairs for the list's avatars.
+/// Pastel colour pairs for the avatars in the list.
 const _pastels = [
   (Color(0xFFDDF5EA), Color(0xFF1E7A55)), 
   (Color(0xFFFFE6DC), Color(0xFFB4492A)),
@@ -164,7 +167,7 @@ const _pastels = [
   (Color(0xFFEAE4FF), Color(0xFF5A43AD)),
 ];
 
-/// The same pastel for the same name, every time.
+/// Always the same pastel colour for the same name.
 (Color, Color) _pastelFor(String name) {
   var sum = 0;
   for (final c in name.codeUnits) {
@@ -175,9 +178,8 @@ const _pastels = [
 
 
 
-// The stage: the users rank, progress to the top 10, and the podium
-/// The dark green card at the top: the users rank number and a message,
-/// a progress bar if you're not in the top 10 yet, and the podium.
+/// The dark green card at the top: the user's rank and a message, a
+/// progress bar if they're not in the top 10 yet, and the podium.
 class _Stage extends StatelessWidget {
   const _Stage({
     required this.rank,
@@ -229,7 +231,7 @@ class _Stage extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Row: the gold "#rank" circle and the rank message beside it.
+                // The gold "#rank" circle with the rank message next to it.
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
                   child: Row(
@@ -270,7 +272,7 @@ class _Stage extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                     child: _TopTenProgress(
-                      // How full the bar is
+                      // How full the bar is.
                       value: plants / (tenthPlants + 1),
                       caption: s.rankToTopTen(toGo),
                     ),
@@ -302,7 +304,7 @@ class _TopTenProgress extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Animates the bar from empty to [value] over 0.9 seconds
+        // Animates the bar from empty to [value] in 0.9 seconds.
         TweenAnimationBuilder<double>(
           // clamp keeps the value between 0 and 1 (empty and full).
           tween: Tween(begin: 0, end: value.clamp(0.0, 1.0)),
@@ -321,8 +323,7 @@ class _TopTenProgress extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        // The caption under the bar, e.g. "3 more plants to reach the top
-        // 10".
+        // The text under the bar, e.g. "3 more plants to reach the top 10".
         Text(
           caption,
           style: AppText.small(
@@ -335,14 +336,15 @@ class _TopTenProgress extends StatelessWidget {
   }
 }
 
-/// Top 3 on frosted steps: 2nd, 1st (tallest, with a trophy), 3rd. Each rises in one after another.
+/// The top 3 on steps: 2nd, 1st (tallest, with a trophy), 3rd. They appear
+/// one after another.
 class _Podium extends StatelessWidget {
   const _Podium({required this.top3});
   final List<_Player> top3;
 
   @override
   Widget build(BuildContext context) {
-    // How tall each step is: 1st is the tallest.
+    // The height of each step (1st is the tallest).
     const heights = {1: 92.0, 2: 66.0, 3: 50.0};
     const delays = {3: 150, 2: 300, 1: 450};
     Widget place(int rank) => Expanded(
@@ -364,7 +366,7 @@ class _Podium extends StatelessWidget {
   }
 }
 
-/// One podium place
+/// One place on the podium.
 class _PodiumPlace extends StatefulWidget {
   const _PodiumPlace({
     required this.rank,
@@ -412,7 +414,7 @@ class _PodiumPlaceState extends State<_PodiumPlace>
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    // The colour for this place
+    // The colour for this place.
     final accent = _placeAccent[widget.rank]!;
     final first = widget.rank == 1;
     final p = widget.player;
@@ -540,7 +542,7 @@ class _PodiumPlaceState extends State<_PodiumPlace>
 }
 
 
-// The list: places 4 to 10 (and the user, if further down)
+// The list: places 4 to 10 (and the user, if they are lower).
 
 /// One player on a white row. The user's own row is dark green.
 class _RankRow extends StatelessWidget {
