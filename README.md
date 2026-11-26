@@ -58,13 +58,6 @@ flutter run
 In VS Code, open the `ethmar` folder, choose a device in the status bar and
 press **F5**.
 
-### Tests
-
-```bash
-cd ethmar
-flutter analyze
-flutter test
-```
 
 ---
 
@@ -170,11 +163,3 @@ npm run check        # type check and tests
 [.github/workflows/crop-table-check.yml](.github/workflows/crop-table-check.yml)
 runs `load_check.py` on every push and pull request. The check fails if the
 crop table has a blocking problem.
-
-## Data sources
-
-- **ECOCROP** (FAO) and **Permapeople**: crop requirements, merged into
-  `data/raw/ethmar_master_dataset.csv`.
-- **NASA POWER**: daily climate from 2005 to 2024.
-- **Open-Meteo**: elevation.
-- **SoilGrids** (ISRIC): soil pH.
