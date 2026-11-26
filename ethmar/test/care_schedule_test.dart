@@ -97,8 +97,7 @@ void main() {
 
   // Scenarios 1-4: a task due on Nov 20 that is never done.
   group('a missed task and the three missed days', () {
-    test('1. every day: one missed task, no other watering until it goes',
-        () {
+    test('1. every day: one missed task, no other watering until it goes', () {
       final p = watered(Repeat.everyDay);
       expect(water(p, morning(nov(20))).dueToday, isTrue);
       for (final day in [21, 22, 23]) {
@@ -107,8 +106,13 @@ void main() {
         expect(state.dueToday, isFalse, reason: 'Nov $day');
         expect(state.suppressedToday, isTrue, reason: 'Nov $day');
         expect(todays([p], morning(nov(day))), isEmpty, reason: 'Nov $day');
-        expect([for (final t in missedOn([p], morning(nov(day)))) t.day],
-            [nov(20)], reason: 'Nov $day');
+        expect(
+          [
+            for (final t in missedOn([p], morning(nov(day)))) t.day,
+          ],
+          [nov(20)],
+          reason: 'Nov $day',
+        );
       }
       // Nov 24: the missed task is gone; one watering is due today.
       final state = water(p, morning(nov(24)));
@@ -165,8 +169,11 @@ void main() {
     test('5. every 14 days, done on time: the next is 14 days later', () {
       final p = watered(Repeat.every2Weeks, since: nov(6));
       expect(water(p, morning(nov(20))).dueToday, isTrue);
-      final after = watered(Repeat.every2Weeks,
-          since: nov(6), last: done(nov(20)));
+      final after = watered(
+        Repeat.every2Weeks,
+        since: nov(6),
+        last: done(nov(20)),
+      );
       final state = water(after, morning(nov(21)));
       expect(state.missed, isNull);
       expect(state.next, nov(4, 12));
@@ -187,8 +194,9 @@ void main() {
     test('7. done early on its day: done today, next counts from today', () {
       final p = watered(Repeat.everyWeek, time: at17);
       final early = DateTime(2026, 11, 20, 8);
-      final logs = logOf(TaskLog(
-          date: TaskLog.dateKey(nov(20)), completed: ['p_irrigation']));
+      final logs = logOf(
+        TaskLog(date: TaskLog.dateKey(nov(20)), completed: ['p_irrigation']),
+      );
       final state = water(p, early, logs);
       expect(state.doneToday, isTrue);
       expect(state.next, nov(27));
@@ -196,25 +204,30 @@ void main() {
       expect(today.single.status, TaskStatus.completed);
     });
 
-    test('8. done during the missed days: no task left from the old rhythm',
-        () {
-      // Every 2 days: due Nov 20, missed on the 21st, done late on the 22nd.
-      final p = watered(Repeat.every2Days, last: done(nov(22), nov(20)));
-      final logs = logOf(TaskLog(
-          date: TaskLog.dateKey(nov(20)),
-          late: ['p_irrigation'],
-          lateOn: {'p_irrigation': '2026-11-22'}));
-      final now = morning(nov(22));
-      final state = water(p, now, logs);
-      expect(state.missed, isNull);
-      expect(state.dueToday, isFalse);
-      expect(state.next, nov(24));
-      // The 22nd's own watering doesn't come back as a second task.
-      expect(todays([p], now, logs), isEmpty);
-      final missed = missedOn([p], now, logs);
-      expect(missed.single.status, TaskStatus.doneLate);
-      expect(missed.single.day, nov(20));
-    });
+    test(
+      '8. done during the missed days: no task left from the old rhythm',
+      () {
+        // Every 2 days: due Nov 20, missed on the 21st, done late on the 22nd.
+        final p = watered(Repeat.every2Days, last: done(nov(22), nov(20)));
+        final logs = logOf(
+          TaskLog(
+            date: TaskLog.dateKey(nov(20)),
+            late: ['p_irrigation'],
+            lateOn: {'p_irrigation': '2026-11-22'},
+          ),
+        );
+        final now = morning(nov(22));
+        final state = water(p, now, logs);
+        expect(state.missed, isNull);
+        expect(state.dueToday, isFalse);
+        expect(state.next, nov(24));
+        // The 22nd's own watering doesn't come back as a second task.
+        expect(todays([p], now, logs), isEmpty);
+        final missed = missedOn([p], now, logs);
+        expect(missed.single.status, TaskStatus.doneLate);
+        expect(missed.single.day, nov(20));
+      },
+    );
 
     test('9. not done in time: it expires, still not done', () {
       final p = watered(Repeat.every2Weeks, since: nov(20));
@@ -226,17 +239,21 @@ void main() {
       expect(dueTasks([p], nov(20)), hasLength(1));
     });
 
-    test('10. after it expires the usual rhythm carries on, nothing made up',
-        () {
-      // Every 2 days: Nov 24 is on the rhythm, so it's due.
-      expect(water(watered(Repeat.every2Days), morning(nov(24))).dueToday,
-          isTrue);
-      // Every 5 days: the 25th is next; no task on the 24th.
-      final every5 = water(watered(Repeat.every5Days), morning(nov(24)));
-      expect(every5.dueToday, isFalse);
-      expect(every5.next, nov(25));
-      expect(todays([watered(Repeat.every5Days)], morning(nov(24))), isEmpty);
-    });
+    test(
+      '10. after it expires the usual rhythm carries on, nothing made up',
+      () {
+        // Every 2 days: Nov 24 is on the rhythm, so it's due.
+        expect(
+          water(watered(Repeat.every2Days), morning(nov(24))).dueToday,
+          isTrue,
+        );
+        // Every 5 days: the 25th is next; no task on the 24th.
+        final every5 = water(watered(Repeat.every5Days), morning(nov(24)));
+        expect(every5.dueToday, isFalse);
+        expect(every5.next, nov(25));
+        expect(todays([watered(Repeat.every5Days)], morning(nov(24))), isEmpty);
+      },
+    );
   });
 
   group('one task at a time', () {
@@ -245,8 +262,11 @@ void main() {
         final p = watered(repeat);
         for (var d = 0; d < 60; d++) {
           final now = morning(DateTime(2026, 11, 20 + d));
-          expect(activeWatering(p, now), lessThanOrEqualTo(1),
-              reason: '$repeat on ${TaskLog.dateKey(now)}');
+          expect(
+            activeWatering(p, now),
+            lessThanOrEqualTo(1),
+            reason: '$repeat on ${TaskLog.dateKey(now)}',
+          );
         }
       }
     });
@@ -257,10 +277,18 @@ void main() {
         fertilize: CareSchedule(Repeat.everyWeek, at17, since: nov(22)),
       );
       final now = morning(nov(22));
-      expect([for (final t in todays([p], now)) t.type],
-          [TaskType.fertilizing]);
-      expect([for (final t in missedOn([p], now)) t.type],
-          [TaskType.watering]);
+      expect(
+        [
+          for (final t in todays([p], now)) t.type,
+        ],
+        [TaskType.fertilizing],
+      );
+      expect(
+        [
+          for (final t in missedOn([p], now)) t.type,
+        ],
+        [TaskType.watering],
+      );
     });
 
     test('24. skipped tasks never pile up', () {
@@ -275,8 +303,12 @@ void main() {
 
   group('undo', () {
     test('13. un-ticking an on-time task brings the old schedule back', () {
-      final before = CareSchedule(Repeat.everyDay, at8,
-          since: nov(1), lastDone: done(nov(19)));
+      final before = CareSchedule(
+        Repeat.everyDay,
+        at8,
+        since: nov(1),
+        lastDone: done(nov(19)),
+      );
       final ticked = before.markedDone(done(nov(20)));
       expect(ticked.lastDone, done(nov(20)));
       expect(ticked.previousDone, done(nov(19)));
@@ -310,11 +342,10 @@ void main() {
 
   group('changing a schedule', () {
     test('15. a new repeat counts from the last time it was done', () {
-      final p = watered(Repeat.every2Weeks,
-          since: nov(1), last: done(nov(15)));
+      final p = watered(Repeat.every2Weeks, since: nov(1), last: done(nov(15)));
       final changed = p.edited(
         name: 'Mint',
-        irrigation: const CareSchedule(Repeat.every3Days, at8),
+        irrigation: CareSchedule(Repeat.every3Days, at8),
         fertilization: null,
         today: morning(nov(24)),
       );
@@ -324,26 +355,29 @@ void main() {
       expect(water(changed, morning(nov(24))).dueToday, isTrue);
       // Done that day: every 3 days from then.
       final doneOn24 = plant(
-          water: changed.irrigation!.markedDone(done(nov(24))));
+        water: changed.irrigation!.markedDone(done(nov(24))),
+      );
       expect(water(doneOn24, morning(nov(25))).next, nov(27));
 
       // A new time only: the same days, at the new time.
       final newTime = p.edited(
         name: 'Mint',
-        irrigation: const CareSchedule(Repeat.every2Weeks, at17),
+        irrigation: CareSchedule(Repeat.every2Weeks, at17),
         fertilization: null,
         today: morning(nov(24)),
       );
       expect(newTime.irrigation!.since, nov(1));
       expect(newTime.irrigation!.lastDone, done(nov(15)));
       expect(water(newTime, morning(nov(24))).next, nov(29));
-      expect(water(newTime, morning(nov(24))).at(nov(29)),
-          DateTime(2026, 11, 29, 17, 30));
+      expect(
+        water(newTime, morning(nov(24))).at(nov(29)),
+        DateTime(2026, 11, 29, 17, 30),
+      );
 
       // Unchanged: kept, done days and all.
       final renamed = p.edited(
         name: 'My mint',
-        irrigation: const CareSchedule(Repeat.every2Weeks, at8),
+        irrigation: CareSchedule(Repeat.every2Weeks, at8),
         fertilization: null,
         today: morning(nov(24)),
       );
@@ -355,15 +389,15 @@ void main() {
       final p = watered(Repeat.everyDay, last: done(nov(24)));
       final changed = p.edited(
         name: 'Mint',
-        irrigation: const CareSchedule(Repeat.every2Days, at8),
+        irrigation: CareSchedule(Repeat.every2Days, at8),
         fertilization: null,
         today: morning(nov(24)),
       );
-      final logs = logOf(TaskLog(
-          date: TaskLog.dateKey(nov(24)), completed: ['p_irrigation']));
+      final logs = logOf(
+        TaskLog(date: TaskLog.dateKey(nov(24)), completed: ['p_irrigation']),
+      );
       final now = morning(nov(24));
-      expect(todays([changed], now, logs).single.status,
-          TaskStatus.completed);
+      expect(todays([changed], now, logs).single.status, TaskStatus.completed);
       expect(water(changed, now, logs).next, nov(26));
     });
 
@@ -372,7 +406,7 @@ void main() {
       expect(missedOn([p], morning(nov(22))), hasLength(1));
       final changed = p.edited(
         name: 'Mint',
-        irrigation: const CareSchedule(Repeat.every2Days, at8),
+        irrigation: CareSchedule(Repeat.every2Days, at8),
         fertilization: null,
         today: morning(nov(22)),
       );
@@ -392,20 +426,27 @@ void main() {
   group('editing a schedule (E) and undo (U)', () {
     const at18 = TimeOfDay(hour: 18, minute: 0);
 
-    FarmPlant edit(FarmPlant p, DateTime day,
-            {CareSchedule? water, CareSchedule? fertilize}) =>
-        p.edited(
-          name: p.name,
-          irrigation: water ?? p.irrigation,
-          fertilization: fertilize ?? p.fertilization,
-          today: morning(day),
-        );
+    FarmPlant edit(
+      FarmPlant p,
+      DateTime day, {
+      CareSchedule? water,
+      CareSchedule? fertilize,
+    }) => p.edited(
+      name: p.name,
+      irrigation: water ?? p.irrigation,
+      fertilization: fertilize ?? p.fertilization,
+      today: morning(day),
+    );
 
-    List<DailyTask> wateringToday(FarmPlant p, DateTime now,
-            [Map<String, TaskLog> logs = const {}]) =>
-        todays([p], now, logs)
-            .where((t) => t.type == TaskType.watering)
-            .toList();
+    List<DailyTask> wateringToday(
+      FarmPlant p,
+      DateTime now, [
+      Map<String, TaskLog> logs = const {},
+    ]) => todays(
+      [p],
+      now,
+      logs,
+    ).where((t) => t.type == TaskType.watering).toList();
 
     /// Every Daily Tasks screen, Home and Plant Details agree on [p] for
     /// [days] days from [from] (as test 19).
@@ -413,11 +454,15 @@ void main() {
       for (var d = 0; d < days; d++) {
         final now = morning(DateTime(from.year, from.month, from.day + d));
         final state = water(p, now);
-        final missed = missedOn([p], now)
-            .where((t) => !t.done && t.type == TaskType.watering);
+        final missed = missedOn([
+          p,
+        ], now).where((t) => !t.done && t.type == TaskType.watering);
         final today = wateringToday(p, now).where((t) => !t.done);
-        expect(missed.length + today.length, lessThanOrEqualTo(1),
-            reason: '$now');
+        expect(
+          missed.length + today.length,
+          lessThanOrEqualTo(1),
+          reason: '$now',
+        );
         if (missed.isNotEmpty) {
           expect(state.nextDue, missed.single.day, reason: '$now');
         } else if (today.isNotEmpty) {
@@ -430,15 +475,23 @@ void main() {
 
     // Every 14 days, last done Nov 22: next due Dec 6 at 08:00.
     final every14 = plant(
-      water: CareSchedule(Repeat.every2Weeks, at8,
-          since: nov(1), lastDone: done(nov(22)), previousDone: done(nov(8))),
+      water: CareSchedule(
+        Repeat.every2Weeks,
+        at8,
+        since: nov(1),
+        lastDone: done(nov(22)),
+        previousDone: done(nov(8)),
+      ),
       fertilize: CareSchedule(Repeat.everyWeek, at8, since: nov(1)),
     );
 
     test('E1. a new time keeps the day: Dec 6 at 18:00', () {
       expect(water(every14, morning(nov(23))).next, nov(6, 12));
-      final p = edit(every14, nov(23),
-          water: const CareSchedule(Repeat.every2Weeks, at18));
+      final p = edit(
+        every14,
+        nov(23),
+        water: CareSchedule(Repeat.every2Weeks, at18),
+      );
       final s = p.irrigation!;
       expect(s.lastDone, done(nov(22)));
       expect(s.previousDone, done(nov(8)));
@@ -448,15 +501,22 @@ void main() {
       expect(state.at(state.next), DateTime(2026, 12, 6, 18));
       // No extra task on the day of the change.
       expect(wateringToday(p, morning(nov(23))), isEmpty);
-      expect(missedOn([p], morning(nov(23)))
-          .where((t) => t.type == TaskType.watering), isEmpty);
+      expect(
+        missedOn([
+          p,
+        ], morning(nov(23))).where((t) => t.type == TaskType.watering),
+        isEmpty,
+      );
       // Fertilizing is untouched.
       expect(p.fertilization!.toMap(), every14.fertilization!.toMap());
     });
 
     test('E2. a new repeat counts from the last done day: Nov 29', () {
-      final p = edit(every14, nov(23),
-          water: const CareSchedule(Repeat.everyWeek, at8));
+      final p = edit(
+        every14,
+        nov(23),
+        water: CareSchedule(Repeat.everyWeek, at8),
+      );
       final s = p.irrigation!;
       expect(s.lastDone, done(nov(22)));
       expect(s.time, at8);
@@ -470,21 +530,25 @@ void main() {
     });
 
     test('E3. a new repeat and time together: Nov 29 at 18:00', () {
-      final p = edit(every14, nov(23),
-          water: const CareSchedule(Repeat.everyWeek, at18));
+      final p = edit(
+        every14,
+        nov(23),
+        water: CareSchedule(Repeat.everyWeek, at18),
+      );
       final state = water(p, morning(nov(23)));
       expect(state.at(state.next), DateTime(2026, 11, 29, 18));
       expect(p.irrigation!.lastDone, done(nov(22)));
     });
 
     test('E4. edited right after it was done: today stays done', () {
-      final logs = logOf(TaskLog(
-          date: TaskLog.dateKey(nov(22)), completed: ['p_irrigation']));
+      final logs = logOf(
+        TaskLog(date: TaskLog.dateKey(nov(22)), completed: ['p_irrigation']),
+      );
       final now = morning(nov(22));
       for (final (schedule, next) in [
-        (const CareSchedule(Repeat.every2Weeks, at18), nov(6, 12)),
-        (const CareSchedule(Repeat.every3Days, at8), nov(25)),
-        (const CareSchedule(Repeat.everyDay, at18), nov(23)),
+        (CareSchedule(Repeat.every2Weeks, at18), nov(6, 12)),
+        (CareSchedule(Repeat.every3Days, at8), nov(25)),
+        (CareSchedule(Repeat.everyDay, at18), nov(23)),
       ]) {
         final p = edit(every14, nov(22), water: schedule);
         final today = wateringToday(p, now, logs);
@@ -492,55 +556,87 @@ void main() {
         expect(today.single.status, TaskStatus.completed);
         expect(water(p, now, logs).next, next, reason: '${schedule.repeat}');
         // The day still had its one task, for the streak.
-        expect(dueTasks([p], nov(22))
-            .where((t) => t.type == TaskType.watering), hasLength(1));
+        expect(
+          dueTasks([p], nov(22)).where((t) => t.type == TaskType.watering),
+          hasLength(1),
+        );
       }
     });
 
     test('E5. edited while a task is due today', () {
       // Every 7 days, last done Nov 16: due today, Nov 23.
-      final p = plant(water: CareSchedule(Repeat.everyWeek, at8,
-          since: nov(1), lastDone: done(nov(16))));
+      final p = plant(
+        water: CareSchedule(
+          Repeat.everyWeek,
+          at8,
+          since: nov(1),
+          lastDone: done(nov(16)),
+        ),
+      );
       final now = morning(nov(23));
       expect(wateringToday(p, now).single.status, TaskStatus.due);
       // New time: still today's one task, now later in the day.
-      final later = edit(p, nov(23),
-          water: const CareSchedule(Repeat.everyWeek, at18));
+      final later = edit(
+        p,
+        nov(23),
+        water: CareSchedule(Repeat.everyWeek, at18),
+      );
       expect(wateringToday(later, now).single.status, TaskStatus.upcoming);
       expect(wateringToday(later, now).single.time, at18);
       // Every 3 days: Nov 19 has passed, so still due today, only once.
-      final shorter = edit(p, nov(23),
-          water: const CareSchedule(Repeat.every3Days, at8));
+      final shorter = edit(
+        p,
+        nov(23),
+        water: CareSchedule(Repeat.every3Days, at8),
+      );
       expect(wateringToday(shorter, now), hasLength(1));
       expect(missedOn([shorter], now), isEmpty);
       // Every 14 days: Nov 30, nothing today.
-      final longer = edit(p, nov(23),
-          water: const CareSchedule(Repeat.every2Weeks, at8));
+      final longer = edit(
+        p,
+        nov(23),
+        water: CareSchedule(Repeat.every2Weeks, at8),
+      );
       expect(wateringToday(longer, now), isEmpty);
       expect(water(longer, now).next, nov(30));
     });
 
     test('E6. edited during the missed days', () {
       // Every 7 days, last done Nov 13: Nov 20 is missed on Nov 22.
-      final p = plant(water: CareSchedule(Repeat.everyWeek, at8,
-          since: nov(1), lastDone: done(nov(13))));
+      final p = plant(
+        water: CareSchedule(
+          Repeat.everyWeek,
+          at8,
+          since: nov(1),
+          lastDone: done(nov(13)),
+        ),
+      );
       final now = morning(nov(22));
       expect(missedOn([p], now).single.day, nov(20));
       // New time: the same missed task, at the new time; next Nov 27.
-      final later = edit(p, nov(22),
-          water: const CareSchedule(Repeat.everyWeek, at18));
+      final later = edit(
+        p,
+        nov(22),
+        water: CareSchedule(Repeat.everyWeek, at18),
+      );
       expect(missedOn([later], now).single.day, nov(20));
       expect(missedOn([later], now).single.time, at18);
       expect(missedOn([later], now).single.status, TaskStatus.missed);
       expect(water(later, now).next, nov(27));
       // Every 3 days: Nov 16 has passed, so one task today in its place.
-      final shorter = edit(p, nov(22),
-          water: const CareSchedule(Repeat.every3Days, at8));
+      final shorter = edit(
+        p,
+        nov(22),
+        water: CareSchedule(Repeat.every3Days, at8),
+      );
       expect(missedOn([shorter], now), isEmpty);
       expect(wateringToday(shorter, now), hasLength(1));
       // Every 14 days: Nov 27, nothing to do before.
-      final longer = edit(p, nov(22),
-          water: const CareSchedule(Repeat.every2Weeks, at8));
+      final longer = edit(
+        p,
+        nov(22),
+        water: CareSchedule(Repeat.every2Weeks, at8),
+      );
       expect(missedOn([longer], now), isEmpty);
       expect(wateringToday(longer, now), isEmpty);
       expect(water(longer, now).next, nov(27));
@@ -550,13 +646,19 @@ void main() {
         'on the day of the change', () {
       final p = watered(Repeat.everyWeek, since: nov(20));
       final now = morning(nov(22));
-      final later = edit(p, nov(22),
-          water: const CareSchedule(Repeat.everyWeek, at18));
+      final later = edit(
+        p,
+        nov(22),
+        water: CareSchedule(Repeat.everyWeek, at18),
+      );
       expect(later.irrigation!.since, nov(20));
       expect(missedOn([later], now).single.day, nov(20));
       expect(water(later, now).next, nov(27));
-      final shorter = edit(p, nov(22),
-          water: const CareSchedule(Repeat.every3Days, at8));
+      final shorter = edit(
+        p,
+        nov(22),
+        water: CareSchedule(Repeat.every3Days, at8),
+      );
       expect(shorter.irrigation!.since, nov(22));
       expect(shorter.irrigation!.lastDone, isNull);
       expect(water(shorter, now).dueToday, isTrue);
@@ -566,8 +668,9 @@ void main() {
     test('E8. a new time never moves any task day, for every repeat', () {
       for (final repeat in Repeat.values) {
         for (final last in [null, done(nov(15)), done(nov(18), nov(16))]) {
-          final p = plant(water: CareSchedule(repeat, at8,
-              since: nov(10), lastDone: last));
+          final p = plant(
+            water: CareSchedule(repeat, at8, since: nov(10), lastDone: last),
+          );
           for (var e = 15; e <= 30; e += 3) {
             final q = edit(p, nov(e), water: CareSchedule(repeat, at18));
             for (var c = e; c <= e + 40; c++) {
@@ -583,14 +686,25 @@ void main() {
       }
     });
 
-    test('E9. after any edit, one task at a time and every screen agrees',
-        () {
+    test('E9. after any edit, one task at a time and every screen agrees', () {
       final starts = [
         plant(water: CareSchedule(Repeat.everyDay, at8, since: nov(20))),
-        plant(water: CareSchedule(Repeat.every2Days, at8,
-            since: nov(1), lastDone: done(nov(18)))),
-        plant(water: CareSchedule(Repeat.every3Days, at8,
-            since: nov(1), lastDone: done(nov(21), nov(19)))),
+        plant(
+          water: CareSchedule(
+            Repeat.every2Days,
+            at8,
+            since: nov(1),
+            lastDone: done(nov(18)),
+          ),
+        ),
+        plant(
+          water: CareSchedule(
+            Repeat.every3Days,
+            at8,
+            since: nov(1),
+            lastDone: done(nov(21), nov(19)),
+          ),
+        ),
         every14,
       ];
       for (final p in starts) {
@@ -604,8 +718,11 @@ void main() {
     });
 
     test('E10. watering and fertilizing stay independent', () {
-      final p = edit(every14, nov(23),
-          water: const CareSchedule(Repeat.everyDay, at18));
+      final p = edit(
+        every14,
+        nov(23),
+        water: CareSchedule(Repeat.everyDay, at18),
+      );
       for (var d = 23; d < 50; d++) {
         final now = morning(DateTime(2026, 11, d));
         final before = careState(every14, TaskType.fertilizing, now)!;
@@ -615,44 +732,70 @@ void main() {
       }
     });
 
-    test('E11. a new time leaves the count and the streak days as they are',
-        () {
-      for (var d = 20; d < 60; d++) {
-        final day = DateTime(2026, 11, d);
-        final edited = edit(every14, nov(20),
-            water: const CareSchedule(Repeat.every2Weeks, at18));
-        expect(dueTasks([edited], day).length,
-            dueTasks([every14], day).length, reason: '$day');
-        expect(todays([edited], morning(day)).length,
-            todays([every14], morning(day)).length, reason: '$day');
-      }
-    });
+    test(
+      'E11. a new time leaves the count and the streak days as they are',
+      () {
+        for (var d = 20; d < 60; d++) {
+          final day = DateTime(2026, 11, d);
+          final edited = edit(
+            every14,
+            nov(20),
+            water: CareSchedule(Repeat.every2Weeks, at18),
+          );
+          expect(
+            dueTasks([edited], day).length,
+            dueTasks([every14], day).length,
+            reason: '$day',
+          );
+          expect(
+            todays([edited], morning(day)).length,
+            todays([every14], morning(day)).length,
+            reason: '$day',
+          );
+        }
+      },
+    );
 
     test('E12. reminders move with an edit and keep their ids', () {
-      final p = plant(water: CareSchedule(Repeat.every2Weeks, at8,
-          since: nov(1), lastDone: done(nov(22))));
+      final p = plant(
+        water: CareSchedule(
+          Repeat.every2Weeks,
+          at8,
+          since: nov(1),
+          lastDone: done(nov(22)),
+        ),
+      );
       final now = DateTime(2026, 11, 23, 7);
       final before = planReminders([p], now, en);
       final later = planReminders(
-          [edit(p, nov(23), water: const CareSchedule(Repeat.every2Weeks, at18))],
-          now, en);
+        [edit(p, nov(23), water: CareSchedule(Repeat.every2Weeks, at18))],
+        now,
+        en,
+      );
       expect([for (final r in later) r.id], [for (final r in before) r.id]);
-      expect([for (final r in later) r.at], [
-        for (final r in before)
-          DateTime(r.at.year, r.at.month, r.at.day, 18),
-      ]);
+      expect(
+        [for (final r in later) r.at],
+        [for (final r in before) DateTime(r.at.year, r.at.month, r.at.day, 18)],
+      );
       expect(later.first.at, DateTime(2026, 12, 6, 18));
       final weekly = planReminders(
-          [edit(p, nov(23), water: const CareSchedule(Repeat.everyWeek, at8))],
-          now, en);
+        [edit(p, nov(23), water: CareSchedule(Repeat.everyWeek, at8))],
+        now,
+        en,
+      );
       expect(weekly.first.at, DateTime(2026, 11, 29, 8));
       expect(weekly.first.id, before.first.id);
     });
 
     // Every 2 days: done Nov 16 and 18; Nov 20 done late on the 21st; Nov 23
     // done on time.
-    final twoDay = CareSchedule(Repeat.every2Days, at8,
-        since: nov(1), lastDone: done(nov(18)), previousDone: done(nov(16)));
+    final twoDay = CareSchedule(
+      Repeat.every2Days,
+      at8,
+      since: nov(1),
+      lastDone: done(nov(18)),
+      previousDone: done(nov(16)),
+    );
     final lateTick = twoDay.markedDone(done(nov(21), nov(20)));
     final bothTicks = lateTick.markedDone(done(nov(23)));
     Map<String, TaskLog> logsOn23({bool late = true, bool today = true}) => {
@@ -670,18 +813,21 @@ void main() {
     test('U1. undoing an on-time task: due again, reminder back today', () {
       final now = morning(nov(23));
       final p = plant(water: bothTicks);
-      expect(wateringToday(p, now, logsOn23()).single.status,
-          TaskStatus.completed);
+      expect(
+        wateringToday(p, now, logsOn23()).single.status,
+        TaskStatus.completed,
+      );
       final undone = plant(water: bothTicks.markedUndone(nov(23)));
       expect(undone.irrigation!.lastDone, done(nov(21), nov(20)));
       final logs = logsOn23(today: false);
       expect(wateringToday(undone, now, logs).single.status, TaskStatus.due);
       expect(water(undone, now, logs).next, nov(23));
       final early = DateTime(2026, 11, 23, 7);
-      expect(planReminders([p], early, en).first.at,
-          DateTime(2026, 11, 25, 8));
-      expect(planReminders([undone], early, en).first.at,
-          DateTime(2026, 11, 23, 8));
+      expect(planReminders([p], early, en).first.at, DateTime(2026, 11, 25, 8));
+      expect(
+        planReminders([undone], early, en).first.at,
+        DateTime(2026, 11, 23, 8),
+      );
     });
 
     test('U2. undoing the first ever task: due again that day', () {
@@ -708,8 +854,10 @@ void main() {
 
     test('U4. two undos in a row bring back the task actually missed', () {
       final now = morning(nov(23));
-      expect(missedOn([plant(water: bothTicks)], now, logsOn23())
-          .single.status, TaskStatus.doneLate);
+      expect(
+        missedOn([plant(water: bothTicks)], now, logsOn23()).single.status,
+        TaskStatus.doneLate,
+      );
       // Today's first, then the late one.
       final once = bothTicks.markedUndone(nov(23));
       final twice = once.markedUndone(nov(20));
@@ -735,19 +883,30 @@ void main() {
       final saved = reload(plant(water: bothTicks));
       expect(saved.irrigation!.lastDone, done(nov(23)));
       expect(saved.irrigation!.previousDone, done(nov(21), nov(20)));
-      final once = reload(plant(water: saved.irrigation!.markedUndone(nov(23))));
+      final once = reload(
+        plant(water: saved.irrigation!.markedUndone(nov(23))),
+      );
       expect(once.irrigation!.lastDone, done(nov(21), nov(20)));
-      final twice = reload(plant(water: once.irrigation!.markedUndone(nov(20))));
+      final twice = reload(
+        plant(water: once.irrigation!.markedUndone(nov(20))),
+      );
       expect(twice.irrigation!.since, nov(20));
       expect(water(twice, morning(nov(23))).missed, nov(20));
     });
 
     test('U6. a late task done before a new repeat can still be undone', () {
       // Every 7 days, Nov 13 missed... done late on Nov 21 for Nov 20.
-      final s = CareSchedule(Repeat.everyWeek, at8,
-          since: nov(1), lastDone: done(nov(21), nov(20)));
-      final p = edit(plant(water: s), nov(22),
-          water: const CareSchedule(Repeat.every3Days, at8));
+      final s = CareSchedule(
+        Repeat.everyWeek,
+        at8,
+        since: nov(1),
+        lastDone: done(nov(21), nov(20)),
+      );
+      final p = edit(
+        plant(water: s),
+        nov(22),
+        water: CareSchedule(Repeat.every3Days, at8),
+      );
       final logs = {
         TaskLog.dateKey(nov(20)): TaskLog(
           date: TaskLog.dateKey(nov(20)),
@@ -756,8 +915,10 @@ void main() {
         ),
       };
       expect(water(p, morning(nov(22)), logs).next, nov(24));
-      expect(missedOn([p], morning(nov(22)), logs).single.status,
-          TaskStatus.doneLate);
+      expect(
+        missedOn([p], morning(nov(22)), logs).single.status,
+        TaskStatus.doneLate,
+      );
       final undone = plant(water: p.irrigation!.markedUndone(nov(20)));
       expect(undone.irrigation!.lastDone, isNull);
       // Nothing done now, and the new repeat started on Nov 22: due today.
@@ -765,12 +926,24 @@ void main() {
     });
 
     test('S1. edits and undo write only the existing fields', () {
-      const allowed = {'everyDays', 'time', 'since', 'lastDone', 'previousDone'};
+      const allowed = {
+        'everyDays',
+        'time',
+        'since',
+        'lastDone',
+        'previousDone',
+      };
       final schedules = [
-        edit(every14, nov(23),
-            water: const CareSchedule(Repeat.every2Weeks, at18)).irrigation!,
-        edit(every14, nov(23),
-            water: const CareSchedule(Repeat.everyWeek, at8)).irrigation!,
+        edit(
+          every14,
+          nov(23),
+          water: CareSchedule(Repeat.every2Weeks, at18),
+        ).irrigation!,
+        edit(
+          every14,
+          nov(23),
+          water: CareSchedule(Repeat.everyWeek, at8),
+        ).irrigation!,
         bothTicks.markedUndone(nov(23)),
         bothTicks.markedUndone(nov(23)).markedUndone(nov(20)),
       ];
@@ -786,30 +959,48 @@ void main() {
           expect(since, matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')));
         }
       }
-      expect(edit(every14, nov(23)).toMap().keys.toSet(),
-          every14.toMap().keys.toSet());
-      expect(logsOn23()[TaskLog.dateKey(nov(20))]!.toMap().keys.toSet(),
-          {'completed', 'late', 'lateOn'});
+      expect(
+        edit(every14, nov(23)).toMap().keys.toSet(),
+        every14.toMap().keys.toSet(),
+      );
+      expect(logsOn23()[TaskLog.dateKey(nov(20))]!.toMap().keys.toSet(), {
+        'completed',
+        'late',
+        'lateOn',
+      });
     });
   });
 
   group('saved and read back', () {
     test('17. the done days survive a restart', () {
-      final p = watered(Repeat.every2Weeks,
-          last: done(nov(23), nov(20)), previous: done(nov(6)));
+      final p = watered(
+        Repeat.every2Weeks,
+        last: done(nov(23), nov(20)),
+        previous: done(nov(6)),
+      );
       final map = p.toMap();
-      expect((map['irrigation']! as Map)['lastDone'],
-          {'date': '2026-11-23', 'due': '2026-11-20'});
+      expect((map['irrigation']! as Map)['lastDone'], {
+        'date': '2026-11-23',
+        'due': '2026-11-20',
+      });
       final back = FarmPlant.fromMap('p', map);
       expect(back.irrigation!.lastDone, done(nov(23), nov(20)));
       expect(back.irrigation!.previousDone, done(nov(6)));
       expect(water(back, morning(nov(24))).next, nov(7, 12));
     });
 
-    test('18. older records without the new fields still work', () {
-      final schedule = CareSchedule.fromMap({'everyDays': 14, 'time': '08:00'})!;
+    test('18. since is required while older task-log fields still work', () {
+      expect(
+        () => CareSchedule.fromMap({'everyDays': 14, 'time': '08:00'}),
+        throwsFormatException,
+      );
+      final schedule = CareSchedule.fromMap({
+        'everyDays': 14,
+        'time': '08:00',
+        'since': '2026-11-01',
+      })!;
       expect(schedule.lastDone, isNull);
-      expect(schedule.since, isNull);
+      expect(schedule.since, nov(1));
       // Planted Nov 1, never edited: due on the 1st, 15th, 29th...
       final old = plant(water: schedule);
       expect(water(old, morning(nov(16))).missed, nov(15));
@@ -817,6 +1008,7 @@ void main() {
       final broken = CareSchedule.fromMap({
         'everyDays': 14,
         'time': '08:00',
+        'since': '2026-11-01',
         'lastDone': {'date': 'yesterday'},
       })!;
       expect(broken.lastDone, isNull);
@@ -864,8 +1056,11 @@ void main() {
           } else if (today.isNotEmpty) {
             expect(state.nextDue, today.single.day, reason: '$repeat $now');
           } else {
-            expect(state.nextDue.isAfter(state.today), isTrue,
-                reason: '$repeat $now');
+            expect(
+              state.nextDue.isAfter(state.today),
+              isTrue,
+              reason: '$repeat $now',
+            );
           }
         }
       }
@@ -887,17 +1082,24 @@ void main() {
         // Watering since yesterday, not done: missed.
         irrigation: CareSchedule(Repeat.everyDay, at8, since: yesterday),
         // Fertilizing done today: next one tomorrow.
-        fertilization: CareSchedule(Repeat.everyDay, at8,
-            since: yesterday, lastDone: done(today)),
+        fertilization: CareSchedule(
+          Repeat.everyDay,
+          at8,
+          since: yesterday,
+          lastDone: done(today),
+        ),
         plantedAt: yesterday,
         createdAt: yesterday,
         updatedAt: yesterday,
       );
-      FarmStore.taskLogForTests = (date) => Stream.value(TaskLog(
+      FarmStore.taskLogForTests = (date) => Stream.value(
+        TaskLog(
           date: date,
           completed: date == TaskLog.dateKey(today)
               ? ['p_fertilization']
-              : const []));
+              : const [],
+        ),
+      );
       FarmStore.journeyForTests = (_) => const Stream.empty();
       addTearDown(() {
         FarmStore.taskLogForTests = null;
@@ -911,8 +1113,12 @@ void main() {
       for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
-      expect([for (final t in missedTasks([p], now, const {})) t.day],
-          [yesterday]);
+      expect(
+        [
+          for (final t in missedTasks([p], now, const {})) t.day,
+        ],
+        [yesterday],
+      );
       expect(find.textContaining('Missed: '), findsOneWidget);
       expect(find.textContaining('Next: Tomorrow'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
@@ -926,8 +1132,7 @@ void main() {
       expect(plan.first.at, DateTime(2026, 12, 7, 8));
     });
 
-    test('20b. a missed task: no reminders for the tasks it stands in for',
-        () {
+    test('20b. a missed task: no reminders for the tasks it stands in for', () {
       final p = watered(Repeat.everyDay);
       final plan = planReminders([p], morning(nov(21)), en);
       // Nothing on the 22nd or 23rd; the next on the 24th.
@@ -951,7 +1156,7 @@ void main() {
     test('20e. a changed schedule: reminders from the change', () {
       final p = watered(Repeat.every2Weeks, last: done(nov(15))).edited(
         name: 'Mint',
-        irrigation: const CareSchedule(Repeat.everyWeek, at17),
+        irrigation: CareSchedule(Repeat.everyWeek, at17),
         fertilization: null,
         today: morning(nov(24)),
       );
@@ -962,10 +1167,13 @@ void main() {
 
     test('20f. a task ticked late in the logs plans from today', () {
       final p = watered(Repeat.every2Days);
-      final logs = logOf(TaskLog(
+      final logs = logOf(
+        TaskLog(
           date: TaskLog.dateKey(nov(20)),
           late: ['p_irrigation'],
-          lateOn: {'p_irrigation': '2026-11-22'}));
+          lateOn: {'p_irrigation': '2026-11-22'},
+        ),
+      );
       final plan = planReminders([p], morning(nov(22)), en, logs: logs);
       expect(plan.first.at, DateTime(2026, 11, 24, 8));
     });
@@ -986,15 +1194,25 @@ void main() {
       final p = watered(Repeat.everyDay, since: nov(31, 10));
       expect(water(p, morning(nov(3))).missed, nov(31, 10));
       expect(water(p, morning(nov(4))).dueToday, isTrue);
-      final yearEnd = watered(Repeat.every2Weeks,
-          since: DateTime(2026, 12, 1), last: done(DateTime(2026, 12, 25)));
-      expect(water(yearEnd, morning(DateTime(2026, 12, 26))).next,
-          DateTime(2027, 1, 8));
-      final monthly = watered(Repeat.everyMonth,
-          since: DateTime(2026, 1, 1), last: done(DateTime(2026, 1, 31)));
+      final yearEnd = watered(
+        Repeat.every2Weeks,
+        since: DateTime(2026, 12, 1),
+        last: done(DateTime(2026, 12, 25)),
+      );
+      expect(
+        water(yearEnd, morning(DateTime(2026, 12, 26))).next,
+        DateTime(2027, 1, 8),
+      );
+      final monthly = watered(
+        Repeat.everyMonth,
+        since: DateTime(2026, 1, 1),
+        last: done(DateTime(2026, 1, 31)),
+      );
       // A month is 30 days.
-      expect(water(monthly, morning(DateTime(2026, 2, 1))).next,
-          DateTime(2026, 3, 2));
+      expect(
+        water(monthly, morning(DateTime(2026, 2, 1))).next,
+        DateTime(2026, 3, 2),
+      );
     });
 
     test('22. days are calendar days: the time of day never shifts', () {
@@ -1006,8 +1224,10 @@ void main() {
         final at = state.at(state.next);
         expect(at.hour, 8);
         expect(at.minute, 0);
-        expect(DateTime(at.year, at.month, at.day),
-            DateTime(last.year, last.month, last.day + 14));
+        expect(
+          DateTime(at.year, at.month, at.day),
+          DateTime(last.year, last.month, last.day + 14),
+        );
         for (final day in state.taskDays(last, DateTime(2026, 12, 31))) {
           expect(state.at(day).hour, 8);
         }
@@ -1021,31 +1241,50 @@ void main() {
 
     test('23a. a missed day still breaks the streak', () {
       final p = watered(Repeat.everyDay, last: done(nov(20)));
-      expect(streakAfterMissedDays(stats(3, '2026-11-20'), [p], nov(22))
-          .currentStreak, 0);
+      expect(
+        streakAfterMissedDays(stats(3, '2026-11-20'), [
+          p,
+        ], nov(22)).currentStreak,
+        0,
+      );
     });
 
     test('23b. doing it late doesn\'t give the day back', () {
       // Done on time on the 20th, the 21st missed and done late on the 22nd.
-      final p = watered(Repeat.everyDay,
-          last: done(nov(22), nov(21)), previous: done(nov(20)));
+      final p = watered(
+        Repeat.everyDay,
+        last: done(nov(22), nov(21)),
+        previous: done(nov(20)),
+      );
       expect(dueTasks([p], nov(21)), hasLength(1));
       expect(dueTasks([p], nov(22)), isEmpty);
-      expect(streakAfterMissedDays(stats(3, '2026-11-20'), [p], nov(23))
-          .currentStreak, 0);
+      expect(
+        streakAfterMissedDays(stats(3, '2026-11-20'), [
+          p,
+        ], nov(23)).currentStreak,
+        0,
+      );
     });
 
     test('23c. a missed task that expires is never counted as done', () {
       final p = watered(Repeat.everyDay, last: done(nov(19)));
       expect(water(p, morning(nov(24))).anchor, done(nov(19)));
-      expect(streakAfterMissedDays(stats(3, '2026-11-19'), [p], nov(24))
-          .currentStreak, 0);
+      expect(
+        streakAfterMissedDays(stats(3, '2026-11-19'), [
+          p,
+        ], nov(24)).currentStreak,
+        0,
+      );
     });
 
     test('23d. while every task is done, the streak carries on', () {
       final p = watered(Repeat.every3Days, last: done(nov(20)));
-      expect(streakAfterMissedDays(stats(3, '2026-11-20'), [p], nov(23))
-          .currentStreak, 3);
+      expect(
+        streakAfterMissedDays(stats(3, '2026-11-20'), [
+          p,
+        ], nov(23)).currentStreak,
+        3,
+      );
       // Un-ticking today goes back to the day before with a task.
       expect(previousTaskDay([p], nov(23)), nov(20));
     });
@@ -1063,22 +1302,17 @@ void main() {
           ),
       ];
       int count(int day) => todays(plants, morning(nov(day))).length;
-      expect([for (var d = 20; d <= 26; d++) count(d)],
-          [3, 0, 0, 0, 2, 0, 1]);
+      expect([for (var d = 20; d <= 26; d++) count(d)], [3, 0, 0, 0, 2, 0, 1]);
       // Each counted task has its own id: no task counted twice.
       final ids = [for (final t in todays(plants, morning(nov(20)))) t.id];
       expect(ids.toSet(), hasLength(ids.length));
     });
   });
 
-  test('CareSchedule.firstDayFrom counts calendar days', () {
-    expect(CareSchedule.firstDayFrom(nov(1), 14, nov(16)), nov(29));
-    expect(CareSchedule.firstDayFrom(nov(1), 14, nov(15)), nov(15));
-    expect(CareSchedule.firstDayFrom(nov(10), 7, nov(1)), nov(10));
-  });
-
   test('activeStep: the missed days are always covered', () {
-    expect([for (final r in Repeat.values) activeStep(r.days)],
-        [4, 4, 6, 4, 5, 6, 7, 14, 21, 30]);
+    expect(
+      [for (final r in Repeat.values) activeStep(r.days)],
+      [4, 4, 6, 4, 5, 6, 7, 14, 21, 30],
+    );
   });
 }

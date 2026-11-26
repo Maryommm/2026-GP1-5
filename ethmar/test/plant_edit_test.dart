@@ -96,17 +96,23 @@ Map<String, dynamic> _copy(Map<String, dynamic> map) => {
 
 /// Watering every 14 days at 08:00 (last done Nov 8), fertilizing every
 /// 7 days at 08:00, both from Nov 1.
-SavedPlant savedPlant() => SavedPlant(FarmPlant(
-  id: 'p',
-  crop: cropCatalog.first,
-  name: 'Mint',
-  irrigation: CareSchedule(Repeat.every2Weeks, at8,
-      since: nov(1), lastDone: done(nov(8))),
-  fertilization: CareSchedule(Repeat.everyWeek, at8, since: nov(1)),
-  plantedAt: nov(1),
-  createdAt: nov(1),
-  updatedAt: nov(1),
-).toMap());
+SavedPlant savedPlant() => SavedPlant(
+  FarmPlant(
+    id: 'p',
+    crop: cropCatalog.first,
+    name: 'Mint',
+    irrigation: CareSchedule(
+      Repeat.every2Weeks,
+      at8,
+      since: nov(1),
+      lastDone: done(nov(8)),
+    ),
+    fertilization: CareSchedule(Repeat.everyWeek, at8, since: nov(1)),
+    plantedAt: nov(1),
+    createdAt: nov(1),
+    updatedAt: nov(1),
+  ).toMap(),
+);
 
 /// Device A's form, opened on [opened], with its changes.
 PlantEdit form(
@@ -118,9 +124,7 @@ PlantEdit form(
 }) => PlantEdit(
   opened: opened,
   name: name ?? opened.name,
-  irrigation: waterOff
-      ? null
-      : water ?? _asForm(opened.irrigation),
+  irrigation: waterOff ? null : water ?? _asForm(opened.irrigation),
   fertilization: fertilize ?? _asForm(opened.fertilization),
 );
 
@@ -139,8 +143,10 @@ void main() {
     final doc = savedPlant();
     final opened = doc.plant; // Device A opens Edit Plant.
     doc.tick(TaskType.watering, nov(22)); // Device B waters.
-    final fields = form(opened, name: 'My mint')
-        .updateOver(doc.data!, today, today);
+    final fields = form(
+      opened,
+      name: 'My mint',
+    ).updateOver(doc.data!, today, today);
     expect(fields.keys.toSet(), {'name', 'updatedAt'});
     doc.save(form(opened, name: 'My mint'), today);
     expect(doc.plant.name, 'My mint');
@@ -149,15 +155,15 @@ void main() {
     expect(water(doc.plant, morning).next, nov(6, 12));
   });
 
-  test('2. new watering time after it was done elsewhere: Dec 6 at 18:00',
-      () {
+  test('2. new watering time after it was done elsewhere: Dec 6 at 18:00', () {
     final doc = savedPlant();
     final opened = doc.plant;
     doc.tick(TaskType.watering, nov(22));
-    final edit = form(opened,
-        water: const CareSchedule(Repeat.every2Weeks, at18));
-    expect(edit.updateOver(doc.data!, today, today).keys.toSet(),
-        {'irrigation.time', 'updatedAt'});
+    final edit = form(opened, water: CareSchedule(Repeat.every2Weeks, at18));
+    expect(edit.updateOver(doc.data!, today, today).keys.toSet(), {
+      'irrigation.time',
+      'updatedAt',
+    });
     doc.save(edit, today);
     final s = doc.plant.irrigation!;
     expect(s.lastDone, done(nov(22)));
@@ -167,9 +173,9 @@ void main() {
     // The reminders follow the saved plant.
     final plan = planReminders([doc.plant], morning, S(AppStrings.en));
     expect(
-        plan.singleWhere((r) =>
-            r.id == reminderId('p', TaskType.watering, 0)).at,
-        DateTime(2026, 12, 6, 18));
+      plan.singleWhere((r) => r.id == reminderId('p', TaskType.watering, 0)).at,
+      DateTime(2026, 12, 6, 18),
+    );
   });
 
   test('3. new watering repeat after it was done elsewhere: counts from '
@@ -177,10 +183,12 @@ void main() {
     final doc = savedPlant();
     final opened = doc.plant;
     doc.tick(TaskType.watering, nov(22));
-    final edit = form(opened,
-        water: const CareSchedule(Repeat.everyWeek, at8));
-    expect(edit.updateOver(doc.data!, today, today).keys.toSet(),
-        {'irrigation.everyDays', 'irrigation.since', 'updatedAt'});
+    final edit = form(opened, water: CareSchedule(Repeat.everyWeek, at8));
+    expect(edit.updateOver(doc.data!, today, today).keys.toSet(), {
+      'irrigation.everyDays',
+      'irrigation.since',
+      'updatedAt',
+    });
     doc.save(edit, today);
     expect(doc.plant.irrigation!.lastDone, done(nov(22)));
     expect(doc.plant.irrigation!.repeat, Repeat.everyWeek);
@@ -193,8 +201,7 @@ void main() {
     final doc = savedPlant();
     final opened = doc.plant;
     doc.tick(TaskType.fertilizing, nov(22)); // Due Nov 22 (1 + 3 × 7).
-    final edit = form(opened,
-        water: const CareSchedule(Repeat.every3Days, at18));
+    final edit = form(opened, water: CareSchedule(Repeat.every3Days, at18));
     final fields = edit.updateOver(doc.data!, today, today);
     expect(fields.keys.where((k) => k.startsWith('fertilization')), isEmpty);
     doc.save(edit, today);
@@ -205,8 +212,10 @@ void main() {
     final doc2 = savedPlant();
     final opened2 = doc2.plant;
     doc2.tick(TaskType.watering, nov(22));
-    doc2.save(form(opened2,
-        fertilize: const CareSchedule(Repeat.every2Weeks, at18)), today);
+    doc2.save(
+      form(opened2, fertilize: CareSchedule(Repeat.every2Weeks, at18)),
+      today,
+    );
     expect(doc2.plant.irrigation!.lastDone, done(nov(22)));
     expect(doc2.plant.irrigation!.time, at8);
     expect(doc2.plant.fertilization!.repeat, Repeat.every2Weeks);
@@ -215,8 +224,7 @@ void main() {
   test('5. two phones edit different things: both changes stay', () {
     final doc = savedPlant();
     final onA = doc.plant, onB = doc.plant; // Both open Edit Plant.
-    doc.save(form(onB, water: const CareSchedule(Repeat.every2Weeks, at18)),
-        today);
+    doc.save(form(onB, water: CareSchedule(Repeat.every2Weeks, at18)), today);
     doc.save(form(onA, name: 'Garden mint'), today);
     expect(doc.plant.name, 'Garden mint');
     expect(doc.plant.irrigation!.time, at18);
@@ -224,10 +232,8 @@ void main() {
     // A new repeat here, a new time there, on the same schedule.
     final doc2 = savedPlant();
     final a = doc2.plant, b = doc2.plant;
-    doc2.save(form(b, water: const CareSchedule(Repeat.every2Weeks, at18)),
-        today);
-    doc2.save(form(a, water: const CareSchedule(Repeat.everyWeek, at8)),
-        today);
+    doc2.save(form(b, water: CareSchedule(Repeat.every2Weeks, at18)), today);
+    doc2.save(form(a, water: CareSchedule(Repeat.everyWeek, at8)), today);
     expect(doc2.plant.irrigation!.repeat, Repeat.everyWeek);
     expect(doc2.plant.irrigation!.time, at18);
 
@@ -235,8 +241,7 @@ void main() {
     final doc3 = savedPlant();
     final c = doc3.plant, d = doc3.plant;
     doc3.save(form(c, name: 'Renamed'), today);
-    doc3.save(form(d, fertilize: const CareSchedule(Repeat.everyDay, at8)),
-        today);
+    doc3.save(form(d, fertilize: CareSchedule(Repeat.everyDay, at8)), today);
     expect(doc3.plant.name, 'Renamed');
   });
 
@@ -249,10 +254,13 @@ void main() {
     doc.save(form(opened), today);
     expect(doc.version, before);
     // Renaming only never writes a schedule.
-    final fields =
-        form(opened, name: 'X').updateOver(doc.data!, today, today);
-    expect(fields.keys.where((k) => k.contains('irrigation') ||
-        k.contains('fertilization')), isEmpty);
+    final fields = form(opened, name: 'X').updateOver(doc.data!, today, today);
+    expect(
+      fields.keys.where(
+        (k) => k.contains('irrigation') || k.contains('fertilization'),
+      ),
+      isEmpty,
+    );
   });
 
   test('7. an undo elsewhere isn\'t lost to an edit', () {
@@ -261,8 +269,10 @@ void main() {
     doc.tick(TaskType.watering, nov(22));
     final ticked = doc.plant;
     doc.tick(TaskType.watering, nov(22), done: false); // Un-ticked.
-    doc.save(form(opened, name: 'X',
-        water: const CareSchedule(Repeat.every2Weeks, at18)), today);
+    doc.save(
+      form(opened, name: 'X', water: CareSchedule(Repeat.every2Weeks, at18)),
+      today,
+    );
     expect(doc.plant.irrigation!.lastDone, done(nov(8)));
     expect(water(doc.plant, morning).dueToday, isTrue);
     // Ticked again after the screen opened with the un-ticked copy.
@@ -273,32 +283,34 @@ void main() {
     doc2.save(form(stale, name: 'Y'), today);
     expect(doc2.plant.irrigation!.lastDone, done(nov(22)));
     // The start day an un-tick moves is kept by a later time edit.
-    final doc3 = SavedPlant(FarmPlant(
-      id: 'p',
-      crop: cropCatalog.first,
-      name: 'Mint',
-      irrigation: CareSchedule(Repeat.everyWeek, at8, since: nov(1)),
-      plantedAt: nov(1),
-      createdAt: nov(1),
-      updatedAt: nov(1),
-    ).toMap());
+    final doc3 = SavedPlant(
+      FarmPlant(
+        id: 'p',
+        crop: cropCatalog.first,
+        name: 'Mint',
+        irrigation: CareSchedule(Repeat.everyWeek, at8, since: nov(1)),
+        plantedAt: nov(1),
+        createdAt: nov(1),
+        updatedAt: nov(1),
+      ).toMap(),
+    );
     final opened3 = doc3.plant;
     doc3.tick(TaskType.watering, nov(22));
     doc3.tick(TaskType.watering, nov(22), done: false);
     expect(doc3.plant.irrigation!.since, nov(22));
-    doc3.save(form(opened3, water: const CareSchedule(Repeat.everyWeek, at18)),
-        today);
+    doc3.save(
+      form(opened3, water: CareSchedule(Repeat.everyWeek, at18)),
+      today,
+    );
     expect(doc3.plant.irrigation!.since, nov(22));
     expect(water(doc3.plant, morning).dueToday, isTrue);
   });
 
-  test('8. a tick between the read and the commit: run again, both kept',
-      () {
+  test('8. a tick between the read and the commit: run again, both kept', () {
     final doc = savedPlant();
     final opened = doc.plant;
     final attempts = doc.save(
-      form(opened, name: 'X',
-          water: const CareSchedule(Repeat.everyWeek, at18)),
+      form(opened, name: 'X', water: CareSchedule(Repeat.everyWeek, at18)),
       today,
       meanwhile: () => doc.tick(TaskType.watering, nov(22)),
     );
@@ -326,8 +338,7 @@ void main() {
     expect(doc.plant.fertilization!.lastDone, done(nov(22)));
     // Switched on again: a new schedule from today.
     final off = doc.plant;
-    doc.save(form(off, water: const CareSchedule(Repeat.every3Days, at8)),
-        today);
+    doc.save(form(off, water: CareSchedule(Repeat.every3Days, at8)), today);
     expect(doc.plant.irrigation!.since, today);
     expect(water(doc.plant, morning).dueToday, isTrue);
     expect(doc.plant.fertilization!.lastDone, done(nov(22)));
@@ -336,14 +347,25 @@ void main() {
   test('10. only existing fields are written', () {
     final doc = savedPlant();
     final opened = doc.plant;
-    doc.save(form(opened, name: 'X',
-        water: const CareSchedule(Repeat.everyWeek, at18),
-        fertilize: const CareSchedule(Repeat.every3Days, at8)), today);
+    doc.save(
+      form(
+        opened,
+        name: 'X',
+        water: CareSchedule(Repeat.everyWeek, at18),
+        fertilize: CareSchedule(Repeat.every3Days, at8),
+      ),
+      today,
+    );
     expect(doc.data!.keys.toSet(), opened.toMap().keys.toSet());
     for (final field in ['irrigation', 'fertilization']) {
       expect(
-        {'everyDays', 'time', 'since', 'lastDone', 'previousDone'}
-            .containsAll((doc.data![field] as Map).keys),
+        {
+          'everyDays',
+          'time',
+          'since',
+          'lastDone',
+          'previousDone',
+        }.containsAll((doc.data![field] as Map).keys),
         isTrue,
       );
     }

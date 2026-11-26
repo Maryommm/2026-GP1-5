@@ -30,18 +30,38 @@ void main() {
   });
 
   group('CareSchedule', () {
-    test('saves as everyDays and "HH:mm", and reads back the same', () {
-      const schedule = CareSchedule(
+    test('saves required since and reads back the same', () {
+      final schedule = CareSchedule(
         Repeat.every2Weeks,
-        TimeOfDay(hour: 7, minute: 5),
+        const TimeOfDay(hour: 7, minute: 5),
+        since: DateTime(2026, 11, 26),
       );
       final map = schedule.toMap();
-      expect(map, {'everyDays': 14, 'time': '07:05'});
+      expect(map, {'everyDays': 14, 'time': '07:05', 'since': '2026-11-26'});
 
       final back = CareSchedule.fromMap(map)!;
       expect(back.repeat, Repeat.every2Weeks);
       expect(back.time, const TimeOfDay(hour: 7, minute: 5));
+      expect(back.since, DateTime(2026, 11, 26));
     });
+
+    test(
+      'assigns since on creation and rejects it when missing in storage',
+      () {
+        final before = DateTime.now();
+        final schedule = CareSchedule(
+          Repeat.everyDay,
+          const TimeOfDay(hour: 7, minute: 0),
+        );
+        final after = DateTime.now();
+        expect(schedule.since, DateTime(before.year, before.month, before.day));
+        expect(schedule.since, DateTime(after.year, after.month, after.day));
+        expect(
+          () => CareSchedule.fromMap({'everyDays': 1, 'time': '07:00'}),
+          throwsFormatException,
+        );
+      },
+    );
 
     test('rejects a saved value that is not a map', () {
       expect(() => CareSchedule.fromMap('daily'), throwsFormatException);
@@ -70,15 +90,27 @@ void main() {
 
     test('rejects a repeat or time the app does not offer', () {
       expect(
-        () => CareSchedule.fromMap({'everyDays': 8, 'time': '07:00'}),
+        () => CareSchedule.fromMap({
+          'everyDays': 8,
+          'time': '07:00',
+          'since': '2026-11-26',
+        }),
         throwsFormatException,
       );
       expect(
-        () => CareSchedule.fromMap({'everyDays': 1, 'time': '7:00'}),
+        () => CareSchedule.fromMap({
+          'everyDays': 1,
+          'time': '7:00',
+          'since': '2026-11-26',
+        }),
         throwsFormatException,
       );
       expect(
-        () => CareSchedule.fromMap({'everyDays': 1, 'time': '24:00'}),
+        () => CareSchedule.fromMap({
+          'everyDays': 1,
+          'time': '24:00',
+          'since': '2026-11-26',
+        }),
         throwsFormatException,
       );
     });
@@ -93,19 +125,47 @@ void main() {
       expect(back.id, entry.id);
       expect(back.date, entry.date);
       expect(back.notes, entry.notes);
-      expect(back.photo!.toMap(), entry.photo!.toMap());
+      expect(back.photo.toMap(), entry.photo.toMap());
     });
 
-    test('round-trips without notes or a photo', () {
-      final entry = JourneyEntry(id: 'e1', date: DateTime(2026, 10, 1, 8));
+    test('round-trips without notes and rejects a missing photo', () {
+      const photo = JourneyPhoto(
+        publicId: 'ethmar/plant-journey/u1/p1/e1',
+        version: 1,
+        format: 'webp',
+        width: 1080,
+        height: 1080,
+        bytes: 154000,
+      );
+      final entry = JourneyEntry(
+        id: 'e1',
+        date: DateTime(2026, 10, 1, 8),
+        photo: photo,
+      );
       final map = entry.toMap();
       expect(map['notes'], isNull);
-      expect(map['photo'], isNull);
 
-      final back = JourneyEntry.fromMap('e1', map);
+      final back = JourneyEntry.fromMap(
+        'e1',
+        map,
+        expectedPhotoPublicId: photo.publicId,
+      );
       expect(back.date, entry.date);
       expect(back.notes, isNull);
-      expect(back.photo, isNull);
+      expect(back.photo.toMap(), photo.toMap());
+
+      expect(
+        () => JourneyEntry.fromMap('e1', {...map, 'photo': null}),
+        throwsFormatException,
+      );
+      expect(
+        () => JourneyEntry.fromMap(
+          'e1',
+          map,
+          expectedPhotoPublicId: 'ethmar/plant-journey/u1/p1/other',
+        ),
+        throwsFormatException,
+      );
     });
   });
 
@@ -129,8 +189,10 @@ void main() {
         back.edited(name: 'M', irrigation: null, fertilization: null).category,
         CropCategory.herb,
       );
-      expect(back.placed(id: 'u1', land: 1, square: 3).category,
-          CropCategory.herb);
+      expect(
+        back.placed(id: 'u1', land: 1, square: 3).category,
+        CropCategory.herb,
+      );
     });
 
     test('an unknown plant without a valid saved category is "other"', () {
@@ -198,10 +260,7 @@ void main() {
       final ids = cropCatalog.map((c) => '${c.id}.png').toSet();
       expect(ids.length, cropCatalog.length, reason: 'a crop id is repeated');
       expect(files.toSet().difference(ids), isEmpty);
-      expect(
-        ids.difference(files.toSet()),
-        everyElement('$unknownCropId.png'),
-      );
+      expect(ids.difference(files.toSet()), everyElement('$unknownCropId.png'));
     });
 
     test('crop ids and names fit what Firestore allows', () {
@@ -243,7 +302,12 @@ void main() {
       expect(edited.updatedAt.isAfter(plant.updatedAt), isTrue);
       expect(edited.irrigation, isNull);
 
-      final grown = plant.withJourneyEntry(JourneyEntry(date: DateTime(2026, 10, 20)));
+      final grown = plant.withJourneyEntry(
+        JourneyEntry(
+          date: DateTime(2026, 10, 20),
+          photo: plant.journey.first.photo,
+        ),
+      );
       expect(grown.id, plant.id);
       expect(grown.updatedAt, plant.updatedAt);
       expect(grown.journey, hasLength(plant.journey.length + 1));

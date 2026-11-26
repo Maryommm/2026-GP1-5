@@ -12,16 +12,18 @@
 ///   - irrigation     map|null   {everyDays: int, time: "HH:mm",
 ///                               since: "yyyy-mm-dd",
 ///                               lastDone: {date, due},
-///                               previousDone: {date, due}}
-///                               null when turned off.
-///                               since: the start day, no task is due
-///                               before it.
-///                               lastDone: the last time the task was
-///                               done. date is the day it was actually
-///                               done, due is the day it was for. The next
-///                               task is due everyDays after date.
-///                               previousDone: the time before lastDone,
-///                               so un-ticking can bring it back.
+///                               previousDone: {date, due}}; null when
+///                               switched off. since is the required
+///                               start day: no task is due before it, and
+///                               with nothing done since, the first one is
+///                               due that day (see savedOver and
+///                               markedUndone). lastDone
+///                               (optional) is the latest time the task
+///                               was done: date is the day it was really
+///                               done, due the day it was for. The next
+///                               task is due everyDays after that date.
+///                               previousDone is the one before, so
+///                               un-ticking lastDone can bring it back
 ///   - fertilization  map|null   same as irrigation
 ///   - plantedAt      Timestamp
 ///   - createdAt      Timestamp
@@ -141,30 +143,29 @@ class CareDone {
 
 /// A reminder to water or fertilize: how often, and at what time.
 ///
-/// Saved as `{everyDays: 7, time: "08:00"}` (24-hour time), plus [since],
-/// [lastDone] and [previousDone] when known.
+/// Saved as `{everyDays: 7, time: "08:00", since: "yyyy-mm-dd"}`
+/// (24-hour time), with [lastDone] and [previousDone] when known.
 ///
 /// The due dates are calculated in care_task.dart (see careState): the
 /// first task is on [since], then every [Repeat.days] days after the last
 /// time it was done ([lastDone]).
 class CareSchedule {
-  const CareSchedule(
+  CareSchedule(
     this.repeat,
     this.time, {
-    this.since,
+    DateTime? since,
     this.lastDone,
     this.previousDone,
-  });
+  }) : since = _day(since ?? DateTime.now());
   final Repeat repeat;
   final TimeOfDay time;
 
-  /// The schedule's start day (without time). No task is due before it, so a
-  /// schedule added today has no missed tasks from yesterday. It is set when
-  /// the schedule is added, when its repeat changes, and when an un-tick
-  /// leaves no earlier done day (see [savedOver] and [markedUndone]).
-  /// Old schedules don't have it; they count from the planting day instead
-  /// (see careState).
-  final DateTime? since;
+  /// The schedule's start day (no time): no task is due before it, so a
+  /// schedule added today has no missed tasks from yesterday. With nothing
+  /// done since, its first task is due that day. Set when the schedule is
+  /// added, when its repeat changes, and when an un-tick leaves no earlier
+  /// done day (see [savedOver] and [markedUndone]).
+  final DateTime since;
 
   /// The last time this task was done, on time or late. The next task is due
   /// [Repeat.days] days after it. Null until it is done for the first time.
@@ -174,32 +175,29 @@ class CareSchedule {
   /// bring it back.
   final CareDone? previousDone;
 
-  /// Returns this schedule as it should be saved in place of [previous] on
-  /// [today]:
-  /// - New schedule (just turned on): the first task is due [today].
-  /// - Same repeat (only the time changed, or nothing): kept as it was, so
-  ///   the tasks stay on the same days and only the time moves.
-  /// - New repeat, done before: the next task is due [Repeat.days] days
-  ///   after it was last done, or [today] if that day has already passed.
-  /// - New repeat, never done: starts again on [today].
-  ///
-  /// Old schedules saved without a start day repeat from [plantedAt],
-  /// starting on [lastSaved]. If the repeat doesn't change, that first day
-  /// is saved now as the start day so this save doesn't move the tasks.
-  CareSchedule savedOver(
-    CareSchedule? previous,
-    DateTime today, {
-    required DateTime lastSaved,
-    required DateTime plantedAt,
-  }) {
+  /// Same repeat and time; [since] and the done days aren't compared.
+  bool sameAs(CareSchedule? other) =>
+      other != null && other.repeat == repeat && other.time == time;
+
+  /// This schedule as the user saves it in place of [previous] on [today]:
+  /// - New (switched on): its first task is due [today], as for a plant
+  ///   added today.
+  /// - Same repeat (only the time changed, or nothing): kept as it was,
+  ///   with its start day and done days, so its tasks stay on the same days
+  ///   (a missed task stays missed) and only move to the new time.
+  /// - New repeat, done before: the next task is due [Repeat.days] (the new
+  ///   repeat) days after the day it was last done ([lastDone] is kept), or
+  ///   [today] if that day has already passed. Nothing is due before
+  ///   [today] ([since]), so an older missed task is replaced by it.
+  /// - New repeat, never done: it starts again on [today], as a new one.
+  CareSchedule savedOver(CareSchedule? previous, DateTime today) {
     final day = _day(today);
     if (previous == null) return CareSchedule(repeat, time, since: day);
     if (repeat == previous.repeat) {
       return CareSchedule(
         repeat,
         time,
-        since:
-            previous.since ?? firstDayFrom(plantedAt, repeat.days, lastSaved),
+        since: previous.since,
         lastDone: previous.lastDone,
         previousDone: previous.previousDone,
       );
@@ -213,20 +211,7 @@ class CareSchedule {
     );
   }
 
-  /// The first day of [start], [start] + [every], [start] + 2 × [every]...
-  /// that is on or after [from]. Uses calendar days, so daylight saving
-  /// can't shift it.
-  static DateTime firstDayFrom(DateTime start, int every, DateTime from) {
-    final s = _day(start), f = _day(from);
-    final gap = DateTime.utc(f.year, f.month, f.day)
-        .difference(DateTime.utc(s.year, s.month, s.day))
-        .inDays;
-    if (gap <= 0) return s;
-    final steps = (gap + every - 1) ~/ every;
-    return DateTime(s.year, s.month, s.day + steps * every);
-  }
-
-  /// The same schedule with different done days.
+  /// The same schedule with other done days.
   CareSchedule withDone({CareDone? last, CareDone? previous}) => CareSchedule(
     repeat,
     time,
@@ -260,11 +245,10 @@ class CareSchedule {
     if (lastDone?.due == day) {
       final back = previousDone;
       if (back != null) return withDone(last: back);
-      final start = since;
       return CareSchedule(
         repeat,
         time,
-        since: start != null && start.isAfter(day) ? start : day,
+        since: since.isAfter(day) ? since : day,
       );
     }
     if (previousDone?.due == day) return withDone(last: lastDone);
@@ -276,7 +260,7 @@ class CareSchedule {
   Map<String, Object> toMap() => {
     'everyDays': repeat.days,
     'time': '${_twoDigits(time.hour)}:${_twoDigits(time.minute)}',
-    if (since case final day?) 'since': CareDone.dateKey(day),
+    'since': CareDone.dateKey(since),
     if (lastDone case final done?) 'lastDone': done.toMap(),
     if (previousDone case final done?) 'previousDone': done.toMap(),
   };
@@ -289,13 +273,13 @@ class CareSchedule {
     final everyDays = data['everyDays'];
     final time = data['time'];
     final since = data['since'];
-    if (everyDays is! int || time is! String || (since != null && since is! String)) {
+    if (everyDays is! int || time is! String || since is! String) {
       throw FormatException('Invalid care schedule: $data');
     }
     return CareSchedule(
       Repeat.fromDays(everyDays),
       _parseTime(time),
-      since: since == null ? null : _parseDate(since as String),
+      since: _parseDate(since),
       lastDone: CareDone.fromMap(data['lastDone']),
       previousDone: CareDone.fromMap(data['previousDone']),
     );
@@ -369,10 +353,8 @@ class JourneyPhoto {
     'bytes': bytes,
   };
 
-  /// Returns null when the entry has no photo.
-  /// Throws a [FormatException] if the saved values are not valid.
-  static JourneyPhoto? fromMap(Object? data) {
-    if (data == null) return null;
+  /// Throws a [FormatException] if the saved values aren't valid.
+  static JourneyPhoto fromMap(Object? data, {String? expectedPublicId}) {
     if (data is! Map) throw FormatException('Invalid journey photo: $data');
     final publicId = data['publicId'];
     final version = data['version'];
@@ -380,12 +362,24 @@ class JourneyPhoto {
     final width = data['width'];
     final height = data['height'];
     final bytes = data['bytes'];
-    if (publicId is! String ||
+    const fields = {'publicId', 'version', 'format', 'width', 'height', 'bytes'};
+    if (data.length != fields.length ||
+        !data.keys.every(fields.contains) ||
+        publicId is! String ||
+        !publicId.startsWith('ethmar/plant-journey/') ||
+        (expectedPublicId != null && publicId != expectedPublicId) ||
         version is! int ||
-        format is! String ||
+        version <= 0 ||
+        format != 'webp' ||
         width is! int ||
+        width <= 0 ||
+        width > 4096 ||
         height is! int ||
-        bytes is! int) {
+        height <= 0 ||
+        height > 4096 ||
+        bytes is! int ||
+        bytes <= 0 ||
+        bytes > 5 * 1024 * 1024) {
       throw FormatException('Invalid journey photo: $data');
     }
     return JourneyPhoto(
@@ -402,16 +396,20 @@ class JourneyPhoto {
 /// One step on a plant's journey timeline: a photo, optional notes, and
 /// the date it was added.
 class JourneyEntry {
-  const JourneyEntry({required this.date, this.id, this.notes, this.photo});
+  const JourneyEntry({
+    required this.date,
+    required this.photo,
+    this.id,
+    this.notes,
+  });
 
   /// The Firestore document id. Null until the entry is saved.
   final String? id;
   final DateTime date;
   final String? notes;
 
-  /// Every saved entry has a photo; it is null only in sample data and old
-  /// entries.
-  final JourneyPhoto? photo;
+  /// The required Cloudinary metadata for this persisted entry.
+  final JourneyPhoto photo;
 
   /// Which day of the plant's life the photo was taken (0 = planting day).
   int dayOf(DateTime plantedAt) {
@@ -430,12 +428,16 @@ class JourneyEntry {
   Map<String, Object?> toMap() => {
     'date': Timestamp.fromDate(date),
     'notes': notes,
-    'photo': photo?.toMap(),
+    'photo': photo.toMap(),
   };
 
-  /// Creates an entry from document [id] and its fields.
-  /// Throws a [FormatException] if the saved values are not valid.
-  factory JourneyEntry.fromMap(String id, Map<String, dynamic> data) {
+  /// Builds an entry from document [id] and its fields.
+  /// Throws a [FormatException] if the saved values aren't valid.
+  factory JourneyEntry.fromMap(
+    String id,
+    Map<String, dynamic> data, {
+    String? expectedPhotoPublicId,
+  }) {
     final date = data['date'];
     final notes = data['notes'];
     if (date is! Timestamp || (notes != null && notes is! String)) {
@@ -445,7 +447,10 @@ class JourneyEntry {
       id: id,
       date: date.toDate(),
       notes: notes as String?,
-      photo: JourneyPhoto.fromMap(data['photo']),
+      photo: JourneyPhoto.fromMap(
+        data['photo'],
+        expectedPublicId: expectedPhotoPublicId,
+      ),
     );
   }
 }
@@ -530,17 +535,10 @@ class FarmPlant {
     name: name,
     land: land,
     square: square,
-    irrigation: irrigation?.savedOver(
-      this.irrigation,
-      today ?? DateTime.now(),
-      lastSaved: updatedAt,
-      plantedAt: plantedAt,
-    ),
+    irrigation: irrigation?.savedOver(this.irrigation, today ?? DateTime.now()),
     fertilization: fertilization?.savedOver(
       this.fertilization,
       today ?? DateTime.now(),
-      lastSaved: updatedAt,
-      plantedAt: plantedAt,
     ),
     plantedAt: plantedAt,
     createdAt: createdAt,

@@ -66,7 +66,7 @@ class PlantService {
     watch: (uid) => _journey(
       uid,
       plantId,
-    ).snapshots().map((snapshot) => _readJourney(snapshot.docs)),
+    ).snapshots().map((snapshot) => _readJourney(uid, plantId, snapshot.docs)),
   );
 
   /// A new, unused id for a journey entry of [plantId]. The photo is uploaded
@@ -97,6 +97,8 @@ class PlantService {
 
   /// Builds the entries, newest first. A broken document is skipped.
   List<JourneyEntry> _readJourney(
+    String uid,
+    String plantId,
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) {
     final entries = <JourneyEntry>[];
@@ -108,7 +110,17 @@ class PlantService {
         data = {...data, 'date': Timestamp.now()};
       }
       try {
-        entries.add(JourneyEntry.fromMap(doc.id, data));
+        entries.add(
+          JourneyEntry.fromMap(
+            doc.id,
+            data,
+            expectedPhotoPublicId: JourneyPhoto.publicIdFor(
+              uid,
+              plantId,
+              doc.id,
+            ),
+          ),
+        );
       } on FormatException catch (e) {
         debugPrint('Skipping journey entry ${doc.id}: $e');
       }
@@ -186,10 +198,14 @@ class PlantService {
   /// whether today is finished (see [streakAfterScheduleChange]). [plants]
   /// are the user's plants.
   ///
-  /// Returns the streak that was lost because a day was missed (0 if none),
-  /// so Home can tell the user. Throws an [ArgumentError] if the plant was
-  /// never saved, and a [StateError] if it no longer exists.
-  Future<int> editPlant(PlantEdit edit, {required List<FarmPlant> plants}) async {
+  /// Returns the streak that was lost because a day was missed (0 if
+  /// none), for Home to tell the user. Throws an [ArgumentError] if the
+  /// plant was never saved (no id), and a [StateError] if it no longer
+  /// exists.
+  Future<int> editPlant(
+    PlantEdit edit, {
+    required List<FarmPlant> plants,
+  }) async {
     final id = edit.opened.id;
     if (id == null) {
       throw ArgumentError.value(edit, 'edit', 'The plant has no id.');
@@ -207,7 +223,10 @@ class PlantService {
       final update = edit.updateOver(data, now, now);
       if (update.isEmpty) return 0;
 
-      final others = [for (final p in plants) if (p.id != id) p];
+      final others = [
+        for (final p in plants)
+          if (p.id != id) p,
+      ];
       final beforePlants = [...others, FarmPlant.fromMap(id, data)];
       final afterPlants = [
         ...others,
@@ -320,7 +339,10 @@ class PlantService {
       } on FormatException {
         return 0; // Unreadable, so it never showed tasks on the screens.
       }
-      final remaining = [for (final p in others) if (p.id != plantId) p];
+      final remaining = [
+        for (final p in others)
+          if (p.id != plantId) p,
+      ];
       final beforePlants = [...remaining, deleted];
       final before = _readStats(statsSnapshot);
       final after = streakAfterPlantDeleted(
@@ -405,10 +427,7 @@ class PlantService {
       '$field.lastDone': changed.lastDone?.toMap() ?? FieldValue.delete(),
       '$field.previousDone':
           changed.previousDone?.toMap() ?? FieldValue.delete(),
-      if (sinceChanged)
-        '$field.since': changed.since == null
-            ? FieldValue.delete()
-            : CareDone.dateKey(changed.since!),
+      if (sinceChanged) '$field.since': CareDone.dateKey(changed.since),
     };
   }
 
@@ -590,8 +609,9 @@ class PlantService {
     return inFarmOrder(plants);
   }
 
-  /// Runs [watch] for the signed-in user and starts again when the user
-  /// changes, so one user never sees another user's data.
+  /// Runs [watch] for whoever is signed in, starting over when the user's ID
+  /// token changes too. Email verification refreshes that token, so a farm
+  /// listener initially rejected for an unverified account is retried.
   Stream<T> _forEachUser<T>({
     required T signedOut,
     required Stream<T> Function(String uid) watch,
@@ -602,15 +622,14 @@ class PlantService {
 
     controller = StreamController<T>(
       onListen: () {
-        authChanges = _auth.authStateChanges().listen((user) {
+        authChanges = _auth.idTokenChanges().listen((user) {
           userData?.cancel();
           userData = null;
           if (user == null) {
             controller.add(signedOut);
           } else {
-            userData = watch(
-              user.uid,
-            ).listen(controller.add, onError: controller.addError);
+            userData = watch(user.uid)
+                .listen(controller.add, onError: controller.addError);
           }
         }, onError: controller.addError);
       },

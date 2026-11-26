@@ -9,19 +9,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// A plant watered every day at [hour]:[minute].
+/// A plant watered every day at [hour]:[minute]. Its schedule starts today,
+/// so it always has a task today, whatever day the tests run.
 FarmPlant _plant(String id, String name, int hour, int minute) => FarmPlant(
   id: id,
   crop: cropCatalog.first,
   name: name,
-  irrigation: CareSchedule(Repeat.everyDay, TimeOfDay(hour: hour, minute: minute)),
+  irrigation: CareSchedule(
+    Repeat.everyDay,
+    TimeOfDay(hour: hour, minute: minute),
+    since: DateUtils.dateOnly(DateTime.now()),
+  ),
   plantedAt: DateTime(2026, 1, 1),
 );
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
-  Future<void> showCard(WidgetTester tester, {List<String> done = const []}) async {
+  Future<void> showCard(
+    WidgetTester tester, {
+    List<String> done = const [],
+  }) async {
     FarmStore.taskLogForTests = (date) =>
         Stream.value(TaskLog(date: date, completed: done));
     await tester.pumpWidget(
@@ -167,10 +175,18 @@ void main() {
             .replaceAll('_icon.png', ''),
     };
 
-    expect(shown(), {'home_filled', 'your_farm_outline', 'ask_thamoor_outline'});
+    expect(shown(), {
+      'home_filled',
+      'your_farm_outline',
+      'ask_thamoor_outline',
+    });
     await tester.tap(find.text('Ask Thamoor'));
     await tester.pump();
-    expect(shown(), {'home_outline', 'your_farm_outline', 'ask_thamoor_filled'});
+    expect(shown(), {
+      'home_outline',
+      'your_farm_outline',
+      'ask_thamoor_filled',
+    });
 
     // Nothing coloured behind any tab.
     final bar = find.byType(LabeledNavBar);

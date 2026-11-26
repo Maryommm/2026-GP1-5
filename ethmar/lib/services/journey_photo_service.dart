@@ -113,15 +113,16 @@ class JourneyPhotoService {
       );
     }
     try {
-      final photo = JourneyPhoto.fromMap(saved)!;
-      if (photo.version <= 0 ||
-          photo.width <= 0 ||
-          photo.height <= 0 ||
-          photo.bytes <= 0 ||
-          photo.bytes > maxBytes) {
-        throw const FormatException('Bad photo size.');
-      }
-      return photo;
+      // The Worker also returns secureUrl for immediate display. Keep only
+      // the exact metadata fields that Firestore accepts and persists.
+      return JourneyPhoto.fromMap({
+        'publicId': saved['publicId'],
+        'version': saved['version'],
+        'format': saved['format'],
+        'width': saved['width'],
+        'height': saved['height'],
+        'bytes': saved['bytes'],
+      }, expectedPublicId: expectedId);
     } on FormatException {
       throw JourneyPhotoException(
         JourneyPhotoError.server,
