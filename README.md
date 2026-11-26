@@ -44,9 +44,6 @@ flutter run
 
 - Start an Android emulator first, or connect a phone with USB debugging.
   `flutter devices` lists what is available.
-- The Firebase configuration is already included
-  (`android/app/google-services.json` and `lib/firebase_options.dart`), so the app
-  connects to the project's Firebase without any extra setup.
 - The device needs internet: sign-in, the recommendations and the fonts are
   loaded online.
 - Recommendations use the device's location. On the emulator, set a location
@@ -81,7 +78,7 @@ pip install -r requirements.txt -r recommender/requirements.txt
 | --- | --- | --- |
 | 1 | `python recommender/scripts/clean_dataset.py` | Reads `data/raw/ethmar_master_dataset.csv`, merges duplicate species, excludes plants that are not home-growable crops, and writes `data/processed/ethmar_recommendable.csv` and `ethmar_reference.csv` |
 | 2 | `python recommender/scripts/load_check.py` | Validates the cleaned table. It ends with exit code 1 if it finds a blocking problem |
-| 3 | `python recommender/scripts/scoring.py 24.71 46.67 11` | Prints the top 10 crops for a latitude, longitude and month (the example is Riyadh in November). It needs internet for the climate services |
+| 3 | `python recommender/scripts/scoring.py 24.71 46.67 11` | Prints the top 10 crops for a latitude, longitude and month. It needs internet for the climate services |
 
 The first run of step 3 for a place can take up to a minute, because it
 downloads 20 years of NASA POWER climate data. The result is saved in
