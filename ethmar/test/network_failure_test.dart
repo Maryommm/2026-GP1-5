@@ -59,8 +59,10 @@ class Server {
   final tried = <String>[];
 
   /// Today's log: a was ticked today.
-  late final TaskLog log =
-      TaskLog(date: TaskLog.dateKey(now), completed: ['a_irrigation']);
+  late final TaskLog log = TaskLog(
+    date: TaskLog.dateKey(now),
+    completed: ['a_irrigation'],
+  );
 
   /// [deleted] as FarmStore passes it: the ids already deleted.
   Future<void> delete(String id, Set<String> deleted) async {
@@ -72,9 +74,17 @@ class Server {
       for (final p in plants)
         if (p.id != id && !deleted.contains(p.id)) p,
     ];
-    stats = streakAfterPlantDeleted(stats,
-        before: [...others, gone], after: others, now: now, todayLog: log);
-    plants = [for (final p in plants) if (p.id != id) p];
+    stats = streakAfterPlantDeleted(
+      stats,
+      before: [...others, gone],
+      after: others,
+      now: now,
+      todayLog: log,
+    );
+    plants = [
+      for (final p in plants)
+        if (p.id != id) p,
+    ];
   }
 
   List<DailyTask> get today => tasksForDay(plants, now, {log.date: log}, now);
@@ -82,17 +92,48 @@ class Server {
 
 /// Nov 22. a: done today. b, c: due today, not done. z: nothing today.
 /// A 5-day streak up to Nov 21.
-Server server({Set<String> failing = const {}}) => Server([
-  plant('a', water: CareSchedule(Repeat.everyDay, at8,
-      since: nov(1), lastDone: done(nov(22)))),
-  plant('b', water: CareSchedule(Repeat.everyDay, at8,
-      since: nov(1), lastDone: done(nov(21)))),
-  plant('c', water: CareSchedule(Repeat.everyDay, at8,
-      since: nov(1), lastDone: done(nov(21)))),
-  plant('z', water: CareSchedule(Repeat.every2Weeks, at8,
-      since: nov(1), lastDone: done(nov(20)))),
-], const FarmStats(currentStreak: 5, lastCompletedDate: '2026-11-21', lands: 1),
-    failing: failing);
+Server server({Set<String> failing = const {}}) => Server(
+  [
+    plant(
+      'a',
+      water: CareSchedule(
+        Repeat.everyDay,
+        at8,
+        since: nov(1),
+        lastDone: done(nov(22)),
+      ),
+    ),
+    plant(
+      'b',
+      water: CareSchedule(
+        Repeat.everyDay,
+        at8,
+        since: nov(1),
+        lastDone: done(nov(21)),
+      ),
+    ),
+    plant(
+      'c',
+      water: CareSchedule(
+        Repeat.everyDay,
+        at8,
+        since: nov(1),
+        lastDone: done(nov(21)),
+      ),
+    ),
+    plant(
+      'z',
+      water: CareSchedule(
+        Repeat.every2Weeks,
+        at8,
+        since: nov(1),
+        lastDone: done(nov(20)),
+      ),
+    ),
+  ],
+  const FarmStats(currentStreak: 5, lastCompletedDate: '2026-11-21', lands: 1),
+  failing: failing,
+);
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -101,8 +142,12 @@ void main() {
     expect(isNetworkError(offline()), isTrue);
     expect(isNetworkError(timedOut()), isTrue);
     expect(isNetworkError(TimeoutException('slow')), isTrue);
-    expect(isNetworkError(FirebaseException(
-        plugin: 'cloud_firestore', code: 'permission-denied')), isFalse);
+    expect(
+      isNetworkError(
+        FirebaseException(plugin: 'cloud_firestore', code: 'permission-denied'),
+      ),
+      isFalse,
+    );
     expect(isNetworkError(StateError('gone')), isFalse);
   });
 
@@ -119,7 +164,10 @@ void main() {
     });
 
     test('B2. one fails: no streak, it and its task stay', () async {
-      for (final order in [['b', 'c'], ['c', 'b']]) {
+      for (final order in [
+        ['b', 'c'],
+        ['c', 'b'],
+      ]) {
         final s = server(failing: {'b'});
         final failed = await deletePlantsInTurn(order, s.delete);
         expect(failed.keys, ['b']);
@@ -130,12 +178,15 @@ void main() {
       }
     });
 
-    test('B3. the failed one had nothing to do: today still completes', () async {
-      final s = server(failing: {'z'});
-      final failed = await deletePlantsInTurn(['z', 'b', 'c'], s.delete);
-      expect(failed.keys, ['z']);
-      expect(s.stats.currentStreak, 6);
-    });
+    test(
+      'B3. the failed one had nothing to do: today still completes',
+      () async {
+        final s = server(failing: {'z'});
+        final failed = await deletePlantsInTurn(['z', 'b', 'c'], s.delete);
+        expect(failed.keys, ['z']);
+        expect(s.stats.currentStreak, 6);
+      },
+    );
 
     test('B4. every task gone: no streak for an empty day', () async {
       final s = server();
@@ -144,24 +195,26 @@ void main() {
       expect(s.stats.currentStreak, 5);
     });
 
-    test('B5. a done plant deleted too: its task never counts, +1 once',
-        () async {
-      // a's task was done; deleting it leaves b and c to do: nothing.
-      final s = server();
-      await deletePlantsInTurn(['a'], s.delete);
-      expect(s.stats.currentStreak, 5);
-      // Deleting b and c too leaves no task at all: an empty day isn't
-      // completed, so a's done task never earns it.
-      await deletePlantsInTurn(['b', 'c'], s.delete);
-      expect(s.today, isEmpty);
-      expect(s.stats.currentStreak, 5);
-      // With a kept: deleting b and c completes today, once.
-      final t = server();
-      await deletePlantsInTurn(['b', 'c'], t.delete);
-      expect(t.stats.currentStreak, 6);
-      await deletePlantsInTurn(['z'], t.delete);
-      expect(t.stats.currentStreak, 6);
-    });
+    test(
+      'B5. a done plant deleted too: its task never counts, +1 once',
+      () async {
+        // a's task was done; deleting it leaves b and c to do: nothing.
+        final s = server();
+        await deletePlantsInTurn(['a'], s.delete);
+        expect(s.stats.currentStreak, 5);
+        // Deleting b and c too leaves no task at all: an empty day isn't
+        // completed, so a's done task never earns it.
+        await deletePlantsInTurn(['b', 'c'], s.delete);
+        expect(s.today, isEmpty);
+        expect(s.stats.currentStreak, 5);
+        // With a kept: deleting b and c completes today, once.
+        final t = server();
+        await deletePlantsInTurn(['b', 'c'], t.delete);
+        expect(t.stats.currentStreak, 6);
+        await deletePlantsInTurn(['z'], t.delete);
+        expect(t.stats.currentStreak, 6);
+      },
+    );
 
     test('B6. each plant is tried once, even if asked twice', () async {
       final s = server(failing: {'b'});
@@ -203,7 +256,10 @@ void main() {
         calls++;
         if (calls == 1) throw offline();
       };
-      await expectLater(FarmStore.deletePlant('p'), throwsA(isA<FirebaseException>()));
+      await expectLater(
+        FarmStore.deletePlant('p'),
+        throwsA(isA<FirebaseException>()),
+      );
       await FarmStore.deletePlant('p');
       expect(calls, 2);
     });
@@ -211,25 +267,50 @@ void main() {
 
   test('a retried edit or tick writes nothing twice', () {
     // An edit that did reach the server: saving it again changes nothing.
-    final opened = plant('p', water: CareSchedule(Repeat.everyWeek, at8,
-        since: nov(1), lastDone: done(nov(20))));
+    final opened = plant(
+      'p',
+      water: CareSchedule(
+        Repeat.everyWeek,
+        at8,
+        since: nov(1),
+        lastDone: done(nov(20)),
+      ),
+    );
     final edit = PlantEdit(
       opened: opened,
       name: 'New name',
-      irrigation: const CareSchedule(Repeat.every3Days, TimeOfDay(hour: 18, minute: 0)),
+      irrigation: CareSchedule(
+        Repeat.every3Days,
+        TimeOfDay(hour: 18, minute: 0),
+      ),
       fertilization: null,
     );
     final data = opened.toMap();
-    final saved = PlantEdit.applied(data, edit.updateOver(data, nov(22), nov(22)));
+    final saved = PlantEdit.applied(
+      data,
+      edit.updateOver(data, nov(22), nov(22)),
+    );
     expect(edit.updateOver(saved, nov(22), nov(22)), isEmpty);
     // A tick saved twice: the same done day, the same streak.
     final s = opened.irrigation!.markedDone(done(nov(22)));
     expect(s.markedDone(done(nov(22))).previousDone, s.previousDone);
-    const stats = FarmStats(currentStreak: 3, lastCompletedDate: '2026-11-21', lands: 1);
-    final once = streakAfterToggle(stats,
-        today: nov(22), allDone: true, previousTaskDay: nov(21));
-    final twice = streakAfterToggle(once,
-        today: nov(22), allDone: true, previousTaskDay: nov(21));
+    const stats = FarmStats(
+      currentStreak: 3,
+      lastCompletedDate: '2026-11-21',
+      lands: 1,
+    );
+    final once = streakAfterToggle(
+      stats,
+      today: nov(22),
+      allDone: true,
+      previousTaskDay: nov(21),
+    );
+    final twice = streakAfterToggle(
+      once,
+      today: nov(22),
+      allDone: true,
+      previousTaskDay: nov(21),
+    );
     expect(twice.currentStreak, once.currentStreak);
   });
 
@@ -245,8 +326,11 @@ void main() {
         return answer(edit);
       };
       FarmStore.plants.value = [
-        plant('p', name: 'Mint',
-            water: CareSchedule(Repeat.everyWeek, at8, since: nov(1))),
+        plant(
+          'p',
+          name: 'Mint',
+          water: CareSchedule(Repeat.everyWeek, at8, since: nov(1)),
+        ),
       ];
     });
 
@@ -265,11 +349,16 @@ void main() {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(const MaterialApp(
-          home: Scaffold(body: Text('Home screen'))));
-      tester.state<NavigatorState>(find.byType(Navigator)).push(
-          MaterialPageRoute<void>(
-              builder: (_) => const EditPlantScreen(plantId: 'p')));
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: Text('Home screen'))),
+      );
+      tester
+          .state<NavigatorState>(find.byType(Navigator))
+          .push(
+            MaterialPageRoute<void>(
+              builder: (_) => const EditPlantScreen(plantId: 'p'),
+            ),
+          );
       await settle(tester);
       await tester.enterText(find.byType(EditableText), 'Garden mint');
       await settle(tester);
@@ -283,7 +372,9 @@ void main() {
     const networkMessage =
         "Couldn't save changes. Check your internet connection and try again.";
 
-    testWidgets('E1. offline: stays open, keeps the form, says why', (tester) async {
+    testWidgets('E1. offline: stays open, keeps the form, says why', (
+      tester,
+    ) async {
       answer = (_) async => throw offline();
       await open(tester);
       await save(tester);
@@ -294,8 +385,9 @@ void main() {
       await tester.pump(const Duration(seconds: 10));
     });
 
-    testWidgets('E2. connection lost while saving: one save, then the error',
-        (tester) async {
+    testWidgets('E2. connection lost while saving: one save, then the error', (
+      tester,
+    ) async {
       final gate = Completer<void>();
       answer = (_) => gate.future;
       await open(tester);
@@ -315,8 +407,9 @@ void main() {
       await tester.pump(const Duration(seconds: 10));
     });
 
-    testWidgets('E3. trying again with the same values, then it closes',
-        (tester) async {
+    testWidgets('E3. trying again with the same values, then it closes', (
+      tester,
+    ) async {
       var attempt = 0;
       answer = (_) async {
         if (++attempt == 1) throw offline();
@@ -333,13 +426,16 @@ void main() {
       expect(find.text('Home screen'), findsOneWidget);
     });
 
-    testWidgets('E4. another failure doesn\'t blame the connection',
-        (tester) async {
+    testWidgets('E4. another failure doesn\'t blame the connection', (
+      tester,
+    ) async {
       answer = (_) async => throw StateError('Plant p no longer exists.');
       await open(tester);
       await save(tester);
-      expect(find.text("Couldn't save changes. Please try again."),
-          findsOneWidget);
+      expect(
+        find.text("Couldn't save changes. Please try again."),
+        findsOneWidget,
+      );
       expect(find.text(networkMessage), findsNothing);
       expect(find.byType(EditPlantScreen), findsOneWidget);
       await tester.pump(const Duration(seconds: 10));
@@ -373,8 +469,11 @@ void main() {
         // Due today.
         plant('p', water: CareSchedule(Repeat.everyDay, at8, since: today)),
         // Never done since two days ago: missed.
-        plant('m', name: 'Basil',
-            water: CareSchedule(Repeat.everyDay, at8, since: twoDaysAgo)),
+        plant(
+          'm',
+          name: 'Basil',
+          water: CareSchedule(Repeat.everyDay, at8, since: twoDaysAgo),
+        ),
       ];
     });
 
@@ -402,7 +501,9 @@ void main() {
     }
 
     Finder box(String key) => find.descendant(
-        of: find.byKey(ValueKey(key)), matching: find.byType(Checkbox));
+      of: find.byKey(ValueKey(key)),
+      matching: find.byType(Checkbox),
+    );
     bool ticked(WidgetTester tester, String key) =>
         tester.widget<Checkbox>(box(key)).value ?? false;
 
@@ -411,8 +512,9 @@ void main() {
     const networkMessage =
         "Couldn't save the task. Check your connection and try again";
 
-    testWidgets('T1. a tick that fails is taken back, and says why',
-        (tester) async {
+    testWidgets('T1. a tick that fails is taken back, and says why', (
+      tester,
+    ) async {
       answer = (_, _, _) async => throw offline();
       await open(tester);
       expect(ticked(tester, todayTask), isFalse);
@@ -442,8 +544,9 @@ void main() {
       await tester.pump(const Duration(seconds: 10));
     });
 
-    testWidgets('T3. trying again after a failure saves it once',
-        (tester) async {
+    testWidgets('T3. trying again after a failure saves it once', (
+      tester,
+    ) async {
       var attempt = 0;
       answer = (id, done, late) async {
         if (++attempt == 1) throw offline();
@@ -490,14 +593,17 @@ void main() {
       await tester.pump(const Duration(seconds: 10));
     });
 
-    testWidgets('T6. another failure doesn\'t blame the connection',
-        (tester) async {
+    testWidgets('T6. another failure doesn\'t blame the connection', (
+      tester,
+    ) async {
       answer = (_, _, _) async => throw StateError('refused');
       await open(tester);
       await tester.tap(box(todayTask));
       await settle(tester);
-      expect(find.text("Couldn't save the task. Please try again"),
-          findsOneWidget);
+      expect(
+        find.text("Couldn't save the task. Please try again"),
+        findsOneWidget,
+      );
       expect(find.text(networkMessage), findsNothing);
       await tester.pump(const Duration(seconds: 10));
     });

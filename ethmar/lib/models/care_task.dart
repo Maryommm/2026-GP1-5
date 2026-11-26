@@ -4,8 +4,7 @@
 /// The rules, for one plant and one type (watering and fertilizing never
 /// affect each other):
 /// - The first task is due on the schedule's start day
-///   ([CareSchedule.since]; for older schedules without one, on the
-///   planting-day rhythm from the day the plant was last saved).
+///   ([CareSchedule.since]).
 /// - Once a task is done, on time, early on its day, or late, the next one
 ///   is due [Repeat.days] days after the day it was really done
 ///   ([CareSchedule.lastDone]), at the schedule's time, but never before
@@ -160,14 +159,11 @@ CareState? careState(
   final step = activeStep(every);
   final anchor = _anchor(
     schedule,
-    plant,
     careTaskId(plant.id ?? '', type),
     today,
     logs,
   );
-  final start = anchor == null
-      ? _firstDay(schedule, plant)
-      : _nextAfter(anchor, schedule);
+  final start = anchor == null ? schedule.since : _nextAfter(anchor, schedule);
 
   final t = _dayNumber(today), s = _dayNumber(start);
   int? missed;
@@ -228,7 +224,7 @@ List<CareTask> dueTasks(List<FarmPlant> plants, DateTime day) {
     for (final plant in plants)
       for (final type in TaskType.values)
         if (plant.scheduleOf(type) case final schedule?)
-          if (_hadTask(schedule, plant, day))
+          if (_hadTask(schedule, day))
             CareTask(plant: plant, type: type, at: _atTime(day, schedule)),
   ];
   tasks.sort((a, b) => a.at.compareTo(b.at));
@@ -236,7 +232,7 @@ List<CareTask> dueTasks(List<FarmPlant> plants, DateTime day) {
 }
 
 /// Whether the schedule had a task on [day] (see [dueTasks]).
-bool _hadTask(CareSchedule schedule, FarmPlant plant, DateTime day) {
+bool _hadTask(CareSchedule schedule, DateTime day) {
   final every = schedule.repeat.days;
   final step = activeStep(every);
   final d = _dayNumber(day);
@@ -264,7 +260,7 @@ bool _hadTask(CareSchedule schedule, FarmPlant plant, DateTime day) {
     // Between a missed task and the day it was done late: no other task.
     if (d > due) return false;
   }
-  return onChain(_firstDay(schedule, plant));
+  return onChain(schedule.since);
 }
 
 /// The latest known time the task [id] was done: the plant's saved
@@ -272,7 +268,6 @@ bool _hadTask(CareSchedule schedule, FarmPlant plant, DateTime day) {
 /// was un-ticked), or a tick in [logs], whichever is later.
 CareDone? _anchor(
   CareSchedule schedule,
-  FarmPlant plant,
   String id,
   DateTime today,
   Map<String, TaskLog> logs,
@@ -288,7 +283,7 @@ CareDone? _anchor(
   }
   // Ticks in the logs, from the schedule's start (a tick of an older,
   // changed schedule doesn't count).
-  final first = schedule.since ?? _dateOnly(plant.updatedAt);
+  final first = schedule.since;
   for (final log in logs.values) {
     final day = TaskLog.parseKey(log.date);
     if (day == null || day.isBefore(first) || day.isAfter(today)) continue;
@@ -311,22 +306,8 @@ CareDone? _anchor(
 /// day (after a new repeat, a day already passed becomes the start day).
 DateTime _nextAfter(CareDone done, CareSchedule schedule) {
   final next = _addDays(done.date, schedule.repeat.days);
-  final since = schedule.since;
-  return since != null && since.isAfter(next) ? since : next;
+  return schedule.since.isAfter(next) ? schedule.since : next;
 }
-
-/// The schedule's first task when it was never done: its start day, or for
-/// older schedules without one, the first planting-day rhythm day from the
-/// plant's last save.
-DateTime _firstDay(CareSchedule schedule, FarmPlant plant) =>
-    schedule.since ??
-    CareSchedule.firstDayFrom(
-      plant.plantedAt,
-      schedule.repeat.days,
-      plant.updatedAt.isAfter(plant.plantedAt)
-          ? plant.updatedAt
-          : plant.plantedAt,
-    );
 
 DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
 

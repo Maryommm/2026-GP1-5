@@ -29,20 +29,22 @@ List<DailyTask> tasksForDay(
     final done = state.doneToday || log.isCompleted(state.taskId);
     if (!done && !state.dueToday) continue;
     final at = state.at(day);
-    tasks.add(DailyTask(
-      id: state.taskId,
-      plantId: state.plant.id!,
-      // The user's own name for the plant, the same in both languages.
-      plant: BiText(state.plant.name, state.plant.name),
-      type: state.type,
-      day: day,
-      time: state.schedule.time,
-      status: done
-          ? TaskStatus.completed
-          : at.isBefore(now)
-          ? TaskStatus.due
-          : TaskStatus.upcoming,
-    ));
+    tasks.add(
+      DailyTask(
+        id: state.taskId,
+        plantId: state.plant.id!,
+        // The user's own name for the plant, the same in both languages.
+        plant: BiText(state.plant.name, state.plant.name),
+        type: state.type,
+        day: day,
+        time: state.schedule.time,
+        status: done
+            ? TaskStatus.completed
+            : at.isBefore(now)
+            ? TaskStatus.due
+            : TaskStatus.upcoming,
+      ),
+    );
   }
   tasks.sort((a, b) => _minutes(a.time).compareTo(_minutes(b.time)));
   return tasks;
@@ -65,7 +67,7 @@ List<DailyTask> missedTasks(
   final missed = <DailyTask>[];
   for (final state in careStates(plants, day, logs: logs)) {
     final added = _dateOnly(state.plant.createdAt);
-    final first = state.schedule.since ?? _dateOnly(state.plant.updatedAt);
+    final first = state.schedule.since;
     DailyTask task(DateTime on, TaskStatus status) => DailyTask(
       id: state.taskId,
       plantId: state.plant.id!,
@@ -168,7 +170,8 @@ class DailyTask {
       status == TaskStatus.completed || status == TaskStatus.doneLate;
 
   /// From an earlier day (under "Missed tasks").
-  bool get isPast => status == TaskStatus.missed || status == TaskStatus.doneLate;
+  bool get isPast =>
+      status == TaskStatus.missed || status == TaskStatus.doneLate;
 
   /// Unique on the page: the same plant can have a task today and a missed
   /// one from yesterday, with the same task id.

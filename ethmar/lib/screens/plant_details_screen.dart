@@ -759,7 +759,7 @@ class _JourneyTimeline extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 14),
         child: _PhotoFrame(
           photo: photo,
-          onTap: photo == null ? null : () => _showPhoto(context, entry),
+          onTap: () => _showPhoto(context, entry),
         ),
       ),
       const SizedBox(width: 14),
@@ -792,7 +792,7 @@ class _JourneyTimeline extends StatelessWidget {
 
   /// The picture full screen, to zoom in, with its notes underneath.
   void _showPhoto(BuildContext context, JourneyEntry entry) {
-    final photo = entry.photo!;
+    final photo = entry.photo;
     showDialog<void>(
       context: context,
       barrierColor: Colors.black87,

@@ -130,23 +130,18 @@ class PlantEdit {
     if (current == null) {
       // Off now (or switched on here): a new schedule, from today.
       return {
-        field: CareSchedule(draft.repeat, draft.time).savedOver(
-          null,
-          today,
-          lastSaved: saved.updatedAt,
-          plantedAt: saved.plantedAt,
-        ).toMap(),
+        field: CareSchedule(
+          draft.repeat,
+          draft.time,
+          since: draft.since,
+        ).savedOver(null, today).toMap(),
       };
     }
     final wanted = CareSchedule(
       repeatChanged ? draft.repeat : current.repeat,
       timeChanged ? draft.time : current.time,
-    ).savedOver(
-      current,
-      today,
-      lastSaved: saved.updatedAt,
-      plantedAt: saved.plantedAt,
-    );
+      since: draft.since,
+    ).savedOver(current, today);
     final from = current.toMap(), to = wanted.toMap();
     final update = <String, Object?>{};
     for (final key in {...from.keys, ...to.keys}) {

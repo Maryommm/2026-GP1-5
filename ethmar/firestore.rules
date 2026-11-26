@@ -14,7 +14,7 @@ service cloud.firestore {
 
     // The farm belongs to the signed-in user with this uid.
     function ownsFarm(uid) {
-      return request.auth != null && request.auth.uid == uid;
+      return hasVerifiedEmail() && request.auth.uid == uid;
     }
 
     // "HH:mm", 24-hour.
@@ -36,19 +36,19 @@ service cloud.firestore {
           validDay(done.date) && validDay(done.due);
     }
 
-    // A care schedule {everyDays, time, since?, lastDone?, previousDone?},
+    // A care schedule {everyDays, time, since, lastDone?, previousDone?},
     // or null when switched off (see CareSchedule in
     // lib/models/farm_plant.dart). since is the day the schedule was set;
     // lastDone and previousDone the last two times its task was done.
     function validSchedule(schedule) {
       return schedule == null || (
           schedule is map &&
-          schedule.keys().hasAll(['everyDays', 'time']) &&
+          schedule.keys().hasAll(['everyDays', 'time', 'since']) &&
           schedule.keys().hasOnly(['everyDays', 'time', 'since',
               'lastDone', 'previousDone']) &&
           schedule.everyDays in [1, 2, 3, 4, 5, 6, 7, 14, 21, 30] &&
           validTime(schedule.time) &&
-          (!('since' in schedule) || validDay(schedule.since)) &&
+          validDay(schedule.since) &&
           (!('lastDone' in schedule) || validDone(schedule.lastDone)) &&
           (!('previousDone' in schedule) || validDone(schedule.previousDone)));
     }
@@ -101,15 +101,26 @@ service cloud.firestore {
     // One day's finished tasks (see TaskLog.toMap): on time, and late (done
     // on a later day, not counted for the streak) with the day each late
     // one was done (lateOn). Two tasks per plant and 225 plants at most.
+    // Firestore Rules cannot iterate a list or map to apply a regex to every
+    // task id or lateOn value; those lexical checks remain in the app model.
     function validTaskLog(data) {
       return data.keys().hasAll(['completed']) &&
           data.keys().hasOnly(['completed', 'late', 'lateOn']) &&
           data.completed is list &&
           data.completed.size() <= 450 &&
+          data.completed.toSet().size() == data.completed.size() &&
           (!('late' in data) ||
-              (data.late is list && data.late.size() <= 450)) &&
+              (data.late is list &&
+               data.late.size() <= 450 &&
+               data.late.toSet().size() == data.late.size() &&
+               data.completed.toSet().intersection(data.late.toSet()).size() == 0)) &&
           (!('lateOn' in data) ||
-              (data.lateOn is map && data.lateOn.size() <= 450));
+              (data.lateOn is map &&
+               data.lateOn.size() <= 450 &&
+               'late' in data &&
+               data.lateOn.size() == data.late.size() &&
+               data.late.toSet().hasAll(data.lateOn.keys()))) &&
+          ('lateOn' in data || !('late' in data) || data.late.size() == 0);
     }
 
     // The streak and lands (see FarmStats.toMap).
@@ -272,7 +283,7 @@ service cloud.firestore {
       match /taskLog/{date} {
         allow read: if ownsFarm(uid);
         allow create, update: if ownsFarm(uid) &&
-            date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+            validDay(date) &&
             validTaskLog(request.resource.data);
         allow delete: if false;
       }

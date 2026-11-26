@@ -8,7 +8,7 @@
 ///   - both schedules off:  Lemon tree
 ///   - two lands:           land 0 (squares 0-3) and land 1 (squares 0-1),
 ///                          so [sampleStats] has 2 lands
-///   - journey entries:      Tomato (2, one with a photo) and Mint (1)
+///   - journey entries:      Tomato (2) and Mint (1), all with photos
 library;
 
 import 'package:flutter/material.dart';
@@ -18,6 +18,15 @@ import '../models/farm_plant.dart';
 import '../models/farm_stats.dart';
 
 CatalogCrop _crop(String id) => cropCatalog.firstWhere((c) => c.id == id);
+
+JourneyPhoto _journeyPhoto(String plantId, String entryId) => JourneyPhoto(
+  publicId: JourneyPhoto.publicIdFor('sample-uid', plantId, entryId),
+  version: 1,
+  format: 'webp',
+  width: 1080,
+  height: 1080,
+  bytes: 154000,
+);
 
 /// Stats that match [samplePlants]: 2 lands and a short streak.
 const sampleStats = FarmStats(
@@ -34,10 +43,15 @@ final samplePlants = <FarmPlant>[
     name: 'My tomato',
     land: 0,
     square: 0,
-    irrigation: const CareSchedule(Repeat.everyDay, TimeOfDay(hour: 7, minute: 0)),
-    fertilization: const CareSchedule(
+    irrigation: CareSchedule(
+      Repeat.everyDay,
+      const TimeOfDay(hour: 7, minute: 0),
+      since: DateTime(2026, 9, 1),
+    ),
+    fertilization: CareSchedule(
       Repeat.everyWeek,
-      TimeOfDay(hour: 8, minute: 0),
+      const TimeOfDay(hour: 8, minute: 0),
+      since: DateTime(2026, 9, 1),
     ),
     plantedAt: DateTime(2026, 9, 1),
     createdAt: DateTime(2026, 9, 1, 10, 15),
@@ -47,21 +61,13 @@ final samplePlants = <FarmPlant>[
         id: 'sample-tomato-1',
         date: DateTime(2026, 9, 10, 9, 0),
         notes: 'First leaves!',
+        photo: _journeyPhoto('sample-tomato', 'sample-tomato-1'),
       ),
       JourneyEntry(
         id: 'sample-tomato-2',
         date: DateTime(2026, 10, 5, 17, 45),
         notes: 'Flowers are opening.',
-        // A made-up Cloudinary picture, in the folder real ones use
-        // (see JourneyPhoto.publicIdFor).
-        photo: const JourneyPhoto(
-          publicId: 'ethmar/plant-journey/sample-uid/sample-tomato/sample-tomato-2',
-          version: 1,
-          format: 'webp',
-          width: 1080,
-          height: 1080,
-          bytes: 154000,
-        ),
+        photo: _journeyPhoto('sample-tomato', 'sample-tomato-2'),
       ),
     ],
   ),
@@ -71,19 +77,25 @@ final samplePlants = <FarmPlant>[
     name: 'Kitchen mint',
     land: 0,
     square: 1,
-    irrigation: const CareSchedule(
+    irrigation: CareSchedule(
       Repeat.every2Days,
-      TimeOfDay(hour: 18, minute: 0),
+      const TimeOfDay(hour: 18, minute: 0),
+      since: DateTime(2026, 9, 15),
     ),
-    fertilization: const CareSchedule(
+    fertilization: CareSchedule(
       Repeat.everyMonth,
-      TimeOfDay(hour: 9, minute: 30),
+      const TimeOfDay(hour: 9, minute: 30),
+      since: DateTime(2026, 9, 15),
     ),
     plantedAt: DateTime(2026, 9, 15),
     createdAt: DateTime(2026, 9, 15, 16, 0),
     updatedAt: DateTime(2026, 9, 15, 16, 0),
     journey: [
-      JourneyEntry(id: 'sample-mint-1', date: DateTime(2026, 10, 1, 8, 20)),
+      JourneyEntry(
+        id: 'sample-mint-1',
+        date: DateTime(2026, 10, 1, 8, 20),
+        photo: _journeyPhoto('sample-mint', 'sample-mint-1'),
+      ),
     ],
   ),
   FarmPlant(
@@ -92,9 +104,10 @@ final samplePlants = <FarmPlant>[
     name: 'Basil',
     land: 0,
     square: 2,
-    irrigation: const CareSchedule(
+    irrigation: CareSchedule(
       Repeat.every3Days,
-      TimeOfDay(hour: 7, minute: 30),
+      const TimeOfDay(hour: 7, minute: 30),
+      since: DateTime(2026, 10, 1),
     ),
     plantedAt: DateTime(2026, 10, 1),
     createdAt: DateTime(2026, 10, 1, 11, 0),
@@ -116,13 +129,15 @@ final samplePlants = <FarmPlant>[
     name: 'Strawberries',
     land: 1,
     square: 0,
-    irrigation: const CareSchedule(
+    irrigation: CareSchedule(
       Repeat.everyDay,
-      TimeOfDay(hour: 6, minute: 45),
+      const TimeOfDay(hour: 6, minute: 45),
+      since: DateTime(2026, 10, 10),
     ),
-    fertilization: const CareSchedule(
+    fertilization: CareSchedule(
       Repeat.every2Weeks,
-      TimeOfDay(hour: 8, minute: 0),
+      const TimeOfDay(hour: 8, minute: 0),
+      since: DateTime(2026, 10, 10),
     ),
     plantedAt: DateTime(2026, 10, 10),
     createdAt: DateTime(2026, 10, 10, 15, 10),
@@ -134,9 +149,10 @@ final samplePlants = <FarmPlant>[
     name: 'Date palm',
     land: 1,
     square: 1,
-    irrigation: const CareSchedule(
+    irrigation: CareSchedule(
       Repeat.everyWeek,
-      TimeOfDay(hour: 17, minute: 0),
+      const TimeOfDay(hour: 17, minute: 0),
+      since: DateTime(2026, 7, 1),
     ),
     plantedAt: DateTime(2026, 7, 1),
     createdAt: DateTime(2026, 7, 1, 10, 0),
