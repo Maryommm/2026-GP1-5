@@ -34,8 +34,12 @@ import 'edit_plant_screen.dart';
 ///
 /// [plantId] is the plant's Firestore document id.
 class PlantDetailsScreen extends StatefulWidget {
-  const PlantDetailsScreen({super.key, required this.plantId});
+  const PlantDetailsScreen({super.key, required this.plantId, this.addedPlant});
   final String plantId;
+
+  /// The plant just saved by Add Plant. It is shown until the farm's live
+  /// list includes it, which can take a moment, so the page opens at once.
+  final FarmPlant? addedPlant;
 
   @override
   State<PlantDetailsScreen> createState() => _PlantDetailsScreenState();
@@ -44,6 +48,11 @@ class PlantDetailsScreen extends StatefulWidget {
 class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
   bool _deleting = false;
   bool _closing = false;
+
+  /// True once the plant has been found in [FarmStore.plants]. Until then a
+  /// just-added plant is shown from [PlantDetailsScreen.addedPlant]; after
+  /// that, the plant missing from the list means it was deleted.
+  bool _seen = false;
 
   /// True while a journey photo is being uploaded and saved.
   bool _uploading = false;
@@ -231,9 +240,11 @@ class _PlantDetailsScreenState extends State<PlantDetailsScreen> {
         child: ValueListenableBuilder<List<FarmPlant>>(
           valueListenable: FarmStore.plants,
           builder: (context, plants, _) {
-            final plant = FarmStore.plantById(plantId);
-            // It was deleted (here or on another device), so close the screen.
+            final loaded = FarmStore.plantById(plantId);
+            if (loaded != null) _seen = true;
+            final plant = loaded ?? (_seen ? null : widget.addedPlant);
             if (plant == null) {
+              // It was deleted (here or on another device), so close the screen.
               WidgetsBinding.instance.addPostFrameCallback((_) => _closeOnce());
               return const SizedBox.shrink();
             }

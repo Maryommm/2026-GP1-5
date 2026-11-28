@@ -92,6 +92,30 @@ void main() {
   });
 
   group('closing', () {
+    testWidgets('a just-added plant that has not loaded yet shows at once and '
+        'the screen stays open', (tester) async {
+      final navigator = GlobalKey<NavigatorState>();
+      final plant = samplePlants.first;
+      FarmStore.plants.value = samplePlants.skip(1).toList();
+      await tester.pumpWidget(
+        MaterialApp(navigatorKey: navigator, home: const Text('start')),
+      );
+      navigator.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              PlantDetailsScreen(plantId: plant.id!, addedPlant: plant),
+        ),
+      );
+      await settle(tester);
+      expect(find.byType(PlantDetailsScreen), findsOneWidget);
+      expect(find.text(plant.name), findsWidgets);
+
+      FarmStore.plants.value = samplePlants;
+      await settle(tester);
+      expect(find.byType(PlantDetailsScreen), findsOneWidget);
+      expect(find.text(plant.name), findsWidgets);
+    });
+
     testWidgets('the screen closes when its plant is deleted', (tester) async {
       await openDetails(tester);
 

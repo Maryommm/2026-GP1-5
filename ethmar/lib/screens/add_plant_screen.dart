@@ -54,7 +54,9 @@ class AddPlantScreen extends StatefulWidget {
       final plantId = plant.id;
       if (plantId != null && plantId.trim().isNotEmpty) {
         await Navigator.of(context)
-            .push<void>(riseRoute(PlantDetailsScreen(plantId: plantId)));
+            .push<void>(riseRoute(
+              PlantDetailsScreen(plantId: plantId, addedPlant: plant),
+            ));
       }
     }
     return plant;
