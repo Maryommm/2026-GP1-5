@@ -42,16 +42,16 @@ CACHE_MAX_AGE_DAYS = 30
 # The cache version is increased whenever the meaning of the saved values
 # changes, so that old cache files are ignored and fetched again.
 
-CACHE_VERSION = 4
+CACHE_VERSION = 5
 
 NASA_DAILY_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
-NORMALS_START = "20050101"   # 20 full years of daily data
-NORMALS_END = "20241231"
+NORMALS_START = "19960101"   # 30 full years of daily data (WMO normal length)
+NORMALS_END = "20251231"
 ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
 SOILGRIDS_URL = "https://rest.isric.org/soilgrids/v2.0/properties/query"
 
 TIMEOUT = 45          # seconds, for the small requests
-NASA_TIMEOUT = 150    # seconds, NASA returns 20 years of data in one response
+NASA_TIMEOUT = 150    # seconds, NASA returns 30 years of data in one response
 
 # How long one lookup may wait for the services, in seconds. Vercel stops
 # the server after 60 s and the app gives up after 60 s, so the lookup
@@ -180,7 +180,7 @@ def _write_cache(cache, profile: ClimateProfile) -> None:
 
 def fetch_nasa_power(latitude: float, longitude: float):
     """
-    Calculate the 12 monthly climate averages from 20 years of daily data.
+    Calculate the 12 monthly climate averages from 30 years of daily data.
 
     We use the daily data instead of NASA's ready-made monthly climatology,
     because the climatology values T2M_MAX and T2M_MIN are the highest and

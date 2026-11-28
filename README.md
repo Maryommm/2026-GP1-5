@@ -81,7 +81,7 @@ pip install -r requirements.txt -r recommender/requirements.txt
 | 3 | `python recommender/scripts/scoring.py 24.71 46.67 11` | Prints the top 10 crops for a latitude, longitude and month. It needs internet for the climate services |
 
 The first run of step 3 for a place can take up to a minute, because it
-downloads 20 years of NASA POWER climate data. The result is saved in
+downloads 30 years of NASA POWER climate data. The result is saved in
 `data/external/climate_cache/`, and later runs for the same area are fast.
 
 The scoring settings (weights, thresholds) are in
